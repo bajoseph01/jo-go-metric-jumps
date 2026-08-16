@@ -1272,6 +1272,29 @@ button {
 .ws-opt--key { background: var(--yellow-soft); }
 .ws-note { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 14px; }
 
+.ws-mode {
+  display: inline-flex;
+  gap: 4px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 4px;
+  background: #fff;
+}
+
+.ws-mode-tab {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  padding: 6px 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ws-mode-tab--on { background: var(--blue); color: #fff; }
+
 .ws-sheet {
   background: #fff;
   border: 3px solid var(--ink);
@@ -1324,6 +1347,18 @@ button {
 }
 
 .ws-blank--wide { min-width: 260px; }
+
+.ws-scale-item {
+  margin: 12px 0;
+  border-bottom: 2px dashed var(--ink-soft);
+  padding-bottom: 10px;
+}
+
+.ws-scale-item:last-child { border-bottom: none; }
+.ws-q--scale { flex-direction: column; align-items: stretch; gap: 2px; }
+.ws-q--scale .scale-svg { max-width: 300px; margin: 0 auto 4px; }
+.ws-scale-item .ws-word-answer { margin-left: 34px; }
+.ws-scale-unit { font-weight: 800; }
 
 .ws-answers {
   background: #fff;

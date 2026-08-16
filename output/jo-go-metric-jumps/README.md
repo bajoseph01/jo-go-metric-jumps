@@ -104,7 +104,11 @@ every stage including locked ones — a **per-learner printable report**
 (mastery by category and conversion pair, with a learner switcher, Print and
 **Download PDF** buttons), and a **Worksheet pack**: one printable or
 PDF-exportable worksheet per selected learner that drills their weakest
-conversion pairs plus two word problems, with an answer key. Everything is
-generated locally — no network, no data leaves the device.
+conversion pairs plus two word problems, with an answer key. The pack has a
+**Conversions | Read the Scales** toggle — the Scales mode prints one sheet
+per learner with 10 rendered instrument graphics (ruler, kitchen dial,
+measuring jug) and blank answer lines, with a matching answer key and PDF
+export. Everything is generated locally — no network, no data leaves the
+device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

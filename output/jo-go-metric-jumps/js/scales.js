@@ -120,6 +120,129 @@
     jugSVG: jugSVG
   };
 
+  /**
+   * A printable worksheet's items: `counts` readings per instrument
+   * (default ruler 4, kitchen 3, jug 3), shuffled.
+   */
+  function worksheetItems(rng, counts) {
+    rng = rng || Math.random;
+    counts = counts || { ruler: 4, kitchen: 3, jug: 3 };
+    var items = [];
+    ['ruler', 'kitchen', 'jug'].forEach(function (ins) {
+      var n = counts[ins] || 0;
+      for (var i = 0; i < n; i++) items.push(question(ins, rng));
+    });
+    for (var j = items.length - 1; j > 0; j--) {
+      var k = Math.floor(rng() * (j + 1));
+      var tmp = items[j]; items[j] = items[k]; items[k] = tmp;
+    }
+    return items;
+  }
+
+  // ------------------------------------------------------------------
+  // PDF drawing commands (same geometry as the SVG builders, in viewBox
+  // units). Command types:
+  //   { t:'line', x1,y1,x2,y2, w, color }
+  //   { t:'rect', x,y,w,h, fill, stroke, sw }
+  //   { t:'circle', cx,cy,r, fill, stroke, sw }
+  //   { t:'poly', pts:[[x,y]...], fill }
+  //   { t:'text', x,y, str, size, bold, color, anchor }
+  // ------------------------------------------------------------------
+
+  function rulerPDF(mm) {
+    var px = 1.7, x0 = 30, w = x0 + 250 * px + 10;
+    var c = [];
+    c.push({ t: 'rect', x: x0, y: 30, w: 250 * px, h: 36, fill: '#f7c948', stroke: '#2d2d2d', sw: 2 });
+    for (var m = 0; m <= 250; m++) {
+      var x = x0 + m * px;
+      var isMajor = m % 10 === 0, isHalf = m % 5 === 0;
+      var th = isMajor ? 16 : (isHalf ? 11 : 7);
+      c.push({ t: 'line', x1: x, y1: 30, x2: x, y2: 30 + th, w: isMajor ? 1.6 : 0.8, color: '#2d2d2d' });
+      if (isMajor) c.push({ t: 'text', x: x, y: 80, str: String(m / 10), size: 9, bold: true, color: '#2d2d2d', anchor: 'middle' });
+    }
+    var px2 = x0 + mm * px;
+    c.push({ t: 'line', x1: px2, y1: 6, x2: px2, y2: 28, w: 3, color: '#e63946' });
+    c.push({ t: 'poly', pts: [[px2 - 7, 26], [px2 + 7, 26], [px2, 38]], fill: '#e63946' });
+    c.push({ t: 'text', x: w - 8, y: 26, str: 'cm', size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
+    return c;
+  }
+
+  function kitchenPDF(grams) {
+    var cx = 190, cy = 190, r = 150;
+    var c = [];
+    c.push({ t: 'circle', cx: cx, cy: cy, r: r, fill: '#fff', stroke: '#2d2d2d', sw: 3 });
+    c.push({ t: 'circle', cx: cx, cy: cy, r: 10, fill: '#2d2d2d' });
+    function pt(v, rad) {
+      var a = (135 + (v / 1000) * 270) * Math.PI / 180;
+      return [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+    }
+    for (var g = 0; g <= 1000; g += 20) {
+      var isMajor = g % 100 === 0;
+      var p1 = pt(g, isMajor ? r - 17 : r - 9);
+      var p2 = pt(g, r - 3);
+      c.push({ t: 'line', x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], w: isMajor ? 2.2 : 1, color: '#2d2d2d' });
+      if (isMajor) {
+        var pl = pt(g, r - 34);
+        c.push({ t: 'text', x: pl[0], y: pl[1] + 3.5, str: g === 1000 ? '1 kg' : String(g), size: 10, bold: true, color: '#2d2d2d', anchor: 'middle' });
+      }
+    }
+    var n1 = pt(grams, r - 42), n2 = pt(grams, 14);
+    c.push({ t: 'line', x1: n1[0], y1: n1[1], x2: n2[0], y2: n2[1], w: 4, color: '#e63946' });
+    return c;
+  }
+
+  function jugPDF(mL) {
+    var bx = 110, bw = 92, topY = 60, botY = 332;
+    var c = [];
+    c.push({ t: 'rect', x: bx, y: topY, w: bw, h: botY - topY, fill: '#cfe8ff', stroke: '#2d2d2d', sw: 3 });
+    c.push({ t: 'line', x1: bx, y1: topY, x2: bx - 16, y2: topY - 14, w: 3, color: '#2d2d2d' });
+    c.push({ t: 'line', x1: bx - 16, y1: topY - 14, x2: bx + 18, y2: topY - 14, w: 3, color: '#2d2d2d' });
+    function yFor(v) { return botY - (v / 1000) * (botY - topY); }
+    for (var v = 0; v <= 1000; v += 25) {
+      var isMajor = v % 100 === 0;
+      var y = yFor(v);
+      var x2 = bx + (isMajor ? -16 : -9);
+      c.push({ t: 'line', x1: bx, y1: y, x2: x2, y2: y, w: isMajor ? 2 : 1, color: '#2d2d2d' });
+      if (isMajor) c.push({ t: 'text', x: x2 - 4, y: y + 3.5, str: String(v), size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
+    }
+    var my = yFor(mL);
+    c.push({ t: 'rect', x: bx + 2, y: my, w: bw - 4, h: botY - my - 2, fill: '#8ec5ff' });
+    c.push({ t: 'line', x1: bx - 20, y1: my, x2: bx + bw + 20, y2: my, w: 3, color: '#e63946' });
+    c.push({ t: 'text', x: bx + bw / 2, y: topY - 24, str: 'mL', size: 11, bold: true, color: '#2d2d2d', anchor: 'middle' });
+    return c;
+  }
+
+  /** The SVG builder matching a PDF command set, for previews. */
+  function svgFromCommands(cmds, vbW, vbH, aria) {
+    var s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" class="scale-svg" role="img" aria-label="' + aria + '">';
+    for (var i = 0; i < cmds.length; i++) {
+      var c = cmds[i];
+      if (c.t === 'line') {
+        s += '<line x1="' + c.x1.toFixed(1) + '" y1="' + c.y1.toFixed(1) + '" x2="' + c.x2.toFixed(1) + '" y2="' + c.y2.toFixed(1) + '" stroke="' + c.color + '" stroke-width="' + (c.w || 1) + '"/>';
+      } else if (c.t === 'rect') {
+        s += '<rect x="' + c.x + '" y="' + c.y + '" width="' + c.w + '" height="' + c.h + '" rx="' + (c.rx || 4) + '" fill="' + c.fill + '" stroke="' + (c.stroke || 'none') + '" stroke-width="' + (c.sw || 1) + '"/>';
+      } else if (c.t === 'circle') {
+        s += '<circle cx="' + c.cx + '" cy="' + c.cy + '" r="' + c.r + '" fill="' + c.fill + '" stroke="' + (c.stroke || 'none') + '" stroke-width="' + (c.sw || 1) + '"/>';
+      } else if (c.t === 'poly') {
+        s += '<polygon points="' + c.pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="' + c.fill + '"/>';
+      } else if (c.t === 'text') {
+        var anchor = c.anchor === 'middle' ? ' text-anchor="middle"' : (c.anchor === 'end' ? ' text-anchor="end"' : '');
+        s += '<text x="' + c.x.toFixed(1) + '" y="' + c.y.toFixed(1) + '"' + anchor + ' font-size="' + c.size + '" font-weight="' + (c.bold ? 700 : 400) + '" fill="' + c.color + '">' + c.str + '</text>';
+      }
+    }
+    return s + '</svg>';
+  }
+
+  var Scales2 = {
+    worksheetItems: worksheetItems,
+    rulerPDF: rulerPDF,
+    kitchenPDF: kitchenPDF,
+    jugPDF: jugPDF,
+    svgFromCommands: svgFromCommands
+  };
+
+  for (var k2 in Scales2) Scales[k2] = Scales2[k2];
+
   if (typeof module !== 'undefined' && module.exports) { module.exports = Scales; }
   root.JOGO = root.JOGO || {};
   root.JOGO.Scales = Scales;

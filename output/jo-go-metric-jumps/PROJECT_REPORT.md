@@ -68,9 +68,13 @@ internalise "smaller unit → bigger number; the length never changes."
   by category and by conversion pair, learner switcher, print-optimised
   layout) and generates a **Worksheet pack**: one sheet per selected learner
   drilling their weakest conversion pairs plus word problems, with an answer
-  key — printable or exported as a single PDF. Reports and PDFs are produced
-  entirely in-browser by a bundled dependency-free PDF writer (no network,
-  works offline). Stays unlocked for the session; "Lock" re-arms the PIN.
+  key — printable or exported as a single PDF. The pack has a
+  **Conversions | Read the Scales** toggle: the Scales mode renders each
+  learner's ruler/kitchen-dial/measuring-jug graphics with blank answer lines
+  and a matching answer key, printable or PDF-exported too. Reports and PDFs
+  are produced entirely in-browser by a bundled dependency-free PDF writer
+  (no network, works offline). Stays unlocked for the session; "Lock" re-arms
+  the PIN.
 - **Sound toggle** — persistent preference; app is fully usable silent.
 
 ## Architecture
@@ -82,9 +86,9 @@ js/math.js            exact conversion engine + comma-track builder (unit-testab
 js/formatting.js      SA formatting: decimal comma, 2 500 spacing, answer parsing
 js/questions.js       stages, generators, adaptive pair weighting (3 dimensions)
 js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
-js/scales.js          Scales Lab: scale question gen + SVG ruler/dial/jug
+js/scales.js          Scales Lab + scale worksheets: question gen, SVG + PDF
+                      vector builders for ruler/dial/jug
 js/storage.js         per-learner profiles, localStorage persistence, mastery model
-js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
 js/pdf.js             tiny dependency-free PDF writer (reports + worksheet pack)
 js/input.js           keypad (pointer + keyboard) and comma track (pointer drag,
                       tap targets, keyboard arrows, focus ring)
@@ -114,7 +118,7 @@ sw.js                 offline service worker (network-first, cache fallback)
 ## Testing performed
 
 **Automated (Node, no dependencies)** — `node tests/run-tests.js`:
-3150 checks, 0 failures, covering:
+6022 checks, 0 failures, covering:
 - the six canonical conversions (direction, factor, jumps, exact values);
 - all mission error cases (0,5 m → cm; 0,05 m → cm; 5 m → mm; 5 000 mm → m;
   250 cm → m; 25 cm → m; 2,5 km → m; 0,003 km → m; 450 cm → m; 4 500 mm → m;
@@ -151,7 +155,12 @@ sw.js                 offline service worker (network-first, cache fallback)
   word problems verified exact and realistic;
 - Scales Lab end-to-end: ruler/kitchen/jug SVG instruments rendered and
   read via the real keypad flow (wrong → targeted feedback → correct → next),
-  per-instrument progress recorded and shown in the teacher report.
+  per-instrument progress recorded and shown in the teacher report;
+- scale worksheets: Conversions | Read the Scales mode toggle, 10-item sheets
+  (4 rulers, 3 kitchen, 3 jugs) with blank answer lines and no answer leaking
+  into the sheet, answer key matching the items, and the scale-pack PDF
+  (2-column layout, 2 sheet pages + key page) validated structurally in the
+  browser across five regenerations.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

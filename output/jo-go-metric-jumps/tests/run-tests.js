@@ -790,6 +790,66 @@ ok(ks.indexOf('aria-label="Kitchen scale with needle at 360') >= 0, 'kitchen svg
 const js = Scales.jugSVG(525);
 ok(js.indexOf('aria-label="Measuring jug with liquid at 525') >= 0, 'jug svg declares its reading');
 
+// ---- scale worksheet items ----------------------------------------
+const si = Scales.worksheetItems(null, null);
+eq(si.length, 10, 'default worksheet has 10 scale readings');
+eq(si.filter(x => x.instrument === 'ruler').length, 4, '4 rulers');
+eq(si.filter(x => x.instrument === 'kitchen').length, 3, '3 kitchen scales');
+eq(si.filter(x => x.instrument === 'jug').length, 3, '3 jugs');
+const custom = Scales.worksheetItems(null, { ruler: 2, kitchen: 1, jug: 0 });
+eq(custom.length, 3, 'custom counts respected');
+let siBad = 0;
+for (const x of si) {
+  const spec = Scales.SCALE_SPECS[x.instrument];
+  if (x.answer < spec.min || x.answer > spec.max || x.answer % spec.minor !== 0) siBad++;
+  if (x.unit !== spec.unit) siBad++;
+}
+eq(siBad, 0, 'worksheet readings on ticks with right units');
+eq(JSON.stringify(Scales.worksheetItems(makeRng(21), null)), JSON.stringify(Scales.worksheetItems(makeRng(21), null)), 'worksheet items deterministic per rng');
+
+// ---- PDF drawing commands (same geometry as the SVGs) --------------
+const rp = Scales.rulerPDF(137);
+const rNeedle = rp.filter(c => c.t === 'line' && c.color === '#e63946')[0];
+eq(Math.round(rNeedle.x1 * 10) / 10, 30 + 137 * 1.7, 'ruler pointer sits at 137 mm');
+eq(rNeedle.x1, rNeedle.x2, 'ruler pointer vertical');
+eq(rp.filter(c => c.t === 'line').length, 251 + 1, 'ruler: 250 ticks + pointer');
+eq(rp.filter(c => c.t === 'text').length, 27, 'ruler: 26 cm labels (0-25) + cm label');
+const kp = Scales.kitchenPDF(500);
+const kNeedle = kp.filter(c => c.t === 'line' && c.color === '#e63946')[0];
+ok(Math.abs(kNeedle.x1 - 190) < 1e-9, 'kitchen needle at 500 g points straight up (x=190)');
+ok(Math.abs(kNeedle.x2 - 190) < 1e-9, 'kitchen needle collinear at 500 g');
+ok(kNeedle.y1 < kNeedle.y2, 'kitchen needle points upward');
+eq(kp.filter(c => c.t === 'line').length, 51 + 1, 'kitchen: 51 ticks (0-1000 @20) + needle');
+eq(kp.filter(c => c.t === 'circle').length, 2, 'kitchen: dial + hub circles');
+const jp = Scales.jugPDF(525);
+const jMenis = jp.filter(c => c.t === 'line' && c.color === '#e63946')[0];
+eq(Math.round(jMenis.y1 * 10) / 10, Math.round((332 - (525 / 1000) * 272) * 10) / 10, 'jug meniscus at 525 mL height');
+eq(jMenis.y1, jMenis.y2, 'jug meniscus horizontal');
+eq(jp.filter(c => c.t === 'line').length, 41 + 2 + 1, 'jug: 41 ticks + 2 spout + meniscus');
+
+// command sets render into a structurally valid PDF via the primitives
+const sdoc = PDF.createDoc({});
+function drawCmds(cmds, x, y, sc) {
+  for (const c of cmds) {
+    if (c.t === 'line') sdoc.line(x + c.x1 * sc, y + c.y1 * sc, x + c.x2 * sc, y + c.y2 * sc, { width: (c.w || 1) * sc, color: c.color });
+    else if (c.t === 'rect') sdoc.rect(x + c.x * sc, y + c.y * sc, c.w * sc, c.h * sc, { fill: c.fill, stroke: c.stroke, sw: (c.sw || 1) * sc });
+    else if (c.t === 'circle') sdoc.circle(x + c.cx * sc, y + c.cy * sc, c.r * sc, { fill: c.fill, stroke: c.stroke, sw: (c.sw || 1) * sc });
+    else if (c.t === 'poly') sdoc.poly(c.pts.map(p => [x + p[0] * sc, y + p[1] * sc]), c.fill);
+    else if (c.t === 'text') sdoc.textAt(x + c.x * sc, y + c.y * sc, c.str, c.size * sc, c.bold, c.color, c.anchor);
+  }
+}
+drawCmds(Scales.rulerPDF(137), 44, 200, 0.62);
+drawCmds(Scales.kitchenPDF(500), 44, 260, 0.42);
+drawCmds(Scales.jugPDF(525), 44, 430, 0.42);
+const ss = pdfBytes(sdoc);
+ok(ss.startsWith('%PDF-1.4') && ss.endsWith('%%EOF\n'), 'scale-commands pdf header/eof ok');
+const ssm = ss.match(/startxref\n(\d+)\n%%EOF/);
+eq(Number(ssm[1]), ss.indexOf('xref'), 'scale-commands pdf startxref ok');
+ok(ss.indexOf(' re f') >= 0, 'rect fill op present (dial body)');
+ok(ss.indexOf(' c ') >= 0, 'bezier op present (circle path)');
+ok(/ RG /.test(ss) && / rg /.test(ss), 'stroke and fill colour ops present (hex colours work)');
+ok((ss.match(/Tf/g) || []).length >= 30, 'tick/needle label text drawn');
+
 // ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------

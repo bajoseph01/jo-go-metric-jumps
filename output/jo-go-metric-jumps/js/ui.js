@@ -1031,7 +1031,7 @@
   // Worksheet pack (teacher mode) + PDF export
   // ------------------------------------------------------------------
 
-  var wsState = { ids: null, withKey: true, items: {} };
+  var wsState = { ids: null, withKey: true, items: {}, scaleItems: {}, mode: 'conv' };
 
   function safeFilename(s) {
     var out = String(s).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -1049,6 +1049,74 @@
       '<span class="ws-blank ws-blank--wide"></span></span></div>';
   }
 
+  /** Instrument SVG preview for a worksheet item (no answer in the label). */
+  function wsScaleSVG(item) {
+    var cmds, vb, aria;
+    if (item.instrument === 'ruler') {
+      cmds = Scales.rulerPDF(item.answer); vb = { w: 465, h: 96 }; aria = 'Ruler with arrow';
+    } else if (item.instrument === 'kitchen') {
+      cmds = Scales.kitchenPDF(item.answer); vb = { w: 380, h: 380 }; aria = 'Kitchen scale with needle';
+    } else {
+      cmds = Scales.jugPDF(item.answer); vb = { w: 260, h: 360 }; aria = 'Measuring jug with liquid';
+    }
+    return Scales.svgFromCommands(cmds, vb.w, vb.h, aria);
+  }
+
+  /** Draw a command set into a PDF at (x, y from top) with a scale factor. */
+  function scalePDFToDoc(doc, cmds, x, y, scale) {
+    for (var i = 0; i < cmds.length; i++) {
+      var c = cmds[i];
+      if (c.t === 'line') {
+        doc.line(x + c.x1 * scale, y + c.y1 * scale, x + c.x2 * scale, y + c.y2 * scale, { width: (c.w || 1) * scale, color: c.color });
+      } else if (c.t === 'rect') {
+        doc.rect(x + c.x * scale, y + c.y * scale, c.w * scale, c.h * scale, { fill: c.fill, stroke: c.stroke, sw: (c.sw || 1) * scale });
+      } else if (c.t === 'circle') {
+        doc.circle(x + c.cx * scale, y + c.cy * scale, c.r * scale, { fill: c.fill, stroke: c.stroke, sw: (c.sw || 1) * scale });
+      } else if (c.t === 'poly') {
+        doc.poly(c.pts.map(function (p) { return [x + p[0] * scale, y + p[1] * scale]; }), c.fill);
+      } else if (c.t === 'text') {
+        doc.textAt(x + c.x * scale, y + c.y * scale, c.str, c.size * scale, c.bold, c.color, c.anchor);
+      }
+    }
+  }
+
+  /** Scale-reading sheets for the selected learners (answers hidden). */
+  function scaleSheetsHTML(sel, date) {
+    var html = '';
+    for (var s = 0; s < sel.length; s++) {
+      var l = sel[s];
+      if (!wsState.scaleItems[l.id]) wsState.scaleItems[l.id] = Scales.worksheetItems(null, null);
+      var items = wsState.scaleItems[l.id];
+      html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
+        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — Read the Scales</div>' +
+        '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
+        '<p class="ws-instruct">Read each scale and write your answer on the line.</p><div class="ws-qs">';
+      for (var i = 0; i < items.length; i++) {
+        html += '<div class="ws-scale-item">' +
+          '<div class="ws-q ws-q--scale"><span class="ws-num">' + (i + 1) + '.</span>' + wsScaleSVG(items[i]) + '</div>' +
+          '<div class="ws-word-answer"><span>Answer:</span><span class="ws-blank ws-blank--wide"></span>' +
+          '<span class="ws-scale-unit">' + items[i].unit + '</span></div>' +
+        '</div>';
+      }
+      html += '</div></div>';
+    }
+    return html;
+  }
+
+  function scaleKeyHTML(sel) {
+    var html = '';
+    for (var k = 0; k < sel.length; k++) {
+      var items2 = wsState.scaleItems[sel[k].id];
+      html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
+        '<ol class="ws-key-list">';
+      for (var a = 0; a < items2.length; a++) {
+        html += '<li>' + esc(F.scaledToSA(items2[a].answer, 1)) + ' ' + items2[a].unit + '</li>';
+      }
+      html += '</ol></div>';
+    }
+    return html;
+  }
+
   /** Teacher worksheet pack: one sheet per selected learner, plus key. */
   function renderWorksheets() {
     show('screen-worksheets');
@@ -1060,7 +1128,11 @@
     }
     if (!wsState.ids) wsState.ids = roster.map(function (l) { return l.id; });
 
-    var html = '<div class="ws-options">';
+    var html = '<div class="ws-options">' +
+      '<div class="ws-mode" role="tablist" aria-label="Worksheet type">' +
+        '<button type="button" class="ws-mode-tab' + (wsState.mode === 'conv' ? ' ws-mode-tab--on' : '') + '" data-ws-mode="conv" role="tab" aria-selected="' + (wsState.mode === 'conv') + '">Conversions</button>' +
+        '<button type="button" class="ws-mode-tab' + (wsState.mode === 'scales' ? ' ws-mode-tab--on' : '') + '" data-ws-mode="scales" role="tab" aria-selected="' + (wsState.mode === 'scales') + '">Read the Scales</button>' +
+      '</div>';
     for (var i = 0; i < roster.length; i++) {
       var on = wsState.ids.indexOf(roster[i].id) >= 0;
       html += '<label class="ws-opt"><input type="checkbox" data-ws-learner="' + roster[i].id + '"' +
@@ -1068,53 +1140,73 @@
     }
     html += '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-key-on"' +
       (wsState.withKey ? ' checked' : '') + '> Include answer key</label>' +
-      '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button></div>' +
-      '<p class="ws-note">' + M.DIMENSIONS[Store.getDimension()].name + ' worksheets: each drills the learner\u2019s weakest conversion pairs, plus 2 word problems. ' +
-      'Answers come from the same engine the game uses.</p>';
+      '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button></div>';
 
     var sel = roster.filter(function (l) { return wsState.ids.indexOf(l.id) >= 0; });
     var date = new Date().toLocaleDateString();
-    var dim = Store.getDimension();
-    var dimName = M.DIMENSIONS[dim].name;
-    for (var s = 0; s < sel.length; s++) {
-      var l = sel[s];
-      var key = l.id + ':' + dim;
-      if (!wsState.items[key]) wsState.items[key] = WS.buildItems(Store.progressOf(l.id), null, 8, 2, dim);
-      var items = wsState.items[key];
-      var convs = items.filter(function (it) { return it.type === 'conv'; });
-      var words = items.filter(function (it) { return it.type === 'word'; });
-      html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
-        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — ' + dimName + ' Worksheet</div>' +
-        '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
-        '<p class="ws-instruct">Convert these. Write your answer in the box.</p><div class="ws-qs">';
-      for (var c = 0; c < convs.length; c++) {
-        html += wsLine(convs[c], c + 1);
-      }
-      html += '</div><p class="ws-instruct ws-instruct--words">Word problems.</p><div class="ws-qs">';
-      for (var w = 0; w < words.length; w++) {
-        html += wsLine(words[w], convs.length + w + 1);
-      }
-      html += '</div></div>';
-    }
 
-    if (wsState.withKey && sel.length) {
-      html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>';
-      for (var k = 0; k < sel.length; k++) {
-        var items2 = wsState.items[sel[k].id + ':' + dim];
-        html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
-          '<ol class="ws-key-list">';
-        for (var a = 0; a < items2.length; a++) {
-          html += '<li>' + esc(items2[a].answer) +
-            (items2[a].type === 'word' ? ' <span class="ws-key-unit">(' + esc(items2[a].from) + ' → ' + esc(items2[a].to) + ')</span>' : '') +
-            '</li>';
-        }
-        html += '</ol></div>';
+    if (wsState.mode === 'scales') {
+      html += '<p class="ws-note">Scale worksheets: read the ruler, kitchen scale and measuring jug. ' +
+        'Answers come from the same engine as the Scales Lab.</p>';
+      html += scaleSheetsHTML(sel, date);
+      if (wsState.withKey && sel.length) {
+        html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>' + scaleKeyHTML(sel) + '</div>';
       }
-      html += '</div>';
+    } else {
+      var dim = Store.getDimension();
+      var dimName = M.DIMENSIONS[dim].name;
+      html += '<p class="ws-note">' + dimName + ' worksheets: each drills the learner\u2019s weakest conversion pairs, plus 2 word problems. ' +
+        'Answers come from the same engine the game uses.</p>';
+      for (var s = 0; s < sel.length; s++) {
+        var l = sel[s];
+        var key = l.id + ':' + dim;
+        if (!wsState.items[key]) wsState.items[key] = WS.buildItems(Store.progressOf(l.id), null, 8, 2, dim);
+        var items = wsState.items[key];
+        var convs = items.filter(function (it) { return it.type === 'conv'; });
+        var words = items.filter(function (it) { return it.type === 'word'; });
+        html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
+          '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — ' + dimName + ' Worksheet</div>' +
+          '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
+          '<p class="ws-instruct">Convert these. Write your answer in the box.</p><div class="ws-qs">';
+        for (var c = 0; c < convs.length; c++) {
+          html += wsLine(convs[c], c + 1);
+        }
+        html += '</div><p class="ws-instruct ws-instruct--words">Word problems.</p><div class="ws-qs">';
+        for (var w = 0; w < words.length; w++) {
+          html += wsLine(words[w], convs.length + w + 1);
+        }
+        html += '</div></div>';
+      }
+      if (wsState.withKey && sel.length) {
+        html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>';
+        for (var k = 0; k < sel.length; k++) {
+          var items2 = wsState.items[sel[k].id + ':' + dim];
+          html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
+            '<ol class="ws-key-list">';
+          for (var a = 0; a < items2.length; a++) {
+            html += '<li>' + esc(items2[a].answer) +
+              (items2[a].type === 'word' ? ' <span class="ws-key-unit">(' + esc(items2[a].from) + ' → ' + esc(items2[a].to) + ')</span>' : '') +
+              '</li>';
+          }
+          html += '</ol></div>';
+        }
+        html += '</div>';
+      }
     }
 
     body.innerHTML = html;
 
+    var modeBtns = body.querySelectorAll('[data-ws-mode]');
+    for (var mb = 0; mb < modeBtns.length; mb++) {
+      modeBtns[mb].addEventListener('click', function () {
+        Audio.play('click');
+        if (this.getAttribute('data-ws-mode') === wsState.mode) return;
+        wsState.mode = this.getAttribute('data-ws-mode');
+        wsState.items = {};
+        wsState.scaleItems = {};
+        renderWorksheets();
+      });
+    }
     var boxes = body.querySelectorAll('[data-ws-learner]');
     for (var b = 0; b < boxes.length; b++) {
       boxes[b].addEventListener('change', function () {
@@ -1137,6 +1229,7 @@
       regen.addEventListener('click', function () {
         Audio.play('click');
         wsState.items = {};
+        wsState.scaleItems = {};
         renderWorksheets();
       });
     }
@@ -1219,9 +1312,78 @@
     var sel = roster.filter(function (l) { return wsState.ids && wsState.ids.indexOf(l.id) >= 0; });
     if (!sel.length) return;
     var date = new Date().toLocaleDateString();
+    var doc = PDF.createDoc({});
+
+    if (wsState.mode === 'scales') {
+      // Two-column flow: rulers span the full width, kitchen/jug fill the
+      // shorter column so a 10-instrument sheet packs into ~2 pages.
+      var colX = [44, 44 + 252];
+      for (var s = 0; s < sel.length; s++) {
+        if (s > 0) doc.pageBreak();
+        var l2 = sel[s];
+        if (!wsState.scaleItems[l2.id]) wsState.scaleItems[l2.id] = Scales.worksheetItems(null, null);
+        var sitems = wsState.scaleItems[l2.id];
+        doc.title('Metric Jumps — Read the Scales');
+        doc.subtitle('For: ' + l2.name + '  ·  ' + date);
+        doc.para('Read each scale and write your answer on the line.', { bold: true });
+        doc.blankLine(1);
+        var colY = [doc.getY(), doc.getY()];
+        for (var q = 0; q < sitems.length; q++) {
+          var it = sitems[q];
+          var cmds, vbw, vbh, sc;
+          if (it.instrument === 'ruler') {
+            cmds = Scales.rulerPDF(it.answer); vbw = 465; vbh = 96; sc = 0.58;
+          } else if (it.instrument === 'kitchen') {
+            cmds = Scales.kitchenPDF(it.answer); vbw = 380; vbh = 380; sc = 0.42;
+          } else {
+            cmds = Scales.jugPDF(it.answer); vbw = 260; vbh = 360; sc = 0.42;
+          }
+          var h = vbh * sc;
+          if (it.instrument === 'ruler') {
+            var rowY = Math.max(colY[0], colY[1]);
+            if (rowY + h + 30 > 790) { doc.pageBreak(); rowY = doc.getY(); colY[0] = colY[1] = rowY; }
+            doc.textAt(22, rowY + 6, (q + 1) + '.', 10.5, true, '0.13', 'end');
+            scalePDFToDoc(doc, cmds, 44, rowY, sc);
+            doc.setY(rowY + h + 4);
+            doc.para('Answer: ____________ ' + it.unit, { indent: 40, gap: 2, color: '0.35' });
+            colY[0] = colY[1] = rowY + h + 26;
+          } else {
+            var c = colY[0] <= colY[1] ? 0 : 1;
+            if (colY[c] + h + 30 > 790) {
+              c = 1 - c;
+              if (colY[c] + h + 30 > 790) {
+                doc.pageBreak();
+                colY[0] = colY[1] = doc.getY();
+                c = 0;
+              }
+            }
+            doc.textAt(colX[c] - 22, colY[c] + 6, (q + 1) + '.', 10.5, true, '0.13', 'end');
+            scalePDFToDoc(doc, cmds, colX[c], colY[c], sc);
+            doc.setY(colY[c] + h + 4);
+            doc.para('Answer: ____________ ' + it.unit, { indent: colX[c] - 44 + 4, gap: 2, color: '0.35' });
+            colY[c] += h + 30;
+          }
+        }
+      }
+      if (wsState.withKey) {
+        doc.pageBreak();
+        doc.title('Answer Key');
+        for (var kk = 0; kk < sel.length; kk++) {
+          doc.section(sel[kk].name);
+          var sitems2 = wsState.scaleItems[sel[kk].id];
+          var kline = [];
+          for (var ki = 0; ki < sitems2.length; ki++) {
+            kline.push((ki + 1) + '. ' + F.scaledToSA(sitems2[ki].answer, 1) + ' ' + sitems2[ki].unit);
+          }
+          doc.para(kline.join('    '), { gap: 8 });
+        }
+      }
+      PDF.download(doc.build(), 'Metric-Jumps-Scale-Worksheet-Pack.pdf');
+      return;
+    }
+
     var dim = Store.getDimension();
     var dimName = M.DIMENSIONS[dim].name;
-    var doc = PDF.createDoc({});
     var first = true;
     for (var i = 0; i < sel.length; i++) {
       var l = sel[i];
