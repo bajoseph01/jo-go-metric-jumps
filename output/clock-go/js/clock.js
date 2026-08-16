@@ -106,7 +106,7 @@
     else if (m === 45) words = 'quarter to ' + (q.h % 12 + 1);
     else if (m < 30) words = m + ' minutes past ' + q.h;
     else words = (60 - m) + ' minutes to ' + (q.h % 12 + 1);
-    return 'The minute hand is on the ' + minuteMark(m) + ', and the hour hand sits just after ' +
+    return 'The RED hand is on the ' + minuteMark(m) + ', and the dark hour hand sits just after ' +
       q.h + '. So the time is ' + words + '.';
   }
 
@@ -116,9 +116,9 @@
    * time (no ':'), so they can't leak the answer of a live question.
    */
   var HINTS = {
-    whole: 'Big hand on 12 = o\u2019clock · 3 = quarter past · 6 = half past · 9 = quarter to',
-    five:  'Count by 5s — each number on the clock is worth 5 minutes',
-    one:   'Each little tick is 1 minute — count on from the last number'
+    whole: 'The RED big hand counts the minutes — on 12 = o\u2019clock · 3 = quarter past · 6 = half past · 9 = quarter to',
+    five:  'The RED big hand counts by 5s — each number on the clock is worth 5 minutes',
+    one:   'The RED big hand counts each little tick as 1 minute — count on from the last number'
   };
 
   function hint(levelKey) {

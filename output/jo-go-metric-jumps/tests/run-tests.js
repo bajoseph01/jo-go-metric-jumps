@@ -1116,6 +1116,45 @@ ok(Scales.SCALE_SPECS.kitchen.howTo && Scales.SCALE_SPECS.kitchen.howTo.indexOf(
 ok(Scales.SCALE_SPECS.jug.howTo && Scales.SCALE_SPECS.jug.howTo.indexOf('25 mL') >= 0, 'jug how-to mentions the 25 mL tick');
 
 // ------------------------------------------------------------------
+section('22. Scale graphics paint pixels (rasterized, no invisible shapes)');
+// ------------------------------------------------------------------
+// Playbook item 19: asserting SVG attributes is not enough — rasterize the
+// actual graphics to a pixel buffer and count colour families. The audit
+// found no other degeneracies (rotating elements are strokes, polygons are
+// fixed-shape), and these checks lock that in at every extreme position.
+const R = require('./rasterize.js');
+
+// Ruler: red pointer line + fixed pointer triangle, at both edges and middle.
+for (const mm of [0, 125, 250]) {
+  const px = R.rasterize(Scales.rulerSVG(mm), 2); // scale 2 so 0.8px ticks paint
+  ok(px.red > 300, 'ruler red pointer paints at ' + mm + ' mm (' + px.red + ' px)');
+  ok(px.dark > 250, 'ruler ticks paint at ' + mm + ' mm (' + px.dark + ' px)');
+}
+
+// Kitchen: rotating red needle (a stroke — never degenerates), incl. extremes.
+for (const g of [0, 500, 1000]) {
+  const px = R.rasterize(Scales.kitchenSVG(g), 1);
+  ok(px.red > 200, 'kitchen red needle paints at ' + g + ' g (' + px.red + ' px)');
+  ok(px.dark > 500, 'kitchen dial paints at ' + g + ' g (' + px.dark + ' px)');
+}
+
+// Jug: blue water rect + red meniscus line.
+for (const ml of [0, 500, 1000]) {
+  const px = R.rasterize(Scales.jugSVG(ml), 1);
+  ok(px.red > 80, 'jug red meniscus paints at ' + ml + ' mL (' + px.red + ' px)');
+  if (ml > 0) ok(px.blue > 5000, 'jug water paints at ' + ml + ' mL (' + px.blue + ' px)');
+}
+
+// Worksheet preview path (svgFromCommands) reuses the same fixed-shape
+// pointer triangle: assert a worksheet ruler item paints too.
+const wsItem = Scales.worksheetItems(Math.random, { ruler: 1, kitchen: 0, jug: 0 });
+if (wsItem && wsItem.length) {
+  const cmds = Scales.rulerPDF(wsItem[0].answer);
+  const px = R.rasterize(Scales.svgFromCommands(cmds, 465, 96, 'ws ruler'), 2);
+  ok(px.red > 300, 'worksheet ruler pointer paints (' + px.red + ' px)');
+}
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

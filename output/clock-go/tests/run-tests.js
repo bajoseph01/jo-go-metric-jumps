@@ -18,6 +18,7 @@ const Store = require('../js/storage.js');
 const PDF = require('../js/pdf.js');
 const fs = require('fs');
 const path = require('path');
+const R = require('./rasterize.js');
 
 let passed = 0;
 let failed = 0;
@@ -204,7 +205,9 @@ for (const key of ['whole', 'five', 'one']) {
   const h = C.hint(key);
   ok(h.indexOf(':') < 0, key + ' hint contains no colon (cannot leak a time)');
   ok(h.length > 20, key + ' hint is a real explanation, not a one-liner');
+  ok(h.indexOf('RED') >= 0, key + ' hint names the RED minute hand');
 }
+ok(C.feedback({ h: 9, m: 45 }).indexOf('RED hand') >= 0, 'feedback names the RED minute hand');
 
 // intro flag is per learner, survives reloads, ignores unknowns
 const stI = Store.createStore(mem());
@@ -280,6 +283,27 @@ for (let h = 1; h <= 12; h++) {
 }
 ok(allHandsRender, 'both hands render for ALL 48 whole&half times (no degenerate polygons)');
 ok(allRoundCapped, 'both hands are round-capped strokes at every whole&half time');
+
+// PIXEL CHECK (playbook item 19: rasterize, don't just assert attributes).
+// Render every whole&half clock to a real pixel buffer and count colour
+// families — the red minute hand must paint pixels at EVERY angle,
+// including the cardinal ones that used to vanish.
+{
+  let allRed = true, allDark = true;
+  for (let h = 1; h <= 12; h++) {
+    for (const m of [0, 15, 30, 45]) {
+      const px = R.rasterize(UI.clockSvg({ h, m }, 120), 2);
+      if (px.red < 80) allRed = false;
+      if (px.dark < 300) allDark = false;
+    }
+  }
+  ok(allRed, 'PIXELS: red minute hand paints at all 48 whole&half times');
+  ok(allDark, 'PIXELS: hour hand + face paint at all 48 whole&half times');
+  const px12 = R.rasterize(UI.clockSvg({ h: 12, m: 0 }, 120), 2);   // both hands vertical
+  const px315 = R.rasterize(UI.clockSvg({ h: 3, m: 15 }, 120), 2);  // minute horizontal
+  ok(px12.red > 200, 'PIXELS: 12:00 vertical minute hand paints red (' + px12.red + ')');
+  ok(px315.red > 200, 'PIXELS: 3:15 horizontal minute hand paints red (' + px315.red + ')');
+}
 
 const uiSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
 ok(uiSrc.indexOf('stroke="#1A1A1F"') > -1, 'svg hour hand is near-black');

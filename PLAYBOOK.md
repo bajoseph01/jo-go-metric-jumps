@@ -298,7 +298,14 @@ Check for these so you don't reinvent them:
     EVERY generated angle for non-degenerate geometry. This one lived
     since the app's first build and only surfaced through a user
     complaint — the lesson: rasterize (pixel-count) the actual rendered
-    output, don't just assert DOM attributes.
+    output, don't just assert DOM attributes. Both suites now ship a
+    deterministic software rasterizer (tests/rasterize.js) that renders
+    the app's real SVG output to a pixel buffer and asserts colour-family
+    counts at every generated position/angle. A follow-up audit of every
+    other graphic in both apps found no further degeneracies: all other
+    rotating elements are strokes and every polygon has a fixed
+    non-collinear shape — but the rasterizer now proves it at every
+    extreme position, so the class of bug can't silently return.
 
 ---
 
