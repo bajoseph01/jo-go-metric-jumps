@@ -85,7 +85,7 @@ sw.js                 offline service worker
 
 ```bash
 node tools/serve.js        # starts a local static server on http://localhost:4173
-node tests/run-tests.js    # runs the automated suite (5997 checks)
+node tests/run-tests.js    # runs the automated suite (6058 checks)
 ```
 
 ## Progress & teacher panel
@@ -108,7 +108,12 @@ conversion pairs plus two word problems, with an answer key. The pack has a
 **Conversions | Read the Scales** toggle — the Scales mode prints one sheet
 per learner with 10 rendered instrument graphics (ruler, kitchen dial,
 measuring jug) and blank answer lines, with a matching answer key and PDF
-export. Everything is generated locally — no network, no data leaves the
-device.
+export. **Class set** switches the pack to one identical sheet for everyone
+(single shared answer key) so the whole class can be marked together, in both
+modes. Scale sheets are also interactive: learners type their readings on
+screen, press **Check my answers**, get ✓/✗ feedback with the correct reading
+revealed on misses, and the results are recorded into each learner's
+per-instrument scale progress. Everything is generated locally — no network,
+no data leaves the device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

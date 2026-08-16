@@ -616,6 +616,38 @@ eq(lenBad, 0, 'content stream lengths match declared');
 const kidsArr = (s.match(/\/Kids \[([^\]]+)\]/) || [])[1] || '';
 eq(kidsArr.split('0 R').length - 1, 2, 'two pages in Kids array');
 
+// cross-reference integrity for a range of page counts: every Kids ref must
+// point at a real Page object and every font ref at a real Font object
+// (regression: font ids were hardcoded to 6/7 and Kids patching broke past
+// 4 pages once page ids grew to two digits).
+for (const pn of [1, 2, 3, 5, 10]) {
+  const pd = PDF.createDoc({});
+  for (let pj = 0; pj < pn; pj++) {
+    if (pj) pd.pageBreak();
+    pd.title('Page ' + (pj + 1));
+    pd.para('hello world');
+  }
+  const ps = pdfBytes(pd);
+  const pObjs = {};
+  const pRe = /(\d+) 0 obj\n([\s\S]*?)endobj/g;
+  let pm;
+  while ((pm = pRe.exec(ps))) pObjs[pm[1]] = pm[2];
+  const kidsTokens = (ps.match(/\/Kids \[([^\]]+)\]/) || [])[1].trim().split(/\s+/);
+  let pBad = 0;
+  for (let pk = 0; pk < kidsTokens.length; pk += 3) {
+    const id = kidsTokens[pk];
+    if (!pObjs[id] || pObjs[id].indexOf('/Type /Page') < 0) pBad++;
+  }
+  eq(pBad, 0, 'n=' + pn + ': all Kids refs resolve to Page objects');
+  const f1Ref = (pObjs['3'].match(/F1 (\d+) 0 R/) || [])[1];
+  const f2Ref = (pObjs['3'].match(/F2 (\d+) 0 R/) || [])[1];
+  ok(!!pObjs[f1Ref] && pObjs[f1Ref].indexOf('/Type /Font') >= 0, 'n=' + pn + ': F1 points at a Font object');
+  ok(!!pObjs[f2Ref] && pObjs[f2Ref].indexOf('/Type /Font') >= 0, 'n=' + pn + ': F2 points at a Font object');
+  ok(pObjs['2'].indexOf('/Count ' + pn) >= 0, 'n=' + pn + ': pages tree Count matches');
+  const psm = ps.match(/startxref\n(\d+)\n%%EOF/);
+  eq(Number(psm[1]), ps.indexOf('xref'), 'n=' + pn + ': startxref consistent');
+}
+
 // ------------------------------------------------------------------
 section('13. Dimensions: mass and volume');
 // ------------------------------------------------------------------
@@ -849,6 +881,46 @@ ok(ss.indexOf(' re f') >= 0, 'rect fill op present (dial body)');
 ok(ss.indexOf(' c ') >= 0, 'bezier op present (circle path)');
 ok(/ RG /.test(ss) && / rg /.test(ss), 'stroke and fill colour ops present (hex colours work)');
 ok((ss.match(/Tf/g) || []).length >= 30, 'tick/needle label text drawn');
+
+// ------------------------------------------------------------------
+section('17. Class-set worksheets + per-learner scale recording');
+// ------------------------------------------------------------------
+
+// neutral progress = flat weighting (class set means no per-learner targeting)
+const neutralW = WS.pairWeights({}, 'length');
+let allNeutral = M.pairsFor('length').length > 0;
+for (const pr of M.pairsFor('length')) {
+  const k = pr[0] + '>' + pr[1];
+  if (neutralW[k] !== 0.5) allNeutral = false;
+}
+ok(allNeutral, 'class-set weighting is flat (0.5) across every length pair');
+
+// same rng + same progress -> identical sheets (whole class marks together)
+const csA = WS.buildItems({}, lcg2(11), 8, 2, 'length');
+const csB = WS.buildItems({}, lcg2(11), 8, 2, 'length');
+eq(JSON.stringify(csA), JSON.stringify(csB), 'neutral sheets identical per rng');
+
+// recordScaleFor targets exactly the named learner
+const st2 = Store.createStore({ getItem: () => null, setItem: () => {} });
+const ada = st2.addLearner('Ada', '🦊');
+const ben = st2.addLearner('Ben', '🐼');
+st2.setActiveLearner(ben.id);
+st2.recordScaleFor(ada.id, 'ruler', true);
+st2.recordScaleFor(ada.id, 'ruler', false);
+st2.recordScaleFor(ada.id, 'jug', true);
+eq(st2.progressOf(ada.id).scales.ruler.attempts, 2, 'Ada ruler recorded 2 attempts');
+eq(st2.progressOf(ada.id).scales.ruler.firstTry, 1, 'Ada ruler 1 first-try');
+eq(st2.progressOf(ada.id).scales.jug.attempts, 1, 'Ada jug recorded');
+eq(st2.progressOf(ada.id).totalAnswered, 3, 'Ada total answered');
+eq(st2.progressOf(ada.id).categories.scale_reading.attempts, 3, 'Ada scale_reading category updated');
+eq(st2.progressOf(ben.id).totalAnswered, 0, 'Ben untouched while active');
+st2.recordScaleFor('nope', 'ruler', true);
+st2.recordScaleFor(ada.id, 'bogus', true);
+eq(st2.progressOf(ada.id).totalAnswered, 3, 'unknown learner/instrument ignored');
+
+// blank answers parse to null (the "left blank" marking path)
+eq(Scales.parseInput(''), null, 'empty input parses to null (blank)');
+eq(Scales.parseInput('   '), null, 'whitespace parses to null (blank)');
 
 // ------------------------------------------------------------------
 // Summary

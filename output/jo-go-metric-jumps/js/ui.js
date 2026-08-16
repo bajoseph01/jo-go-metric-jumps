@@ -1031,7 +1031,23 @@
   // Worksheet pack (teacher mode) + PDF export
   // ------------------------------------------------------------------
 
-  var wsState = { ids: null, withKey: true, items: {}, scaleItems: {}, mode: 'conv' };
+  var wsState = { ids: null, withKey: true, items: {}, scaleItems: {}, mode: 'conv', classSet: false };
+
+  /** Item-store key for one learner's conversion sheet (shared when class-set). */
+  function convItemsFor(l, dim) {
+    var key = wsState.classSet ? '__class__:' + dim : l.id + ':' + dim;
+    if (!wsState.items[key]) {
+      wsState.items[key] = WS.buildItems(wsState.classSet ? {} : Store.progressOf(l.id), null, 8, 2, dim);
+    }
+    return wsState.items[key];
+  }
+
+  /** Item-store key for one learner's scale sheet (shared when class-set). */
+  function scaleItemsFor(l) {
+    var key = wsState.classSet ? '__class__' : l.id;
+    if (!wsState.scaleItems[key]) wsState.scaleItems[key] = Scales.worksheetItems(null, null);
+    return wsState.scaleItems[key];
+  }
 
   function safeFilename(s) {
     var out = String(s).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -1080,37 +1096,45 @@
     }
   }
 
-  /** Scale-reading sheets for the selected learners (answers hidden). */
+  /** Scale-reading sheets for the selected learners (answers hidden). On
+   *  screen each item gets a type-in box + per-sheet Check button; printing
+   *  swaps the boxes for plain answer lines. */
   function scaleSheetsHTML(sel, date) {
     var html = '';
     for (var s = 0; s < sel.length; s++) {
       var l = sel[s];
-      if (!wsState.scaleItems[l.id]) wsState.scaleItems[l.id] = Scales.worksheetItems(null, null);
-      var items = wsState.scaleItems[l.id];
+      var items = scaleItemsFor(l);
       html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
         '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — Read the Scales</div>' +
         '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
-        '<p class="ws-instruct">Read each scale and write your answer on the line.</p><div class="ws-qs">';
+        '<p class="ws-instruct">Read each scale and type your answer, then press Check my answers.</p><div class="ws-qs">';
       for (var i = 0; i < items.length; i++) {
         html += '<div class="ws-scale-item">' +
           '<div class="ws-q ws-q--scale"><span class="ws-num">' + (i + 1) + '.</span>' + wsScaleSVG(items[i]) + '</div>' +
-          '<div class="ws-word-answer"><span>Answer:</span><span class="ws-blank ws-blank--wide"></span>' +
-          '<span class="ws-scale-unit">' + items[i].unit + '</span></div>' +
+          '<div class="ws-word-answer"><span>Answer:</span>' +
+          '<input class="ws-scale-input" inputmode="decimal" autocomplete="off" aria-label="Answer ' + (i + 1) + '" />' +
+          '<span class="ws-blank ws-blank--wide ws-scale-blank"></span>' +
+          '<span class="ws-scale-unit">' + items[i].unit + '</span><span class="ws-scale-mark"></span></div>' +
         '</div>';
       }
-      html += '</div></div>';
+      html += '</div><div class="ws-scale-actions">' +
+        '<button type="button" class="btn btn--small" data-ws-check="' + l.id + '">Check my answers</button>' +
+        '<span class="ws-scale-result" hidden></span></div></div>';
     }
     return html;
   }
 
   function scaleKeyHTML(sel) {
+    var groups = wsState.classSet
+      ? [{ name: 'Class set — same for everyone', items: wsState.scaleItems['__class__'] }]
+      : sel.map(function (l) {
+          return { name: l.emoji + ' ' + esc(l.name), items: wsState.scaleItems[l.id] };
+        });
     var html = '';
-    for (var k = 0; k < sel.length; k++) {
-      var items2 = wsState.scaleItems[sel[k].id];
-      html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
-        '<ol class="ws-key-list">';
-      for (var a = 0; a < items2.length; a++) {
-        html += '<li>' + esc(F.scaledToSA(items2[a].answer, 1)) + ' ' + items2[a].unit + '</li>';
+    for (var g = 0; g < groups.length; g++) {
+      html += '<div class="ws-key-learner"><h3>' + groups[g].name + '</h3><ol class="ws-key-list">';
+      for (var a = 0; a < groups[g].items.length; a++) {
+        html += '<li>' + esc(F.scaledToSA(groups[g].items[a].answer, 1)) + ' ' + groups[g].items[a].unit + '</li>';
       }
       html += '</ol></div>';
     }
@@ -1138,7 +1162,9 @@
       html += '<label class="ws-opt"><input type="checkbox" data-ws-learner="' + roster[i].id + '"' +
         (on ? ' checked' : '') + '> ' + roster[i].emoji + ' ' + esc(roster[i].name) + '</label>';
     }
-    html += '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-key-on"' +
+    html += '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-class-on"' +
+      (wsState.classSet ? ' checked' : '') + '> Class set — same sheet for everyone</label>' +
+      '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-key-on"' +
       (wsState.withKey ? ' checked' : '') + '> Include answer key</label>' +
       '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button></div>';
 
@@ -1146,8 +1172,10 @@
     var date = new Date().toLocaleDateString();
 
     if (wsState.mode === 'scales') {
-      html += '<p class="ws-note">Scale worksheets: read the ruler, kitchen scale and measuring jug. ' +
-        'Answers come from the same engine as the Scales Lab.</p>';
+      html += '<p class="ws-note">' + (wsState.classSet
+        ? 'Class scale worksheet: everyone reads the same scales. Type answers on screen and press Check my answers to mark them.'
+        : 'Scale worksheets: read the ruler, kitchen scale and measuring jug. Type answers on screen and press Check my answers to mark them.') +
+        '</p>';
       html += scaleSheetsHTML(sel, date);
       if (wsState.withKey && sel.length) {
         html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>' + scaleKeyHTML(sel) + '</div>';
@@ -1155,13 +1183,13 @@
     } else {
       var dim = Store.getDimension();
       var dimName = M.DIMENSIONS[dim].name;
-      html += '<p class="ws-note">' + dimName + ' worksheets: each drills the learner\u2019s weakest conversion pairs, plus 2 word problems. ' +
-        'Answers come from the same engine the game uses.</p>';
+      html += '<p class="ws-note">' + (wsState.classSet
+        ? 'Class ' + dimName + ' worksheet: everyone gets the same questions.'
+        : dimName + ' worksheets: each drills the learner\u2019s weakest conversion pairs, plus 2 word problems.') +
+        ' Answers come from the same engine the game uses.</p>';
       for (var s = 0; s < sel.length; s++) {
         var l = sel[s];
-        var key = l.id + ':' + dim;
-        if (!wsState.items[key]) wsState.items[key] = WS.buildItems(Store.progressOf(l.id), null, 8, 2, dim);
-        var items = wsState.items[key];
+        var items = convItemsFor(l, dim);
         var convs = items.filter(function (it) { return it.type === 'conv'; });
         var words = items.filter(function (it) { return it.type === 'word'; });
         html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
@@ -1179,13 +1207,16 @@
       }
       if (wsState.withKey && sel.length) {
         html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>';
-        for (var k = 0; k < sel.length; k++) {
-          var items2 = wsState.items[sel[k].id + ':' + dim];
-          html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
-            '<ol class="ws-key-list">';
-          for (var a = 0; a < items2.length; a++) {
-            html += '<li>' + esc(items2[a].answer) +
-              (items2[a].type === 'word' ? ' <span class="ws-key-unit">(' + esc(items2[a].from) + ' → ' + esc(items2[a].to) + ')</span>' : '') +
+        var keyGroups = wsState.classSet
+          ? [{ name: 'Class set — same for everyone', items: wsState.items['__class__:' + dim] }]
+          : sel.map(function (l2) {
+              return { name: l2.emoji + ' ' + esc(l2.name), items: wsState.items[l2.id + ':' + dim] };
+            });
+        for (var k = 0; k < keyGroups.length; k++) {
+          html += '<div class="ws-key-learner"><h3>' + keyGroups[k].name + '</h3><ol class="ws-key-list">';
+          for (var a = 0; a < keyGroups[k].items.length; a++) {
+            html += '<li>' + esc(keyGroups[k].items[a].answer) +
+              (keyGroups[k].items[a].type === 'word' ? ' <span class="ws-key-unit">(' + esc(keyGroups[k].items[a].from) + ' → ' + esc(keyGroups[k].items[a].to) + ')</span>' : '') +
               '</li>';
           }
           html += '</ol></div>';
@@ -1224,6 +1255,15 @@
         renderWorksheets();
       });
     }
+    var classBox = $('ws-class-on');
+    if (classBox) {
+      classBox.addEventListener('change', function () {
+        wsState.classSet = this.checked;
+        wsState.items = {};
+        wsState.scaleItems = {};
+        renderWorksheets();
+      });
+    }
     var regen = $('btn-ws-regenerate');
     if (regen) {
       regen.addEventListener('click', function () {
@@ -1231,6 +1271,38 @@
         wsState.items = {};
         wsState.scaleItems = {};
         renderWorksheets();
+      });
+    }
+    var checks = body.querySelectorAll('[data-ws-check]');
+    for (var ck = 0; ck < checks.length; ck++) {
+      checks[ck].addEventListener('click', function () {
+        Audio.play('click');
+        var lId = this.getAttribute('data-ws-check');
+        var sheet = this.closest('.ws-sheet');
+        var items = wsState.scaleItems[wsState.classSet ? '__class__' : lId];
+        var inputs = sheet.querySelectorAll('.ws-scale-input');
+        var marks = sheet.querySelectorAll('.ws-scale-mark');
+        var score = 0, answered = 0;
+        for (var j = 0; j < inputs.length; j++) {
+          var parsed = Scales.parseInput(inputs[j].value);
+          var ok = parsed !== null && parsed === items[j].answer;
+          if (parsed !== null) {
+            answered++;
+            Store.recordScaleFor(lId, items[j].instrument, ok);
+            if (ok) score++;
+            if (!ok) inputs[j].value = F.scaledToSA(items[j].answer, 1);
+          }
+          inputs[j].disabled = true;
+          inputs[j].classList.add(ok ? 'ws-scale-input--ok' : 'ws-scale-input--bad');
+          marks[j].textContent = parsed === null ? '—' : (ok ? '✓' : '✗');
+          marks[j].className = 'ws-scale-mark ws-scale-mark--' + (parsed === null ? 'none' : (ok ? 'ok' : 'bad'));
+        }
+        var res = sheet.querySelector('.ws-scale-result');
+        res.hidden = false;
+        res.textContent = score + '/' + inputs.length + ' correct' + (answered < inputs.length ? ' · ' + (inputs.length - answered) + ' left blank' : '');
+        this.disabled = true;
+        this.textContent = 'Marked';
+        Audio.play(score === inputs.length ? 'correct' : 'pop');
       });
     }
   }
@@ -1321,8 +1393,7 @@
       for (var s = 0; s < sel.length; s++) {
         if (s > 0) doc.pageBreak();
         var l2 = sel[s];
-        if (!wsState.scaleItems[l2.id]) wsState.scaleItems[l2.id] = Scales.worksheetItems(null, null);
-        var sitems = wsState.scaleItems[l2.id];
+        var sitems = scaleItemsFor(l2);
         doc.title('Metric Jumps — Read the Scales');
         doc.subtitle('For: ' + l2.name + '  ·  ' + date);
         doc.para('Read each scale and write your answer on the line.', { bold: true });
@@ -1368,12 +1439,16 @@
       if (wsState.withKey) {
         doc.pageBreak();
         doc.title('Answer Key');
-        for (var kk = 0; kk < sel.length; kk++) {
-          doc.section(sel[kk].name);
-          var sitems2 = wsState.scaleItems[sel[kk].id];
+        var sGroups = wsState.classSet
+          ? [{ name: 'Class set — same for everyone', items: wsState.scaleItems['__class__'] }]
+          : sel.map(function (l3) {
+              return { name: l3.name, items: wsState.scaleItems[l3.id] };
+            });
+        for (var kg = 0; kg < sGroups.length; kg++) {
+          doc.section(sGroups[kg].name);
           var kline = [];
-          for (var ki = 0; ki < sitems2.length; ki++) {
-            kline.push((ki + 1) + '. ' + F.scaledToSA(sitems2[ki].answer, 1) + ' ' + sitems2[ki].unit);
+          for (var ki = 0; ki < sGroups[kg].items.length; ki++) {
+            kline.push((ki + 1) + '. ' + F.scaledToSA(sGroups[kg].items[ki].answer, 1) + ' ' + sGroups[kg].items[ki].unit);
           }
           doc.para(kline.join('    '), { gap: 8 });
         }
@@ -1389,7 +1464,7 @@
       var l = sel[i];
       if (!first) doc.pageBreak();
       first = false;
-      var items = wsState.items[l.id + ':' + dim] || WS.buildItems(Store.progressOf(l.id), null, 8, 2, dim);
+      var items = convItemsFor(l, dim);
       var convs = items.filter(function (it) { return it.type === 'conv'; });
       var words = items.filter(function (it) { return it.type === 'word'; });
       doc.title('Metric Jumps — ' + dimName + ' Worksheet');
@@ -1410,10 +1485,14 @@
     if (wsState.withKey) {
       doc.pageBreak();
       doc.title('Answer Key');
-      for (var k = 0; k < sel.length; k++) {
-        var items2 = wsState.items[sel[k].id + ':' + dim] || WS.buildItems(Store.progressOf(sel[k].id), null, 8, 2, dim);
-        doc.section(sel[k].name);
-        var ans = items2.map(function (it) { return it.answer; });
+      var cGroups = wsState.classSet
+        ? [{ name: 'Class set — same for everyone', items: wsState.items['__class__:' + dim] }]
+        : sel.map(function (l4) {
+            return { name: l4.name, items: wsState.items[l4.id + ':' + dim] };
+          });
+      for (var k = 0; k < cGroups.length; k++) {
+        doc.section(cGroups[k].name);
+        var ans = cGroups[k].items.map(function (it) { return it.answer; });
         for (var a = 0; a < ans.length; a += 5) {
           doc.para(ans.slice(a, a + 5).map(function (x, j) { return (a + j + 1) + '. ' + x; }).join('    '), { gap: 8 });
         }

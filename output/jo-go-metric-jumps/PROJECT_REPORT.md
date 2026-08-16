@@ -71,7 +71,12 @@ internalise "smaller unit → bigger number; the length never changes."
   key — printable or exported as a single PDF. The pack has a
   **Conversions | Read the Scales** toggle: the Scales mode renders each
   learner's ruler/kitchen-dial/measuring-jug graphics with blank answer lines
-  and a matching answer key, printable or PDF-exported too. Reports and PDFs
+  and a matching answer key, printable or PDF-exported too. **Class set**
+  swaps the pack to one identical sheet for everyone with a single shared key
+  (both modes), so the whole class can be marked together. Scale sheets are
+  interactive on screen: learners type readings, **Check my answers** marks
+  each one with ✓/✗, reveals the correct reading on misses, and records the
+  results into each learner's per-instrument scale progress. Reports and PDFs
   are produced entirely in-browser by a bundled dependency-free PDF writer
   (no network, works offline). Stays unlocked for the session; "Lock" re-arms
   the PIN.
@@ -89,7 +94,9 @@ js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
 js/scales.js          Scales Lab + scale worksheets: question gen, SVG + PDF
                       vector builders for ruler/dial/jug
 js/storage.js         per-learner profiles, localStorage persistence, mastery model
-js/pdf.js             tiny dependency-free PDF writer (reports + worksheet pack)
+js/pdf.js             tiny dependency-free PDF writer (reports + worksheet
+                      pack; deterministic object layout — Kids + font refs
+                      computed for any page count)
 js/input.js           keypad (pointer + keyboard) and comma track (pointer drag,
                       tap targets, keyboard arrows, focus ring)
 js/ui.js              render layer: questions, feedback, results, screens, modals
@@ -118,7 +125,7 @@ sw.js                 offline service worker (network-first, cache fallback)
 ## Testing performed
 
 **Automated (Node, no dependencies)** — `node tests/run-tests.js`:
-6022 checks, 0 failures, covering:
+6058 checks, 0 failures, covering:
 - the six canonical conversions (direction, factor, jumps, exact values);
 - all mission error cases (0,5 m → cm; 0,05 m → cm; 5 m → mm; 5 000 mm → m;
   250 cm → m; 25 cm → m; 2,5 km → m; 0,003 km → m; 450 cm → m; 4 500 mm → m;
@@ -160,7 +167,18 @@ sw.js                 offline service worker (network-first, cache fallback)
   (4 rulers, 3 kitchen, 3 jugs) with blank answer lines and no answer leaking
   into the sheet, answer key matching the items, and the scale-pack PDF
   (2-column layout, 2 sheet pages + key page) validated structurally in the
-  browser across five regenerations.
+  browser across five regenerations;
+- class set: identical sheets across learners (byte-identical SVGs in the
+  browser), single shared answer key, and 5-page class-set scale PDF (2
+  learners × 2 sheet pages + key) — this surfaced and fixed a latent PDF bug
+  where Kids-array patching and hardcoded font refs (6/7) broke past 4 pages;
+  font and Kids refs are now computed for any page count (regression tests
+  cover 1, 2, 3, 5 and 10 pages);
+- interactive scale sheets: typed answers marked per learner with ✓/✗,
+  correct reading revealed on misses, blanks counted separately, results
+  recorded per instrument via recordScaleFor (non-active learners' progress
+  untouched), verified end-to-end in the browser for all-wrong and
+  all-correct runs.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

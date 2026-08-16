@@ -374,8 +374,6 @@
 
       var objId = 0;
       var pagesObjId = 0;
-      var kidsEndLen = 0;
-      var kidsStart = 0;
 
       function beginObj() {
         objId++;
@@ -388,43 +386,32 @@
       beginObj();
       push('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
 
-      // object 2: pages tree — write a Kids placeholder of the exact final
-      // byte length, then patch it after the page objects exist.
+      // object 2: pages tree — page ids are deterministic (3, 5, 7, ...), so
+      // the Kids array is written in its final form directly (no patching,
+      // which breaks once multi-digit ids change the byte length).
       pagesObjId = beginObj();
-      push('<< /Type /Pages /Kids [');
-      kidsStart = byteLength();
       var kidsList = '';
-      for (var k = 0; k < n; k++) kidsList += '0 0 R ';
-      push(kidsList);
-      kidsEndLen = kidsList.length;
-      push('] /Count ' + n + ' >>\nendobj\n');
+      for (var k = 0; k < n; k++) kidsList += (3 + 2 * k) + ' 0 R ';
+      push('<< /Type /Pages /Kids [' + kidsList + '] /Count ' + n + ' >>\nendobj\n');
 
-      // one Page + one Contents stream per page, then the two font objects
-      var kids = [];
+      // one Page + one Contents stream per page, then the two font objects.
+      // Font ids are 3+2n / 4+2n (the page loop creates exactly 2n objects).
+      var f1Id = 3 + 2 * n;
+      var f2Id = 4 + 2 * n;
       for (var pi = 0; pi < n; pi++) {
-        var pageId = beginObj();
+        beginObj();
         push('<< /Type /Page /Parent ' + pagesObjId + ' 0 R /MediaBox [0 0 ' +
-          pageW + ' ' + pageH + '] /Resources << /Font << /F1 6 0 R /F2 7 0 R >> >> ' +
+          pageW + ' ' + pageH + '] /Resources << /Font << /F1 ' + f1Id + ' 0 R /F2 ' + f2Id + ' 0 R >> >> ' +
           '/Contents ' + (objId + 1) + ' 0 R >>\nendobj\n');
-        var contentId = beginObj();
+        beginObj();
         var body = pages[pi].ops.join('\n') + '\n';
         push('<< /Length ' + body.length + ' >>\nstream\n' + body + 'endstream\nendobj\n');
-        kids.push(pageId + ' 0 R');
       }
 
       beginObj();
       push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n');
       beginObj();
       push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n');
-
-      // patch the Kids array (same byte length, offsets stay valid)
-      var patched = kids.join(' ') + ' ';
-      if (patched.length !== kidsEndLen) throw new Error('PDF kids placeholder length mismatch');
-      var s = out.join('');
-      var before = s.slice(0, kidsStart);
-      var after = s.slice(kidsStart + kidsEndLen);
-      out.length = 0;
-      out.push(before, patched, after);
 
       var xrefPos = byteLength();
       push('xref\n0 ' + (objId + 1) + '\n');

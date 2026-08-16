@@ -1360,6 +1360,50 @@ button {
 .ws-scale-item .ws-word-answer { margin-left: 34px; }
 .ws-scale-unit { font-weight: 800; }
 
+.ws-scale-blank { display: none; }
+
+.ws-scale-input {
+  width: 120px;
+  border: none;
+  border-bottom: 3px solid var(--ink);
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: center;
+  color: var(--ink);
+  padding: 2px 4px;
+  outline: none;
+  touch-action: manipulation;
+}
+
+.ws-scale-input:focus { border-bottom-color: var(--blue); background: var(--blue-soft); }
+.ws-scale-input--ok { border-bottom-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
+.ws-scale-input--bad { border-bottom-color: var(--red); color: var(--red); background: var(--red-soft); }
+.ws-scale-mark { font-weight: 900; font-size: 1.05rem; min-width: 18px; }
+.ws-scale-mark--ok { color: var(--green); }
+.ws-scale-mark--bad { color: var(--red); }
+.ws-scale-mark--none { color: var(--ink-soft); }
+
+.ws-scale-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.ws-scale-result {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  border: 2px solid var(--green);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
 .ws-answers {
   background: #fff;
   border: 3px solid var(--ink);
@@ -1389,6 +1433,8 @@ button {
   .ws-sheet { page-break-after: always; }
   .ws-answers { page-break-before: always; }
   .ws-key-list { columns: 2; }
+  .ws-scale-input, .ws-scale-actions, .ws-scale-mark { display: none !important; }
+  .ws-scale-blank { display: inline-block; }
 }
 
 .teacher-head {

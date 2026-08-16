@@ -373,21 +373,29 @@
       });
     }
 
+    /** Record one scale-reading answer against a specific learner. */
+    function recordScaleFor(id, instrument, ok) {
+      if (SCALE_INSTRUMENTS.indexOf(instrument) < 0) return;
+      var l = learnerById(id);
+      if (!l) return;
+      l.totalAnswered++;
+      if (ok) l.totalFirstTry++;
+      var cat = l.categories.scale_reading || (l.categories.scale_reading = { attempts: 0, firstTry: 0, recent: [] });
+      cat.attempts++;
+      if (ok) cat.firstTry++;
+      pushRecent(cat.recent, ok);
+      var rec = l.scales[instrument] || (l.scales[instrument] = { attempts: 0, firstTry: 0, recent: [] });
+      rec.attempts++;
+      if (ok) rec.firstTry++;
+      pushRecent(rec.recent, ok);
+      save();
+    }
+
     /** Record one scale-reading answer. instrument: ruler|kitchen|jug. */
     function recordScale(instrument, ok) {
-      if (SCALE_INSTRUMENTS.indexOf(instrument) < 0) return;
-      mutateLearner(function (l) {
-        l.totalAnswered++;
-        if (ok) l.totalFirstTry++;
-        var cat = l.categories.scale_reading || (l.categories.scale_reading = { attempts: 0, firstTry: 0, recent: [] });
-        cat.attempts++;
-        if (ok) cat.firstTry++;
-        pushRecent(cat.recent, ok);
-        var rec = l.scales[instrument] || (l.scales[instrument] = { attempts: 0, firstTry: 0, recent: [] });
-        rec.attempts++;
-        if (ok) rec.firstTry++;
-        pushRecent(rec.recent, ok);
-      });
+      var l = active(true);
+      if (!l) return;
+      recordScaleFor(l.id, instrument, ok);
     }
 
     function getDimension() { return device.dimension || 'length'; }
@@ -504,6 +512,7 @@
       reset: reset,
       recordAnswer: recordAnswer,
       recordScale: recordScale,
+      recordScaleFor: recordScaleFor,
       recordStreak: recordStreak,
       recordSession: recordSession,
       unlockUpTo: unlockUpTo,
@@ -571,6 +580,7 @@
     reset: singleton.reset,
     recordAnswer: singleton.recordAnswer,
     recordScale: singleton.recordScale,
+    recordScaleFor: singleton.recordScaleFor,
     recordStreak: singleton.recordStreak,
     recordSession: singleton.recordSession,
     unlockUpTo: singleton.unlockUpTo,
