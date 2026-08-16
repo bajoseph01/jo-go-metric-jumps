@@ -446,6 +446,24 @@ section('6b. Learner profiles: isolation, switching, roster, migration');
   eq(s.get().totalAnswered, 0, 'no-op record with no learner');
 }
 
+// rename keeps progress; progressOf reads any learner by id
+{
+  const s = Store.createStore(memAdapter());
+  const a = s.addLearner('Asha', '🦊');
+  s.recordAnswer('conversion_direction', 'm>cm', true);
+  s.recordAnswer('conversion_direction', 'm>cm', false);
+  ok(s.renameLearner(a.id, 'Aisha', '🦁'), 'rename returns true');
+  eq(s.activeLearner().name, 'Aisha', 'renamed name applies');
+  eq(s.activeLearner().emoji, '🦁', 'renamed avatar applies');
+  eq(s.progressOf(a.id).totalAnswered, 2, 'rename keeps progress');
+  ok(s.renameLearner('nope', 'X', '🦊') === false, 'rename unknown id returns false');
+  const b = s.addLearner('Ben', '🐸');
+  s.recordAnswer('transfer', 'km>m', true);
+  eq(s.progressOf(a.id).totalAnswered, 2, 'progressOf(a) unaffected by Ben');
+  eq(s.progressOf(b.id).totalAnswered, 1, 'progressOf(b) has his own');
+  eq(s.progressOf('missing'), null, 'progressOf unknown id returns null');
+}
+
 // v1 flat payload migrates into one default learner, keeping progress
 {
   const adapter = memAdapter();

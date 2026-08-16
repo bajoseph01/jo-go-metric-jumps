@@ -548,6 +548,7 @@
       '</ul></div>' +
       '<div class="teacher-actions">' +
         '<button type="button" class="btn btn--primary" data-action="practice-all">Practice all levels</button>' +
+        '<button type="button" class="btn btn--ghost" data-action="report">Print report</button>' +
         '<button type="button" class="btn btn--ghost" data-action="learners">Manage learners</button>' +
         '<button type="button" class="btn btn--ghost" data-action="lock">Lock teacher mode</button>' +
         '<button type="button" class="btn btn--danger" data-action="reset">Reset this learner</button>' +
@@ -579,6 +580,14 @@
         Audio.play('click');
         closeTeacher();
         renderLearners();
+      });
+    }
+    var rp = panel.querySelector('[data-action="report"]');
+    if (rp) {
+      rp.addEventListener('click', function () {
+        Audio.play('click');
+        closeTeacher();
+        renderReport();
       });
     }
     var r = panel.querySelector('[data-action="reset"]');
@@ -621,11 +630,18 @@
     }
   }
 
+  var editingLearnerId = null;
+  var reportLearnerId = null;
+
   function renderLearners() {
     show('screen-learners');
     var body = $('learners-body');
     var active = Store.activeLearner();
     var roster = Store.learners();
+    var editing = null;
+    for (var ei = 0; ei < roster.length; ei++) {
+      if (roster[ei].id === editingLearnerId) editing = roster[ei];
+    }
     var html = '<div class="learners-list">';
     if (!roster.length) {
       html += '<p class="learners-empty">No learners yet — add the first one below.</p>';
@@ -642,20 +658,29 @@
         (isActive
           ? '<span class="learner-badge">Playing</span>'
           : '<button type="button" class="btn btn--small" data-learn="' + l.id + '">Play as</button>') +
+        '<button type="button" class="btn-icon learner-edit" data-edit="' + l.id + '" aria-label="Rename ' + esc(l.name) + '">✎</button>' +
         '<button type="button" class="btn-icon learner-del" data-del="' + l.id + '" aria-label="Remove">✕</button>' +
       '</div>';
     }
     html += '</div>';
 
+    var formTitle = editing ? 'Edit ' + esc(editing.name) : 'Add a learner';
+    var submitLabel = editing ? 'Save changes' : 'Add learner';
+    var inputValue = editing ? esc(editing.name) : '';
+    var chosenEmoji = editing ? editing.emoji : Store.AVATARS[0];
     html += '<form class="learner-add" id="learner-add" novalidate>' +
-      '<h3 class="learner-add-title">Add a learner</h3>' +
-      '<input type="text" class="answer-input learner-name-input" id="learner-name-input" maxlength="18" placeholder="First name" autocomplete="off" enterkeyhint="done" aria-label="Learner name" />' +
+      '<h3 class="learner-add-title">' + formTitle + '</h3>' +
+      '<input type="text" class="answer-input learner-name-input" id="learner-name-input" maxlength="18" placeholder="First name" autocomplete="off" enterkeyhint="done" aria-label="Learner name" value="' + inputValue + '" />' +
       '<div class="learner-emojis" role="radiogroup" aria-label="Pick an avatar">';
     for (var e = 0; e < Store.AVATARS.length; e++) {
-      html += '<button type="button" class="learner-emoji' + (e === 0 ? ' learner-emoji--selected' : '') + '" data-emoji="' + Store.AVATARS[e] + '" role="radio" aria-checked="' + (e === 0) + '" aria-label="Avatar">' + Store.AVATARS[e] + '</button>';
+      var selected = Store.AVATARS[e] === chosenEmoji;
+      html += '<button type="button" class="learner-emoji' + (selected ? ' learner-emoji--selected' : '') + '" data-emoji="' + Store.AVATARS[e] + '" role="radio" aria-checked="' + selected + '" aria-label="Avatar">' + Store.AVATARS[e] + '</button>';
     }
     html += '</div>' +
-      '<button type="submit" class="btn btn--primary">Add learner</button>' +
+      '<div class="learner-add-actions">' +
+        '<button type="submit" class="btn btn--primary">' + submitLabel + '</button>' +
+        (editing ? '<button type="button" class="btn btn--ghost" data-cancel-edit="1">Cancel</button>' : '') +
+      '</div>' +
     '</form>';
 
     body.innerHTML = html;
@@ -664,9 +689,28 @@
     for (var p = 0; p < plays.length; p++) {
       plays[p].addEventListener('click', function () {
         Audio.play('click');
+        editingLearnerId = null;
         Store.setActiveLearner(this.getAttribute('data-learn'));
         updateLearnerChip();
         show('screen-home');
+      });
+    }
+
+    var edits = body.querySelectorAll('[data-edit]');
+    for (var ed = 0; ed < edits.length; ed++) {
+      edits[ed].addEventListener('click', function () {
+        Audio.play('click');
+        editingLearnerId = this.getAttribute('data-edit');
+        renderLearners();
+      });
+    }
+
+    var cancels = body.querySelectorAll('[data-cancel-edit]');
+    for (var cn = 0; cn < cancels.length; cn++) {
+      cancels[cn].addEventListener('click', function () {
+        Audio.play('click');
+        editingLearnerId = null;
+        renderLearners();
       });
     }
 
@@ -678,13 +722,13 @@
         var nm = (Store.learners().filter(function (x) { return x.id === id; })[0] || {}).name || 'this learner';
         showModal('Remove ' + nm + '?', 'This deletes ' + nm + '\'s progress on this device.', function () {
           Store.removeLearner(id);
+          if (editingLearnerId === id) editingLearnerId = null;
           updateLearnerChip();
           renderLearners();
         });
       });
     }
 
-    var chosenEmoji = Store.AVATARS[0];
     var emojis = body.querySelectorAll('.learner-emoji');
     for (var q = 0; q < emojis.length; q++) {
       emojis[q].addEventListener('click', function () {
@@ -709,13 +753,105 @@
         input.focus();
         return;
       }
-      Store.addLearner(name, chosenEmoji);
+      if (editing) {
+        Store.renameLearner(editing.id, name, chosenEmoji);
+        editingLearnerId = null;
+      } else {
+        Store.addLearner(name, chosenEmoji);
+      }
       updateLearnerChip();
       renderLearners();
     });
 
     if (!('ontouchstart' in root)) {
       setTimeout(function () { var i = $('learner-name-input'); if (i) i.focus(); }, 50);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Printable per-learner report
+  // ------------------------------------------------------------------
+
+  function pct(rec) {
+    if (!rec || !rec.attempts) return '—';
+    return Math.round((rec.firstTry / rec.attempts) * 100) + '%';
+  }
+
+  function recentPct(rec) {
+    if (!rec || !rec.recent || !rec.recent.length) return '—';
+    return Math.round((Store.recentAccuracy(rec) * 100)) + '%';
+  }
+
+  function masteryFor(rec) {
+    var acc = rec && rec.attempts ? rec.firstTry / rec.attempts : null;
+    if (acc === null) return 'new';
+    if (acc >= 0.8) return 'mastered';
+    if (acc >= 0.5) return 'getting-there';
+    return 'needs-practice';
+  }
+
+  function renderReport() {
+    show('screen-report');
+    var body = $('report-body');
+    var roster = Store.learners();
+    if (!roster.length) {
+      body.innerHTML = '<p class="learners-empty">No learners yet — add a learner first.</p>';
+      return;
+    }
+    var current = reportLearnerId && Store.progressOf(reportLearnerId) ? reportLearnerId : (Store.activeLearner() || roster[0]).id;
+    reportLearnerId = current;
+    var l = roster.filter(function (x) { return x.id === current; })[0];
+    var prog = Store.progressOf(current);
+
+    var html = '<div class="report-picker" role="group" aria-label="Choose a learner">';
+    for (var i = 0; i < roster.length; i++) {
+      var on = roster[i].id === current;
+      html += '<button type="button" class="report-chip' + (on ? ' report-chip--on' : '') + '" data-report-learner="' + roster[i].id + '">' + roster[i].emoji + ' ' + esc(roster[i].name) + '</button>';
+    }
+    html += '</div>';
+
+    var firstTryPct = prog.totalAnswered ? Math.round((prog.totalFirstTry / prog.totalAnswered) * 100) : 0;
+    html += '<div class="report print-area">' +
+      '<h2 class="report-head">' + l.emoji + ' ' + esc(l.name) + ' — Metric Jumps Report</h2>' +
+      '<p class="report-sub">Stage ' + prog.unlocked + ' unlocked · ' + prog.totalAnswered + ' questions · ' +
+        firstTryPct + '% first-try · best streak 🔥 ' + prog.bestStreak + '</p>' +
+      '<h3 class="report-sec">Mastery by category</h3>' +
+      '<table class="tbl report-tbl"><thead><tr><th>Category</th><th>Tries</th><th>First-try</th><th>Recent</th><th>Status</th></tr></thead><tbody>';
+    for (var c = 0; c < Store.CATEGORIES.length; c++) {
+      var key = Store.CATEGORIES[c];
+      var rec = prog.categories[key];
+      html += '<tr><td>' + esc(Store.CATEGORY_LABELS[key]) + '</td><td>' + rec.attempts + '</td>' +
+        '<td>' + pct(rec) + '</td><td>' + recentPct(rec) + '</td>' +
+        '<td>' + esc(masteryFor(rec)) + '</td></tr>';
+    }
+    html += '</tbody></table>';
+
+    var pairKeys = Object.keys(prog.pairs).sort();
+    html += '<h3 class="report-sec">Conversion pairs</h3>';
+    if (!pairKeys.length) {
+      html += '<p class="report-none">No conversions answered yet.</p>';
+    } else {
+      html += '<table class="tbl report-tbl"><thead><tr><th>Conversion</th><th>Tries</th><th>First-try</th><th>Recent</th></tr></thead><tbody>';
+      for (var pk = 0; pk < pairKeys.length; pk++) {
+        var pr = prog.pairs[pairKeys[pk]];
+        var parts = pairKeys[pk].split('>');
+        html += '<tr><td>' + esc(parts[0] + ' → ' + parts[1]) + '</td><td>' + pr.attempts + '</td>' +
+          '<td>' + pct(pr) + '</td><td>' + recentPct(pr) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    }
+    html += '<p class="report-foot">Jo⚡Go Metric Jumps · ' + new Date().toLocaleDateString() + '</p>' +
+      '</div>';
+
+    body.innerHTML = html;
+
+    var chips = body.querySelectorAll('[data-report-learner]');
+    for (var ch = 0; ch < chips.length; ch++) {
+      chips[ch].addEventListener('click', function () {
+        Audio.play('click');
+        reportLearnerId = this.getAttribute('data-report-learner');
+        renderReport();
+      });
     }
   }
 
@@ -823,6 +959,7 @@
     showModal: showModal,
     renderLearners: renderLearners,
     updateLearnerChip: updateLearnerChip,
+    renderReport: renderReport,
     setSoundIcons: setSoundIcons
   };
 

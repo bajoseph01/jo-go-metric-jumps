@@ -23,12 +23,20 @@
     Audio.play('click');
   }
 
+  /** Pick who's playing first — never silently default to Learner 1. */
+  function requireLearner() {
+    if (Store.activeLearner()) return true;
+    UI.renderLearners();
+    return false;
+  }
+
   function wireHome() {
     $('btn-play').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
-      var st = Store.get();   // may lazily activate the default learner
+      if (!requireLearner()) return;
       UI.updateLearnerChip();
+      var st = Store.get();
       var stage = Math.min(st.unlocked, 8);
       Game.startStage(stage);
     });
@@ -36,6 +44,7 @@
     $('btn-practice').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
+      if (!requireLearner()) return;
       UI.updateLearnerChip();
       UI.renderPractice();
     });
@@ -43,6 +52,7 @@
     $('btn-progress').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
+      if (!requireLearner()) return;
       UI.updateLearnerChip();
       UI.renderProgress();
     });
@@ -63,6 +73,14 @@
       Audio.play('click');
       UI.renderLearners();
     });
+
+    var printBtn = $('btn-report-print');
+    if (printBtn) {
+      printBtn.addEventListener('click', function () {
+        Audio.play('click');
+        root.print();
+      });
+    }
   }
 
   function wireHud() {

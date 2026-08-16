@@ -48,12 +48,18 @@ internalise "smaller unit → bigger number; the length never changes."
 - **Learner profiles** — each child gets a named profile (name + avatar) with
   fully separate mastery, unlocks, streaks and totals on a shared device.
   Pick or add a learner from the home-screen chip or the game HUD; the app
-  asks who is playing on first launch. Device settings stay global.
+  asks who is playing on first launch, and PLAY/Practice/Progress open the
+  picker whenever no learner is selected (never a silent default). The **✎**
+  on a learner card renames or re-avatars them without losing progress.
+  Device settings stay global.
 - **How It Works** — in-app explanation of the ×/÷ ladder rule.
 - **Teacher mode (PIN 5241)** — discreet (long-press the logo, 5 taps, or press
   T): mastery percentages per category, attempts, weak conversion pairs, reset,
   and **Practice all levels** — every stage including locked ones, for teacher-
-  led demonstration. Stays unlocked for the session; "Lock" re-arms the PIN.
+  led demonstration. Also prints a **per-learner report** (mastery by category
+  and by conversion pair, learner switcher, print-optimised layout) for
+  handouts and parent updates. Stays unlocked for the session; "Lock" re-arms
+  the PIN.
 - **Sound toggle** — persistent preference; app is fully usable silent.
 
 ## Architecture
@@ -116,7 +122,10 @@ sw.js                 offline service worker (network-first, cache fallback)
 - stage-5 comma feedback animation after typed answers;
 - sound toggle + persistence across reload; teacher panel data + reset;
 - progress persistence across reload;
-- double-tap regression: three rapid submits count exactly once (re-entry lock).
+- double-tap regression: three rapid submits count exactly once (re-entry lock);
+- learner rename via ✎ (name + avatar, progress preserved), pick-before-PLAY
+  (no silent default learner), per-learner printable report with learner
+  switcher and working Print button (verified end-to-end in the browser).
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop
@@ -149,7 +158,6 @@ this environment.
   (accuracy first by design — timers deliberately absent during learning).
 - Audio files (short royalty-free jingles) replacing WebAudio blips.
 - Print-ready worksheets generated from the same question engine.
-- Multi-learner profiles for classrooms sharing one device.
 - Localisation of feedback copy into other South African languages.
 
 ## Run instructions

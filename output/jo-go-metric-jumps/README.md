@@ -77,18 +77,23 @@ sw.js                 offline service worker
 
 ```bash
 node tools/serve.js        # starts a local static server on http://localhost:4173
-node tests/run-tests.js    # runs the automated suite (3150 checks)
+node tests/run-tests.js    # runs the automated suite (5893 checks)
 ```
 
 ## Progress & teacher panel
 
 Each child gets their own profile: tap the learner chip on the home screen (or
 in the game HUD) to pick who is playing or add a new learner (name + avatar).
-Mastery, unlocks, streaks and totals are tracked per learner, while sound and
-motion settings stay device-wide. Everything is saved in `localStorage` — no
-accounts, no data leaves the device. On the home screen,
+When no learner is selected, PLAY (and Practice/Progress) open the "Who's
+playing?" picker first instead of silently defaulting to Learner 1. Tap the
+**✎** on a learner card to rename them or change their avatar — progress is
+kept. Mastery, unlocks, streaks and totals are tracked per learner, while
+sound and motion settings stay device-wide. Everything is saved in
+`localStorage` — no accounts, no data leaves the device. On the home screen,
 long-press the Jo⚡Go logo (or press **T**) to open **teacher mode** (PIN: 5241):
-mastery percentages, weak conversion pairs, reset, and **Practice all levels** —
-every stage including locked ones, for teacher-led demonstration.
+mastery percentages, weak conversion pairs, reset, **Practice all levels** —
+every stage including locked ones — and a **per-learner printable report**
+(mastery by category and conversion pair, with a learner switcher and a Print
+button) for teacher-led demonstration and parent/guardian handouts.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

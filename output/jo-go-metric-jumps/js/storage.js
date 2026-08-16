@@ -191,7 +191,7 @@
       return { id: l.id, name: l.name, emoji: l.emoji, unlocked: l.unlocked, totalAnswered: l.totalAnswered };
     }
 
-    function progressOf(l) {
+    function progressOfLearner(l) {
       return {
         unlocked: l.unlocked,
         lastStage: l.lastStage,
@@ -209,7 +209,7 @@
       var view = { version: device.version, soundOn: device.soundOn, reducedMotion: device.reducedMotion };
       var l = active(true);
       if (l) {
-        var p = progressOf(l);
+        var p = progressOfLearner(l);
         for (var k in p) view[k] = p[k];
         view.activeLearner = { id: l.id, name: l.name, emoji: l.emoji };
       } else {
@@ -364,6 +364,23 @@
       return true;
     }
 
+    /** Rename / re-avatar a learner; progress is untouched. */
+    function renameLearner(id, name, emoji) {
+      var l = learnerById(id);
+      if (!l) return false;
+      if (typeof name === 'string' && name.trim()) l.name = name.trim().slice(0, 18);
+      if (AVATARS.indexOf(emoji) >= 0) l.emoji = emoji;
+      save();
+      return true;
+    }
+
+    /** Full progress of a specific learner (for reports). */
+    function progressOf(id) {
+      var l = learnerById(id);
+      if (!l) return null;
+      return progressOfLearner(l);
+    }
+
     return {
       get: get,
       save: save,
@@ -386,6 +403,8 @@
       setActiveLearner: setActiveLearner,
       addLearner: addLearner,
       removeLearner: removeLearner,
+      renameLearner: renameLearner,
+      progressOf: progressOf,
       AVATARS: AVATARS,
       categoryLabels: CATEGORY_LABELS,
       categories: CATEGORIES,
@@ -442,7 +461,9 @@
     activeLearner: singleton.activeLearner,
     setActiveLearner: singleton.setActiveLearner,
     addLearner: singleton.addLearner,
-    removeLearner: singleton.removeLearner
+    removeLearner: singleton.removeLearner,
+    renameLearner: singleton.renameLearner,
+    progressOf: singleton.progressOf
   };
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = Store; }

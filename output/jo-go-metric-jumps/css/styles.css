@@ -1100,6 +1100,77 @@ button {
   box-shadow: 0 0 0 3px var(--yellow);
 }
 
+.learner-edit {
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+}
+
+.learner-add-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---------------- printable per-learner report ---------------- */
+
+.report-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.report-chip {
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+  padding: 6px 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.report-chip--on {
+  background: var(--yellow-soft);
+  box-shadow: 0 0 0 3px var(--yellow);
+}
+
+.report {
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 18px 20px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.report-head { margin: 0 0 4px; font-size: 1.35rem; }
+.report-sub { color: var(--ink-soft); margin: 0 0 14px; }
+.report-sec { font-size: 1.05rem; margin: 18px 0 8px; }
+.report-none { color: var(--ink-soft); }
+.report-foot { color: var(--ink-soft); font-size: 0.8rem; margin-top: 16px; text-align: right; }
+.report-tbl { font-size: 0.9rem; }
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    max-width: none;
+  }
+  .page-head, .report-picker { display: none; }
+}
+
 .teacher-head {
   display: flex;
   justify-content: space-between;
