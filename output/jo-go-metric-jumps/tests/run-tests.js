@@ -617,6 +617,180 @@ const kidsArr = (s.match(/\/Kids \[([^\]]+)\]/) || [])[1] || '';
 eq(kidsArr.split('0 R').length - 1, 2, 'two pages in Kids array');
 
 // ------------------------------------------------------------------
+section('13. Dimensions: mass and volume');
+// ------------------------------------------------------------------
+
+// mass pairs (kg-g-mg) and volume pairs (kL-L-mL)
+eq(M.pairsFor('mass').length, 4, 'mass has 4 directed pairs');
+eq(M.pairsFor('volume').length, 4, 'volume has 4 directed pairs');
+eq(M.ladderRungs('mass').join(','), 'kg,g,mg', 'mass ladder rungs');
+eq(M.ladderRungs('volume').join(','), 'kL,L,mL', 'volume ladder rungs');
+
+const MASS = [['kg', 'g', '×', 1000, 3], ['g', 'kg', '÷', 1000, 3], ['g', 'mg', '×', 1000, 3], ['mg', 'g', '÷', 1000, 3]];
+for (const [a, b, op, factor, jumps] of MASS) {
+  const c = M.conversion(a, b);
+  eq(c.op, op, a + '→' + b + ' op');
+  eq(c.factor, factor, a + '→' + b + ' factor');
+  eq(c.jumps, jumps, a + '→' + b + ' jumps');
+}
+const VOL = [['kL', 'L', '×', 1000, 3], ['L', 'kL', '÷', 1000, 3], ['L', 'mL', '×', 1000, 3], ['mL', 'L', '÷', 1000, 3]];
+for (const [a, b, op, factor, jumps] of VOL) {
+  const c = M.conversion(a, b);
+  eq(c.op, op, a + '→' + b + ' op');
+  eq(c.factor, factor, a + '→' + b + ' factor');
+  eq(c.jumps, jumps, a + '→' + b + ' jumps');
+}
+
+// out-of-range and cross-dimension rejections
+threw = false;
+try { M.conversion('kg', 'mg'); } catch (e) { threw = true; }
+ok(threw, 'kg→mg (6 jumps) rejected');
+threw = false;
+try { M.conversion('kg', 'L'); } catch (e) { threw = true; }
+ok(threw, 'cross-dimension kg→L rejected');
+threw = false;
+try { M.conversion('g', 'g'); } catch (e) { threw = true; }
+ok(threw, 'same-unit g→g rejected');
+
+// exact conversion values
+const kgG = M.convertValue(250, 10, M.conversion('kg', 'g')); // 25 kg in g
+const gMg = M.convertValue(1500, 1, M.conversion('g', 'mg'));
+const mL_L = M.convertValue(750, 1, M.conversion('mL', 'L'));
+const L_kL = M.convertValue(180, 1, M.conversion('L', 'kL'));
+eq(F.rationalToSA(kgG.num, kgG.den), '25 000', '25 kg = 25 000 g');
+eq(F.rationalToSA(gMg.num, gMg.den), '1 500 000', '1 500 g = 1 500 000 mg');
+eq(F.rationalToSA(mL_L.num, mL_L.den), '0,75', '750 mL = 0,75 L');
+eq(F.rationalToSA(L_kL.num, L_kL.den), '0,18', '180 L = 0,18 kL');
+
+// ------------------------------------------------------------------
+section('14. Per-dimension unlocks, lastStage, scales, migration');
+// ------------------------------------------------------------------
+const memD = {};
+const SD = Store.createStore({ getItem: k => memD[k] || null, setItem: (k, v) => memD[k] = v });
+const ldef = SD.learners()[0];
+SD.setActiveLearner(ldef.id);
+SD.setDimension('length');
+SD.unlockUpTo(5);
+SD.setDimension('mass');
+eq(SD.get().unlocked, 1, 'mass unlocks are separate from length');
+SD.unlockUpTo(3);
+SD.setDimension('length');
+eq(SD.get().unlocked, 5, 'length unlock kept');
+SD.setDimension('volume');
+SD.setLastStage(8);
+SD.setDimension('mass');
+eq(SD.get().lastStage, 1, 'lastStage per dimension (mass untouched)');
+SD.setDimension('length');
+const rawD = JSON.parse(memD['jogo-metric-jumps.v1']);
+eq(rawD.learners[0].lastStageBy.volume, 8, 'volume lastStage persisted');
+
+// scales records
+SD.setDimension('length');
+SD.recordScale('ruler', true);
+SD.recordScale('ruler', false);
+SD.recordScale('kitchen', true);
+const pD = SD.progressOf(ldef.id);
+eq(pD.scales.ruler.attempts, 2, 'ruler attempts');
+eq(pD.scales.ruler.firstTry, 1, 'ruler first-try');
+eq(pD.scales.kitchen.attempts, 1, 'kitchen attempts');
+eq(pD.categories.scale_reading.attempts, 3, 'scale_reading category aggregates');
+eq(pD.totalAnswered, 3, 'scale answers counted as questions');
+
+// v2 -> v3 migration lifts flat unlocks into the length dimension
+const oldV2 = { version: 2, soundOn: true, reducedMotion: false, activeLearnerId: null, learners: [{ id: 'l1', name: 'Old', emoji: '🦊', unlocked: 7, lastStage: 6, categories: {}, pairs: {}, bestStreak: 0, sessions: 0, totalAnswered: 0, totalFirstTry: 0 }] };
+const memM = {};
+const SM = Store.createStore({ getItem: () => JSON.stringify(oldV2), setItem: (k, v) => memM[k] = v });
+eq(SM.progressOf('l1').unlockedBy.length, 7, 'v2 unlocked migrated to length');
+eq(SM.progressOf('l1').unlockedBy.mass, 1, 'new dimensions start locked');
+eq(SM.progressOf('l1').unlocked, 7, 'resolved unlock for active dimension');
+
+// ------------------------------------------------------------------
+section('15. Transfer templates cover every dimension');
+// ------------------------------------------------------------------
+for (const dim of ['length', 'mass', 'volume']) {
+  const pairs = M.pairsFor(dim);
+  for (const [a, b] of pairs) {
+    const tpls = Q.TRANSFER_TEMPLATES[a + '>' + b] || [];
+    ok(tpls.length > 0, dim + ' ' + a + '>' + b + ' has realistic templates');
+  }
+}
+
+// generated mass/volume word sums stay exact
+Q.setDimension('mass');
+let massBad = 0;
+for (let i = 0; i < 200; i++) {
+  const q = Q.transferQuestion(Math.random, {});
+  const rat = F.saToRational(q.sourceSA.replace(/\s/g, ''));
+  if (!rat) { massBad++; continue; }
+  const exp = M.convertValue(rat.num, rat.den, q.conv);
+  if (F.rationalToSA(exp.num, exp.den) !== q.expectedSA) massBad++;
+}
+eq(massBad, 0, 'all mass word sums convert exactly');
+Q.setDimension('volume');
+let volBad = 0;
+for (let i = 0; i < 200; i++) {
+  const q = Q.transferQuestion(Math.random, {});
+  const rat = F.saToRational(q.sourceSA.replace(/\s/g, ''));
+  if (!rat) { volBad++; continue; }
+  const exp = M.convertValue(rat.num, rat.den, q.conv);
+  if (F.rationalToSA(exp.num, exp.den) !== q.expectedSA) volBad++;
+}
+eq(volBad, 0, 'all volume word sums convert exactly');
+Q.setDimension('length');
+
+// stage questions only use the active dimension's pairs
+Q.setDimension('volume');
+let volPairs = {};
+for (let i = 0; i < 300; i++) {
+  const q = Q.generateQuestion(1, Math.random, {});
+  volPairs[q.conv.from + '>' + q.conv.to] = true;
+}
+eq(Object.keys(volPairs).length, 4, 'volume stage-1 only uses volume pairs');
+ok(!volPairs['km>m'], 'length pairs never leak into volume questions');
+Q.setDimension('length');
+
+// ------------------------------------------------------------------
+section('16. Scales Lab');
+// ------------------------------------------------------------------
+const Scales = require('../js/scales.js');
+
+for (const ins of ['ruler', 'kitchen', 'jug']) {
+  const spec = Scales.SCALE_SPECS[ins];
+  let onTick = true;
+  for (let i = 0; i < 1000; i++) {
+    const q = Scales.question(ins, Math.random);
+    if (q.answer < spec.min || q.answer > spec.max || q.answer % spec.minor !== 0) onTick = false;
+  }
+  ok(onTick, ins + ' readings land on minor ticks in range');
+}
+
+// deterministic with a fixed rng (fresh stream per call)
+function makeRng(seed) {
+  let s = seed;
+  return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+}
+eq(Scales.question('ruler', makeRng(5)).answer, Scales.question('ruler', makeRng(5)).answer, 'scale question deterministic per rng');
+
+// typed parsing
+const ps = Scales.parseInput;
+eq(ps('137'), 137, 'plain integer parsed');
+eq(ps('1 000'), 1000, 'grouped number parsed');
+eq(ps('12,5'), 13, 'comma decimal rounded');
+eq(ps('12.5'), 13, 'point decimal rounded');
+eq(ps('abc'), null, 'junk rejected');
+eq(ps(''), null, 'empty rejected');
+
+// SVG builders are well-formed and carry the answer
+const rs = Scales.rulerSVG(137);
+ok(rs.indexOf('aria-label="Ruler with arrow at 137') >= 0, 'ruler svg declares its reading');
+ok((rs.match(/<line /g) || []).length >= 251, 'ruler has 250 ticks plus pointer');
+const ks = Scales.kitchenSVG(360);
+ok(ks.indexOf('1 kg') >= 0, 'kitchen dial labels 1 kg');
+ok(ks.indexOf('aria-label="Kitchen scale with needle at 360') >= 0, 'kitchen svg declares its reading');
+const js = Scales.jugSVG(525);
+ok(js.indexOf('aria-label="Measuring jug with liquid at 525') >= 0, 'jug svg declares its reading');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

@@ -1,6 +1,6 @@
 /**
  * math.js — Jo⚡Go Metric Jumps
- * Core metric-length mathematics.
+ * Core metric mathematics for three dimensions: length, mass and volume.
  *
  * All arithmetic is exact: values are represented as rationals (num/den)
  * where the denominator is a power of 10, so no floating-point errors can
@@ -10,23 +10,65 @@
 (function (root) {
   'use strict';
 
-  // Exponent of each unit relative to metres (10^exp metres).
-  // km=10^3 m, m=10^0 m, cm=10^-2 m, mm=10^-3 m
+  // Dimensions the game teaches. Each has its own ladder of adjacent units;
+  // the gap between adjacent rungs is always one of 10, 100 or 1000.
+  var DIMENSIONS = {
+    length: { name: 'Length', rungs: ['km', 'm', 'cm', 'mm'] },
+    mass:   { name: 'Mass',   rungs: ['kg', 'g', 'mg'] },
+    volume: { name: 'Volume', rungs: ['kL', 'L', 'mL'] }
+  };
+  var DIMENSION_NAMES = Object.keys(DIMENSIONS);
+
+  // Exponent of each unit relative to its base (10^exp base units).
+  // length: km=10^3 m, m=10^0 m, cm=10^-2 m, mm=10^-3 m
+  // mass:   kg=10^3 g, g=10^0 g, mg=10^-3 g
+  // volume: kL=10^3 L, L=10^0 L, mL=10^-3 L
   var UNITS = {
-    km: { name: 'km', exp: 3, order: 3 },
-    m:  { name: 'm',  exp: 0, order: 2 },
-    cm: { name: 'cm', exp: -2, order: 1 },
-    mm: { name: 'mm', exp: -3, order: 0 }
+    km: { name: 'km', dim: 'length', exp: 3,  order: 3 },
+    m:  { name: 'm',  dim: 'length', exp: 0,  order: 2 },
+    cm: { name: 'cm', dim: 'length', exp: -2, order: 1 },
+    mm: { name: 'mm', dim: 'length', exp: -3, order: 0 },
+    kg: { name: 'kg', dim: 'mass',   exp: 3,  order: 2 },
+    g:  { name: 'g',  dim: 'mass',   exp: 0,  order: 1 },
+    mg: { name: 'mg', dim: 'mass',   exp: -3, order: 0 },
+    kL: { name: 'kL', dim: 'volume', exp: 3,  order: 2 },
+    L:  { name: 'L',  dim: 'volume', exp: 0,  order: 1 },
+    mL: { name: 'mL', dim: 'volume', exp: -3, order: 0 }
   };
 
-  // The six conversion relationships the game teaches (jumps 1-3).
+  // The six length relationships the game originally taught (jumps 1-3).
+  // Kept for backwards compatibility; new code should use pairsFor(dim).
   var CANONICAL_PAIRS = [
     ['km', 'm'], ['m', 'km'],
     ['m', 'cm'], ['cm', 'm'],
     ['cm', 'mm'], ['mm', 'cm']
   ];
 
+  // Per-dimension conversion relationships: each directed adjacent gap.
+  var DIMENSION_PAIRS = {
+    length: CANONICAL_PAIRS,
+    mass: [
+      ['kg', 'g'], ['g', 'kg'],
+      ['g', 'mg'], ['mg', 'g']
+    ],
+    volume: [
+      ['kL', 'L'], ['L', 'kL'],
+      ['L', 'mL'], ['mL', 'L']
+    ]
+  };
+
   var UNIT_NAMES = Object.keys(UNITS);
+
+  /** The conversion pairs taught for a dimension (defaults to length). */
+  function pairsFor(dim) {
+    return DIMENSION_PAIRS[dim] || DIMENSION_PAIRS.length;
+  }
+
+  /** Ladder rungs (top to bottom) for a dimension. */
+  function ladderRungs(dim) {
+    var d = DIMENSIONS[dim];
+    return d ? d.rungs.slice() : DIMENSIONS.length.rungs.slice();
+  }
 
   function isUnit(u) { return Object.prototype.hasOwnProperty.call(UNITS, u); }
 
@@ -38,6 +80,9 @@
   function conversion(from, to) {
     if (!isUnit(from) || !isUnit(to)) throw new Error('Unknown unit: ' + from + '/' + to);
     if (from === to) throw new Error('Same unit conversion: ' + from);
+    if (UNITS[from].dim !== UNITS[to].dim) {
+      throw new Error('Cross-dimension conversion: ' + from + '->' + to);
+    }
     var eFrom = UNITS[from].exp;
     var eTo = UNITS[to].exp;
     var jumps = Math.abs(eTo - eFrom);
@@ -189,7 +234,12 @@
 
   var MathCore = {
     UNITS: UNITS,
+    DIMENSIONS: DIMENSIONS,
+    DIMENSION_NAMES: DIMENSION_NAMES,
     CANONICAL_PAIRS: CANONICAL_PAIRS,
+    DIMENSION_PAIRS: DIMENSION_PAIRS,
+    pairsFor: pairsFor,
+    ladderRungs: ladderRungs,
     UNIT_NAMES: UNIT_NAMES,
     isUnit: isUnit,
     conversion: conversion,

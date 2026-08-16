@@ -21,7 +21,8 @@
     'independent_conversion',
     'reasonableness_check',
     'mixed_conversion',
-    'transfer'
+    'transfer',
+    'scale_reading'
   ];
 
   var CATEGORY_LABELS = {
@@ -31,8 +32,26 @@
     independent_conversion: 'Independent conversion',
     reasonableness_check: 'Does it make sense?',
     mixed_conversion: 'Mixed challenge',
-    transfer: 'Word problems'
+    transfer: 'Word problems',
+    scale_reading: 'Reading scales'
   };
+
+  var DIMENSIONS = ['length', 'mass', 'volume'];
+  var SCALE_INSTRUMENTS = ['ruler', 'kitchen', 'jug'];
+
+  function freshScaleRecords() {
+    var s = {};
+    for (var i = 0; i < SCALE_INSTRUMENTS.length; i++) {
+      s[SCALE_INSTRUMENTS[i]] = { attempts: 0, firstTry: 0, recent: [] };
+    }
+    return s;
+  }
+
+  function freshUnlocks() {
+    var u = {};
+    for (var i = 0; i < DIMENSIONS.length; i++) u[DIMENSIONS[i]] = 1;
+    return u;
+  }
 
   var AVATARS = ['🦊', '🐼', '🦁', '🐸', '🐙', '🦄', '🐢', '🦉'];
   var DEFAULT_NAME = 'Learner 1';
@@ -47,10 +66,13 @@
 
   function freshProgress() {
     return {
-      unlocked: 1,          // highest unlocked stage id
-      lastStage: 1,         // stage used by "Play"
+      unlocked: 1,          // legacy: length dimension (kept for back-compat)
+      lastStage: 1,         // legacy: length dimension
+      unlockedBy: freshUnlocks(),   // highest unlocked stage per dimension
+      lastStageBy: freshUnlocks(),  // last stage played per dimension
       categories: freshCategories(),
       pairs: {},            // 'km>m': { attempts, firstTry, recent }
+      scales: freshScaleRecords(),  // ruler/kitchen/jug reading records
       bestStreak: 0,
       sessions: 0,
       totalAnswered: 0,
@@ -63,9 +85,10 @@
     // immediately usable, but the app still prompts for a learner at boot.
     var first = sanitizeLearner({ id: genId(), name: DEFAULT_NAME, emoji: AVATARS[0] });
     return {
-      version: 2,
+      version: 3,
       soundOn: true,
       reducedMotion: false,
+      dimension: 'length',
       activeLearnerId: null,
       learners: [first]
     };
@@ -92,14 +115,46 @@
         };
       }
     }
+    function sanitizeUnlocks(v) {
+      var u = freshUnlocks();
+      if (v && typeof v === 'object') {
+        for (var i = 0; i < DIMENSIONS.length; i++) {
+          var d = DIMENSIONS[i];
+          if (typeof v[d] === 'number') u[d] = Math.min(8, Math.max(1, Math.round(v[d])));
+        }
+      }
+      return u;
+    }
+
+    function sanitizeScales(v) {
+      var s = freshScaleRecords();
+      if (v && typeof v === 'object') {
+        for (var i = 0; i < SCALE_INSTRUMENTS.length; i++) {
+          var ins = SCALE_INSTRUMENTS[i];
+          var rec = v[ins];
+          if (rec && typeof rec.attempts === 'number') {
+            s[ins] = {
+              attempts: rec.attempts,
+              firstTry: typeof rec.firstTry === 'number' ? rec.firstTry : 0,
+              recent: Array.isArray(rec.recent) ? rec.recent.slice(-10) : []
+            };
+          }
+        }
+      }
+      return s;
+    }
+
     return {
       id: typeof l.id === 'string' && l.id ? l.id : genId(),
       name: typeof l.name === 'string' && l.name.trim() ? l.name.trim().slice(0, 18) : DEFAULT_NAME,
       emoji: AVATARS.indexOf(l.emoji) >= 0 ? l.emoji : AVATARS[0],
       unlocked: typeof l.unlocked === 'number' ? Math.min(8, Math.max(1, Math.round(l.unlocked))) : 1,
       lastStage: typeof l.lastStage === 'number' ? Math.min(8, Math.max(1, Math.round(l.lastStage))) : 1,
+      unlockedBy: sanitizeUnlocks(l.unlockedBy),
+      lastStageBy: sanitizeUnlocks(l.lastStageBy),
       categories: cats,
       pairs: (l.pairs && typeof l.pairs === 'object') ? l.pairs : {},
+      scales: sanitizeScales(l.scales),
       bestStreak: typeof l.bestStreak === 'number' ? l.bestStreak : 0,
       sessions: typeof l.sessions === 'number' ? l.sessions : 0,
       totalAnswered: typeof l.totalAnswered === 'number' ? l.totalAnswered : 0,
@@ -115,15 +170,28 @@
   function migrate(raw) {
     if (!raw || typeof raw !== 'object') return freshDevice();
     var dev = {
-      version: 2,
+      version: 3,
       soundOn: typeof raw.soundOn === 'boolean' ? raw.soundOn : true,
       reducedMotion: !!raw.reducedMotion,
+      dimension: DIMENSIONS.indexOf(raw.dimension) >= 0 ? raw.dimension : 'length',
       activeLearnerId: null,
       learners: []
     };
     if (Array.isArray(raw.learners) && raw.learners.length) {
       dev.activeLearnerId = typeof raw.activeLearnerId === 'string' ? raw.activeLearnerId : null;
-      dev.learners = raw.learners.map(sanitizeLearner);
+      dev.learners = raw.learners.map(function (l) {
+        // v2 -> v3: lift flat unlocks into per-dimension maps
+        if (l && !l.unlockedBy && typeof l.unlocked === 'number') {
+          var u = freshUnlocks();
+          u.length = l.unlocked;
+          l = Object.assign({}, l, { unlockedBy: u, lastStageBy: (function () {
+            var s2 = freshUnlocks();
+            s2.length = l.lastStage || 1;
+            return s2;
+          })() });
+        }
+        return sanitizeLearner(l);
+      });
     } else if (raw.categories) {
       // v1 flat shape → single default learner carrying the old progress
       var first = sanitizeLearner({
@@ -132,6 +200,8 @@
         emoji: AVATARS[0],
         unlocked: raw.unlocked,
         lastStage: raw.lastStage,
+        unlockedBy: null,
+        lastStageBy: null,
         categories: raw.categories,
         pairs: raw.pairs,
         bestStreak: raw.bestStreak,
@@ -139,6 +209,8 @@
         totalAnswered: raw.totalAnswered,
         totalFirstTry: raw.totalFirstTry
       });
+      if (typeof raw.unlocked === 'number') first.unlockedBy.length = raw.unlocked;
+      if (typeof raw.lastStage === 'number') first.lastStageBy.length = raw.lastStage;
       dev.learners = [first];
       dev.activeLearnerId = first.id;
     } else {
@@ -192,11 +264,15 @@
     }
 
     function progressOfLearner(l) {
+      var dim = device.dimension || 'length';
       return {
-        unlocked: l.unlocked,
-        lastStage: l.lastStage,
+        unlocked: (l.unlockedBy && l.unlockedBy[dim]) || l.unlocked || 1,
+        lastStage: (l.lastStageBy && l.lastStageBy[dim]) || l.lastStage || 1,
+        unlockedBy: l.unlockedBy,
+        lastStageBy: l.lastStageBy,
         categories: l.categories,
         pairs: l.pairs,
+        scales: l.scales,
         bestStreak: l.bestStreak,
         sessions: l.sessions,
         totalAnswered: l.totalAnswered,
@@ -204,13 +280,22 @@
       };
     }
 
-    /** Merged view: device settings + active learner's progress. */
+    /** Merged view: device settings + active learner's progress (resolved
+     *  to the active dimension for unlocked/lastStage). */
     function get() {
-      var view = { version: device.version, soundOn: device.soundOn, reducedMotion: device.reducedMotion };
+      var dim = device.dimension || 'length';
+      var view = {
+        version: device.version,
+        soundOn: device.soundOn,
+        reducedMotion: device.reducedMotion,
+        dimension: dim
+      };
       var l = active(true);
       if (l) {
         var p = progressOfLearner(l);
         for (var k in p) view[k] = p[k];
+        view.unlocked = l.unlockedBy[dim] || 1;
+        view.lastStage = l.lastStageBy[dim] || 1;
         view.activeLearner = { id: l.id, name: l.name, emoji: l.emoji };
       } else {
         var d = freshProgress();
@@ -274,12 +359,44 @@
 
     function unlockUpTo(stageId) {
       mutateLearner(function (l) {
-        if (stageId > l.unlocked) l.unlocked = stageId;
+        var dim = device.dimension || 'length';
+        if (stageId > (l.unlockedBy[dim] || 1)) l.unlockedBy[dim] = stageId;
+        if (stageId > l.unlocked) l.unlocked = stageId; // legacy mirror
       });
     }
 
     function setLastStage(id) {
-      mutateLearner(function (l) { l.lastStage = id; });
+      mutateLearner(function (l) {
+        var dim = device.dimension || 'length';
+        l.lastStageBy[dim] = id;
+        l.lastStage = id; // legacy mirror
+      });
+    }
+
+    /** Record one scale-reading answer. instrument: ruler|kitchen|jug. */
+    function recordScale(instrument, ok) {
+      if (SCALE_INSTRUMENTS.indexOf(instrument) < 0) return;
+      mutateLearner(function (l) {
+        l.totalAnswered++;
+        if (ok) l.totalFirstTry++;
+        var cat = l.categories.scale_reading || (l.categories.scale_reading = { attempts: 0, firstTry: 0, recent: [] });
+        cat.attempts++;
+        if (ok) cat.firstTry++;
+        pushRecent(cat.recent, ok);
+        var rec = l.scales[instrument] || (l.scales[instrument] = { attempts: 0, firstTry: 0, recent: [] });
+        rec.attempts++;
+        if (ok) rec.firstTry++;
+        pushRecent(rec.recent, ok);
+      });
+    }
+
+    function getDimension() { return device.dimension || 'length'; }
+
+    function setDimension(d) {
+      if (DIMENSIONS.indexOf(d) >= 0) {
+        device.dimension = d;
+        save();
+      }
     }
 
     function reset() {
@@ -320,7 +437,7 @@
 
     /** Device settings only — never lazily activates a learner. */
     function settings() {
-      return { soundOn: device.soundOn, reducedMotion: device.reducedMotion };
+      return { soundOn: device.soundOn, reducedMotion: device.reducedMotion, dimension: device.dimension || 'length' };
     }
 
     // ------------------------------------------------------------------
@@ -386,10 +503,13 @@
       save: save,
       reset: reset,
       recordAnswer: recordAnswer,
+      recordScale: recordScale,
       recordStreak: recordStreak,
       recordSession: recordSession,
       unlockUpTo: unlockUpTo,
       setLastStage: setLastStage,
+      getDimension: getDimension,
+      setDimension: setDimension,
       setSoundOn: setSoundOn,
       setReducedMotion: setReducedMotion,
       settings: settings,
@@ -408,6 +528,8 @@
       AVATARS: AVATARS,
       categoryLabels: CATEGORY_LABELS,
       categories: CATEGORIES,
+      DIMENSIONS: DIMENSIONS,
+      SCALE_INSTRUMENTS: SCALE_INSTRUMENTS,
       KEY: KEY
     };
   }
@@ -442,10 +564,13 @@
     CATEGORIES: CATEGORIES,
     CATEGORY_LABELS: CATEGORY_LABELS,
     AVATARS: AVATARS,
+    DIMENSIONS: DIMENSIONS,
+    SCALE_INSTRUMENTS: SCALE_INSTRUMENTS,
     get: singleton.get,
     save: singleton.save,
     reset: singleton.reset,
     recordAnswer: singleton.recordAnswer,
+    recordScale: singleton.recordScale,
     recordStreak: singleton.recordStreak,
     recordSession: singleton.recordSession,
     unlockUpTo: singleton.unlockUpTo,
@@ -456,6 +581,8 @@
     setSoundOn: singleton.setSoundOn,
     setReducedMotion: singleton.setReducedMotion,
     setLastStage: singleton.setLastStage,
+    getDimension: singleton.getDimension,
+    setDimension: singleton.setDimension,
     settings: singleton.settings,
     learners: singleton.learners,
     activeLearner: singleton.activeLearner,

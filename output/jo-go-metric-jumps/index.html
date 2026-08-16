@@ -27,15 +27,17 @@
           <div class="bolt-badge" aria-hidden="true">⚡</div>
           <h1 class="brand-title" id="home-title">Jo<span class="bolt-inline">⚡</span>Go</h1>
           <p class="brand-sub">Metric Jumps</p>
-          <p class="brand-tagline">Master the comma. Master metric length.</p>
+          <p class="brand-tagline">Master the comma. Master metric measurement.</p>
         </div>
         <button type="button" class="learner-chip" id="btn-learner" aria-label="Choose who's playing">
           <span class="learner-chip-avatar" id="learner-chip-avatar" aria-hidden="true">🦊</span>
           <span class="learner-chip-name" id="learner-chip-name">Pick a learner</span>
           <span class="learner-chip-caret" aria-hidden="true">▾</span>
         </button>
+        <div class="dim-pills" id="dim-pills" role="group" aria-label="Choose a dimension"></div>
         <button type="button" class="btn btn--play" id="btn-play">PLAY</button>
         <div class="home-actions">
+          <button type="button" class="btn btn--ghost" id="btn-scales">Read the Scales</button>
           <button type="button" class="btn btn--ghost" id="btn-practice">Practice</button>
           <button type="button" class="btn btn--ghost" id="btn-progress">My Progress</button>
           <button type="button" class="btn btn--ghost" id="btn-how">How It Works</button>
@@ -70,9 +72,9 @@
         </div>
 
         <div class="card how-card">
-          <h2>Same Length, New Unit</h2>
-          <div class="how-example">2,5 m = 250 cm</div>
-          <p>The rope did not get longer. We just used a <strong>smaller unit</strong>, so the <strong>number got bigger</strong>. 100 centimetres fit into 1 metre.</p>
+          <h2>Same Amount, New Unit</h2>
+          <div class="how-example">2,5 m = 250 cm &nbsp;·&nbsp; 2,5 kg = 2 500 g &nbsp;·&nbsp; 2,5 L = 2 500 mL</div>
+          <p>The amount did not change. We just used a <strong>smaller unit</strong>, so the <strong>number got bigger</strong>. 100 centimetres fit into 1 metre, 1 000 grams into 1 kilogram, 1 000 millilitres into 1 litre.</p>
         </div>
 
         <div class="card how-card">
@@ -115,6 +117,16 @@
         </div>
       </header>
       <main class="page-body" id="report-body"></main>
+    </section>
+
+    <!-- ===================== SCALES LAB ===================== -->
+    <section class="screen" id="screen-scales" aria-labelledby="scales-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="scales-title">Read the Scales</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body" id="scales-body"></main>
     </section>
 
     <!-- ===================== WORKSHEET PACK ===================== -->
@@ -211,16 +223,17 @@
 
   </div>
 
-  <script src="js/math.js?v=22"></script>
-  <script src="js/formatting.js?v=22"></script>
-  <script src="js/questions.js?v=22"></script>
-  <script src="js/worksheets.js?v=22"></script>
-  <script src="js/pdf.js?v=22"></script>
-  <script src="js/storage.js?v=22"></script>
-  <script src="js/audio.js?v=22"></script>
-  <script src="js/input.js?v=22"></script>
-  <script src="js/ui.js?v=22"></script>
-  <script src="js/game.js?v=22"></script>
-  <script src="js/app.js?v=22"></script>
+  <script src="js/math.js?v=23"></script>
+  <script src="js/formatting.js?v=23"></script>
+  <script src="js/questions.js?v=23"></script>
+  <script src="js/worksheets.js?v=23"></script>
+  <script src="js/scales.js?v=23"></script>
+  <script src="js/pdf.js?v=23"></script>
+  <script src="js/storage.js?v=23"></script>
+  <script src="js/audio.js?v=23"></script>
+  <script src="js/input.js?v=23"></script>
+  <script src="js/ui.js?v=23"></script>
+  <script src="js/game.js?v=23"></script>
+  <script src="js/app.js?v=23"></script>
 </body>
 </html>

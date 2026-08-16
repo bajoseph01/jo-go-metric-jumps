@@ -36,6 +36,15 @@
     return null;
   }
 
+  // The dimension being played (length | mass | volume). Defaults to length.
+  var currentDimension = 'length';
+
+  function setDimension(dim) {
+    if (M.DIMENSION_NAMES.indexOf(dim) >= 0) currentDimension = dim;
+  }
+
+  function getDimension() { return currentDimension; }
+
   // ------------------------------------------------------------------
   // Random helpers
   // ------------------------------------------------------------------
@@ -50,7 +59,7 @@
 
   /** Weighted pick of a canonical pair. weights: { 'km>m': number } */
   function weightedPair(rng, weights) {
-    var pairs = M.CANONICAL_PAIRS;
+    var pairs = M.pairsFor(currentDimension);
     var w = [];
     var total = 0;
     for (var i = 0; i < pairs.length; i++) {
@@ -239,6 +248,40 @@
     'mm>cm': [
       { text: 'A pencil is {v} mm long. How many centimetres is that?', min: 150, max: 190, step: 5 },
       { text: 'An eraser is {v} mm long. How many centimetres is that?', min: 40, max: 70, step: 5 }
+    ],
+    // --- mass (grounded in real kitchen/classroom objects) ---
+    'kg>g': [
+      { text: 'A bag of sugar weighs {v} kg. How many grams is that?', min: 1, max: 5, step: 0.5 },
+      { text: 'A bag of flour weighs {v} kg. How many grams is that?', min: 1, max: 2.5, step: 0.25 }
+    ],
+    'g>kg': [
+      { text: 'A loaf of bread weighs {v} g. How many kilograms is that?', min: 400, max: 900, step: 50 },
+      { text: 'A bag of apples weighs {v} g. How many kilograms is that?', min: 750, max: 1500, step: 50 }
+    ],
+    'g>mg': [
+      { text: 'A paperclip weighs {v} g. How many milligrams is that?', min: 1, max: 5, step: 0.5 },
+      { text: 'A pencil weighs {v} g. How many milligrams is that?', min: 5, max: 10, step: 1 }
+    ],
+    'mg>g': [
+      { text: 'A grain of rice weighs {v} mg. How many grams is that?', min: 20, max: 60, step: 10 },
+      { text: 'A raisin weighs {v} mg. How many grams is that?', min: 250, max: 900, step: 50 }
+    ],
+    // --- volume (grounded in real containers) ---
+    'kL>L': [
+      { text: 'A swimming pool holds {v} kL of water. How many litres is that?', min: 20, max: 100, step: 10 },
+      { text: 'A rain tank holds {v} kL of water. How many litres is that?', min: 2, max: 10, step: 1 }
+    ],
+    'L>kL': [
+      { text: 'A bathtub holds {v} L of water. How many kilolitres is that?', min: 120, max: 300, step: 20 },
+      { text: 'A wheelie bin holds {v} L. How many kilolitres is that?', min: 100, max: 240, step: 20 }
+    ],
+    'L>mL': [
+      { text: 'A bottle of water holds {v} L. How many millilitres is that?', min: 0.25, max: 2, step: 0.25 },
+      { text: 'A jug of juice holds {v} L. How many millilitres is that?', min: 1, max: 3, step: 0.5 }
+    ],
+    'mL>L': [
+      { text: 'A cup of tea is {v} mL. How many litres is that?', min: 150, max: 350, step: 50 },
+      { text: 'A can of fizzy drink holds {v} mL. How many litres is that?', min: 330, max: 500, step: 10 }
     ]
   };
 
@@ -312,6 +355,8 @@
     STAGES: STAGES,
     stageById: stageById,
     generateQuestion: generateQuestion,
+    setDimension: setDimension,
+    getDimension: getDimension,
     weightedPair: weightedPair,
     genSource: genSource,
     genMulSource: genMulSource,

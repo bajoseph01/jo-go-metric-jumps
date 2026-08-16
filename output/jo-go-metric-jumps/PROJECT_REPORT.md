@@ -3,9 +3,11 @@
 ## What was built
 
 A complete, classroom-ready browser game that teaches Grade 4 learners to convert
-metric length units (km, m, cm, mm) by moving the decimal comma. The app is built
-with semantic HTML, modern CSS and vanilla JavaScript (no frameworks, no server,
-no accounts, no paid APIs) and is ready for GitHub Pages.
+metric units across **three dimensions** — length (km, m, cm, mm), mass (kg, g,
+mg) and volume (kL, L, mL) — by moving the decimal comma, and to **read physical
+scales** (ruler, kitchen scale, measuring jug). The app is built with semantic
+HTML, modern CSS and vanilla JavaScript (no frameworks, no server, no accounts,
+no paid APIs) and is ready for GitHub Pages.
 
 The signature interaction is the **place-value comma track**: the digits of the
 source number are shown as blocks, the comma is a draggable badge sitting at the
@@ -42,7 +44,13 @@ internalise "smaller unit → bigger number; the length never changes."
 
 ## Game modes
 
-- **Play** — the 8-stage campaign (see README). Unlocks progressively.
+- **Play** — the 8-stage campaign (see README). Unlocks progressively, with a
+  separate unlock track per dimension (Length / Mass / Volume chosen on the home
+  screen).
+- **Read the Scales** — the Scales Lab: read live-rendered physical scales — a
+  250 mm ruler (mm), a 0-1 kg kitchen dial (g) and a 0-1 L measuring jug (mL).
+  Readings always land on exact marks; wrong answers show the correct reading;
+  per-instrument progress feeds the teacher report.
 - **Practice** — free practice on any unlocked stage (menu on the home screen).
 - **My Progress** — mastery per category, streaks, and session counts.
 - **Learner profiles** — each child gets a named profile (name + avatar) with
@@ -72,7 +80,9 @@ index.html            static shell for every screen
 css/styles.css        single stylesheet, CSS variables, responsive breakpoints
 js/math.js            exact conversion engine + comma-track builder (unit-testable)
 js/formatting.js      SA formatting: decimal comma, 2 500 spacing, answer parsing
-js/questions.js       stages, generators, adaptive pair weighting
+js/questions.js       stages, generators, adaptive pair weighting (3 dimensions)
+js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
+js/scales.js          Scales Lab: scale question gen + SVG ruler/dial/jug
 js/storage.js         per-learner profiles, localStorage persistence, mastery model
 js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
 js/pdf.js             tiny dependency-free PDF writer (reports + worksheet pack)
@@ -135,7 +145,13 @@ sw.js                 offline service worker (network-first, cache fallback)
   key, learner checkboxes, regenerate) rendered and exercised in the browser;
 - both PDF exports (report + worksheet pack) validated structurally in the
   browser (header, xref offsets, trailer, page counts) and rendered by the
-  webview's built-in PDF viewer.
+  webview's built-in PDF viewer;
+- **three dimensions** exercised live: mass ladder (kg→g→mg, ×1000) and volume
+  ladder (kL→L→mL, ×1000) render and play through the real UI, mass/volume
+  word problems verified exact and realistic;
+- Scales Lab end-to-end: ruler/kitchen/jug SVG instruments rendered and
+  read via the real keypad flow (wrong → targeted feedback → correct → next),
+  per-instrument progress recorded and shown in the teacher report.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

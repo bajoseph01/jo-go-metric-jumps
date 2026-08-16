@@ -105,6 +105,16 @@
         UI.exportWorksheetPdf();
       });
     }
+
+    var scalesBtn = $('btn-scales');
+    if (scalesBtn) {
+      scalesBtn.addEventListener('click', function () {
+        Audio.unlock();
+        Audio.play('click');
+        if (!requireLearner()) return;
+        UI.renderScales();
+      });
+    }
   }
 
   function wireHud() {
@@ -233,6 +243,7 @@
     wireTeacherTrigger();
     UI.renderLadder($('home-ladder'));
     UI.renderLadder($('how-ladder'));
+    UI.renderDimensionPills();
     registerServiceWorker();
     UI.updateLearnerChip();
     if (firstLaunch) {

@@ -1,10 +1,12 @@
 # Jo⚡Go Metric Jumps
 
-**Master the comma. Master metric length.**
+**Master the comma. Master metric measurement.**
 
 A touch-first, classroom-ready learning game for Grade 4 learners that teaches
-metric length conversion (km · m · cm · mm) by making the decimal comma a thing
-you can see, predict, and drag.
+metric conversion across **three dimensions** — length (km · m · cm · mm),
+mass (kg · g · mg) and volume (kL · L · mL) — by making the decimal comma a
+thing you can see, predict, and drag, plus a **Scales Lab** for reading
+physical scales (ruler, kitchen scale, measuring jug).
 
 > **× = RIGHT · ÷ = LEFT · ZEROES = JUMPS**
 
@@ -13,6 +15,12 @@ you can see, predict, and drag.
 Open `index.html` in any modern browser (Chrome, Safari, Edge, Firefox) — no
 server, no install, no login. On an iPad, add it to the Home Screen for a
 full-screen experience; it works offline after the first visit.
+
+Pick a dimension with the **Length · Mass · Volume** pills on the home screen.
+Each dimension runs its own 8-stage campaign with its own ladder and its own
+unlock progression, and word problems are grounded in real objects (bags of
+sugar, rain tanks, pencils). **Read the Scales** opens the Scales Lab: read
+live-rendered rulers (mm), kitchen dials (g) and measuring jugs (mL).
 
 ## How it teaches
 
@@ -77,7 +85,7 @@ sw.js                 offline service worker
 
 ```bash
 node tools/serve.js        # starts a local static server on http://localhost:4173
-node tests/run-tests.js    # runs the automated suite (5917 checks)
+node tests/run-tests.js    # runs the automated suite (5997 checks)
 ```
 
 ## Progress & teacher panel

@@ -35,6 +35,7 @@
     session = {
       stageId: stageId,
       stage: stage,
+      dimension: Store.getDimension(),
       done: 0,
       target: stage.target,
       streak: 0,
@@ -47,6 +48,7 @@
       locked: false,
       advanceTimer: null
     };
+    Q.setDimension(session.dimension);
     Store.setLastStage(stageId);
     UI.show('screen-game');
     UI.renderGameHUD(session);

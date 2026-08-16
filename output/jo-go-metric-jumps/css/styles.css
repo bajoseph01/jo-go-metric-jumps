@@ -393,6 +393,9 @@ button {
 .rung[data-unit="m"] { background: var(--green-soft); }
 .rung[data-unit="cm"] { background: var(--orange-soft); }
 .rung[data-unit="mm"] { background: var(--pink-soft); }
+.rung[data-unit="kg"], .rung[data-unit="kL"] { background: var(--blue-soft); }
+.rung[data-unit="g"], .rung[data-unit="L"] { background: var(--green-soft); }
+.rung[data-unit="mg"], .rung[data-unit="mL"] { background: var(--orange-soft); }
 
 .rung--active { outline: 4px solid var(--yellow); outline-offset: 1px; }
 
@@ -1157,6 +1160,87 @@ button {
 .report-tbl { font-size: 0.9rem; }
 
 .page-head-actions { display: flex; gap: 8px; }
+
+/* ---------------- dimension pills + scales lab ---------------- */
+
+.dim-pills {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 14px;
+}
+
+.dim-pill {
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+  padding: 7px 18px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dim-pill--on {
+  background: var(--yellow-soft);
+  box-shadow: 0 0 0 3px var(--yellow);
+}
+
+.scales-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.scales-tab {
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+  padding: 7px 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.scales-tab--on {
+  background: var(--blue-soft, #dbeafe);
+  box-shadow: 0 0 0 3px var(--blue);
+}
+
+.scales-stage {
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 18px 20px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.scales-q { text-align: center; }
+.scales-prompt { font-weight: 800; font-size: 1.1rem; margin: 0 0 12px; }
+.scale-svg {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.scales-answer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scales-label { font-weight: 700; }
+.scales-input { max-width: 130px; text-align: center; }
+.scales-unit { font-weight: 800; }
 
 /* ---------------- teacher worksheet pack ---------------- */
 

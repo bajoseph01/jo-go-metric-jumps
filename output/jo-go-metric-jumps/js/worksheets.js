@@ -21,19 +21,20 @@
     : root.JOGO.Q;
 
   /**
-   * Per-pair weakness weights from a learner's progress.
-   * Accuracy = firstTry / attempts; untried pairs are neutral (0.5) and a
-   * mastered pair keeps a small floor so it still appears occasionally.
-   * Weights are inverted so the weakest pair is picked most often.
+   * Per-pair weakness weights from a learner's progress, for one dimension
+   * (length | mass | volume). Accuracy = firstTry / attempts; untried pairs
+   * are neutral (0.5) and a mastered pair keeps a small floor so it still
+   * appears occasionally. Weights are inverted so the weakest pair is picked
+   * most often.
    */
-  function pairWeights(progress) {
+  function pairWeights(progress, dim) {
+    dim = dim || Q.getDimension();
     var weights = {};
     var pairs = (progress && progress.pairs) || {};
-    for (var i = 0; i < M.CANONICAL_PAIRS.length; i++) {
-      var key = M.CANONICAL_PAIRS[i][0] + '>' + M.CANONICAL_PAIRS[i][1];
+    var list = M.pairsFor(dim);
+    for (var i = 0; i < list.length; i++) {
+      var key = list[i][0] + '>' + list[i][1];
       var rec = pairs[key];
-      // untried pairs are neutral (0.5), not weakest: a pair the learner has
-      // actually failed deserves the most drill.
       var acc = (rec && rec.attempts) ? rec.firstTry / rec.attempts : 0.5;
       weights[key] = Math.max(0.15, 1 - acc);
     }
@@ -76,14 +77,16 @@
   }
 
   /**
-   * Build a full worksheet for one learner: `convCount` conversion
-   * questions then `wordCount` word problems. Returns an array of items.
+   * Build a full worksheet for one learner in one dimension: `convCount`
+   * conversion questions then `wordCount` word problems. Returns items.
    */
-  function buildItems(progress, rng, convCount, wordCount) {
+  function buildItems(progress, rng, convCount, wordCount, dim) {
     rng = rng || Math.random;
     convCount = convCount || 8;
     wordCount = wordCount === undefined ? 2 : wordCount;
-    var weights = pairWeights(progress);
+    dim = dim || Q.getDimension();
+    Q.setDimension(dim);
+    var weights = pairWeights(progress, dim);
     var items = [];
     for (var i = 0; i < convCount; i++) items.push(conversionItem(rng, weights));
     for (var j = 0; j < wordCount; j++) items.push(wordItem(rng, weights));

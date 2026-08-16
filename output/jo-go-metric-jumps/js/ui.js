@@ -11,6 +11,7 @@
   var Q = root.JOGO.Q;
   var WS = root.JOGO.WS;
   var PDF = root.JOGO.PDF;
+  var Scales = root.JOGO.Scales;
   var Store = root.JOGO.Store;
   var Audio = root.JOGO.Audio;
   var Input = root.JOGO.Input;
@@ -38,29 +39,28 @@
   }
 
   // ------------------------------------------------------------------
-  // Ladder widget
+  // Ladder widget (dimension-aware)
   // ------------------------------------------------------------------
 
-  var RUNG_ORDER = ['km', 'm', 'cm', 'mm'];
-  var GAP_LABELS = { 'km>m': '×1000', 'm>cm': '×100', 'cm>mm': '×10' };
-
   /**
-   * Render the unit ladder. If from/to given, highlight that conversion.
+   * Render the unit ladder for a dimension. If from/to given, highlight that
+   * conversion. Gap labels are derived from the math engine (×1000 etc.).
    */
-  function renderLadder(container, from, to) {
+  function renderLadder(container, from, to, dim) {
     if (!container) return;
+    var rungs = M.ladderRungs(dim || 'length');
     var html = '<div class="ladder">';
-    for (var i = 0; i < RUNG_ORDER.length; i++) {
-      var unit = RUNG_ORDER[i];
+    for (var i = 0; i < rungs.length; i++) {
+      var unit = rungs[i];
       html += '<div class="rung' + (unit === from ? ' rung--active' : '') + '" data-unit="' + unit + '">' + unit + '</div>';
-      if (i < RUNG_ORDER.length - 1) {
-        var gapKey = RUNG_ORDER[i] + '>' + RUNG_ORDER[i + 1];
-        var active = (from === RUNG_ORDER[i] && to === RUNG_ORDER[i + 1]) ||
-                     (from === RUNG_ORDER[i + 1] && to === RUNG_ORDER[i]);
+      if (i < rungs.length - 1) {
+        var gapKey = rungs[i] + '>' + rungs[i + 1];
+        var active = (from === rungs[i] && to === rungs[i + 1]) ||
+                     (from === rungs[i + 1] && to === rungs[i]);
         html += '<div class="ladder-gap' + (active ? ' ladder-gap--active' : '') + '" data-gap="' + gapKey + '">' +
-          '<span class="ladder-gap-f">' + GAP_LABELS[gapKey] + '</span>' +
+          '<span class="ladder-gap-f">' + esc(M.conversion(rungs[i], rungs[i + 1]).opLabel) + '</span>' +
           '<span class="ladder-gap-arrow" aria-hidden="true">' +
-            (active && from === RUNG_ORDER[i + 1] ? '↑' : (active ? '↓' : '')) +
+            (active && from === rungs[i + 1] ? '↑' : (active ? '↓' : '')) +
           '</span></div>';
       }
     }
@@ -154,7 +154,7 @@
     $('gameBody').innerHTML = html;
     if (session.stage.ladder && session.q && session.q.from) {
       var lc = $('gameBody').querySelector('[data-role="ladder"]');
-      renderLadder(lc, session.q.from, session.q.to);
+      renderLadder(lc, session.q.from, session.q.to, session.dimension);
     }
   }
 
@@ -851,6 +851,19 @@
       }
       html += '</tbody></table>';
     }
+
+    var sc = prog.scales;
+    var anyScale = sc && (sc.ruler.attempts || sc.kitchen.attempts || sc.jug.attempts);
+    if (anyScale) {
+      html += '<h3 class="report-sec">Scales</h3>' +
+        '<table class="tbl report-tbl"><thead><tr><th>Scale</th><th>Tries</th><th>First-try</th><th>Recent</th></tr></thead><tbody>';
+      for (var si = 0; si < Store.SCALE_INSTRUMENTS.length; si++) {
+        var srec = sc[Store.SCALE_INSTRUMENTS[si]];
+        html += '<tr><td>' + esc(SCALE_LABELS[Store.SCALE_INSTRUMENTS[si]]) + '</td><td>' + srec.attempts + '</td>' +
+          '<td>' + pct(srec) + '</td><td>' + recentPct(srec) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    }
     html += '<p class="report-foot">Jo⚡Go Metric Jumps · ' + new Date().toLocaleDateString() + '</p>' +
       '</div>';
 
@@ -864,6 +877,154 @@
         renderReport();
       });
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Dimension pills (home screen)
+  // ------------------------------------------------------------------
+
+  function renderDimensionPills() {
+    var box = $('dim-pills');
+    if (!box) return;
+    var dim = Store.getDimension();
+    var html = '';
+    for (var i = 0; i < M.DIMENSION_NAMES.length; i++) {
+      var d = M.DIMENSION_NAMES[i];
+      var on = d === dim;
+      html += '<button type="button" class="dim-pill' + (on ? ' dim-pill--on' : '') + '" data-dim="' + d + '" aria-pressed="' + on + '">' + M.DIMENSIONS[d].name + '</button>';
+    }
+    box.innerHTML = html;
+    var btns = box.querySelectorAll('[data-dim]');
+    for (var b = 0; b < btns.length; b++) {
+      btns[b].addEventListener('click', function () {
+        Audio.play('click');
+        Store.setDimension(this.getAttribute('data-dim'));
+        wsState.items = {};   // worksheets are dimension-specific
+        renderDimensionPills();
+      });
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Scales Lab: read physical scales (ruler, kitchen scale, measuring jug)
+  // ------------------------------------------------------------------
+
+  var SCALE_LABELS = { ruler: 'Ruler', kitchen: 'Kitchen scale', jug: 'Measuring jug' };
+
+  var scalesSession = { instrument: 'ruler', done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
+
+  function renderScales() {
+    show('screen-scales');
+    var body = $('scales-body');
+    var order = ['ruler', 'kitchen', 'jug'];
+    var html = '<div class="scales-tabs" role="tablist" aria-label="Choose a scale">';
+    for (var i = 0; i < order.length; i++) {
+      var on = order[i] === scalesSession.instrument;
+      html += '<button type="button" class="scales-tab' + (on ? ' scales-tab--on' : '') + '" data-scale="' + order[i] + '" role="tab" aria-selected="' + on + '">' + Scales.SCALE_SPECS[order[i]].label + '</button>';
+    }
+    html += '</div><div class="scales-stage" id="scales-stage"></div>';
+    body.innerHTML = html;
+    var tabs = body.querySelectorAll('[data-scale]');
+    for (var t = 0; t < tabs.length; t++) {
+      tabs[t].addEventListener('click', function () {
+        Audio.play('click');
+        scalesSession = { instrument: this.getAttribute('data-scale'), done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
+        renderScales();
+      });
+    }
+    nextScaleQuestion();
+  }
+
+  function nextScaleQuestion() {
+    var s = scalesSession;
+    s.locked = false;
+    s.q = Scales.question(s.instrument);
+    s.firstTry = true;
+    var spec = Scales.SCALE_SPECS[s.instrument];
+    var svg = s.instrument === 'ruler' ? Scales.rulerSVG(s.q.answer)
+      : (s.instrument === 'kitchen' ? Scales.kitchenSVG(s.q.answer) : Scales.jugSVG(s.q.answer));
+    var stage = $('scales-stage');
+    stage.innerHTML = '<div class="scales-q">' +
+      '<p class="scales-prompt">Question ' + (s.done + 1) + ' of ' + s.target + '. Read the scale. How many <strong>' + spec.ask + '</strong>?</p>' +
+      svg +
+      '<form class="scales-answer" id="scales-form" novalidate>' +
+        '<label for="scales-input" class="scales-label">Answer:</label>' +
+        '<input type="text" inputmode="decimal" class="answer-input scales-input" id="scales-input" autocomplete="off" aria-label="Your answer" />' +
+        '<span class="scales-unit">' + spec.unit + '</span>' +
+        '<button type="submit" class="btn btn--primary">Check</button>' +
+      '</form>' +
+      '<div class="feedback" id="scales-feedback" role="status"></div>' +
+    '</div>';
+    $('scales-form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      submitScale();
+    });
+    var input = $('scales-input');
+    setTimeout(function () { if (input) input.focus(); }, 60);
+  }
+
+  function submitScale() {
+    var s = scalesSession;
+    if (s.locked) return;
+    var input = $('scales-input');
+    var fb = $('scales-feedback');
+    var val = Scales.parseInput(input.value);
+    if (val === null) {
+      Audio.play('wrong');
+      fb.textContent = 'Type a number, e.g. 137 or 2,5.';
+      fb.className = 'feedback feedback--warn';
+      return;
+    }
+    s.locked = true;
+    if (val === s.q.answer) {
+      if (s.firstTry) s.correct++;
+      Audio.play('correct');
+      fb.textContent = 'Correct! It reads ' + F.scaledToSA(s.q.answer, 1) + ' ' + s.q.unit + '.';
+      fb.className = 'feedback feedback--ok';
+      Store.recordScale(s.instrument, true);
+      s.done++;
+      setTimeout(afterScaleAnswer, 1000);
+    } else {
+      s.firstTry = false;
+      Audio.play('wrong');
+      fb.textContent = 'Not quite — count the marks carefully. It reads ' + F.scaledToSA(s.q.answer, 1) + ' ' + s.q.unit + '.';
+      fb.className = 'feedback feedback--warn';
+      Store.recordScale(s.instrument, false);
+      s.locked = false;
+      input.focus();
+      input.select();
+    }
+  }
+
+  function afterScaleAnswer() {
+    if (scalesSession.done >= scalesSession.target) {
+      renderScalesDone();
+    } else {
+      nextScaleQuestion();
+    }
+  }
+
+  function renderScalesDone() {
+    var s = scalesSession;
+    var pct2 = Math.round((s.correct / s.target) * 100);
+    var stage = $('scales-stage');
+    stage.innerHTML = '<div class="card done-card">' +
+      '<h2 class="done-title">' + (pct2 === 100 ? 'Perfect reading! ⚡' : pct2 >= 60 ? 'Great reading!' : 'Keep practising!') + '</h2>' +
+      '<p class="done-score">You read ' + s.correct + ' of ' + s.target + ' scales correctly.</p>' +
+      '<div class="done-actions">' +
+        '<button type="button" class="btn btn--primary" id="btn-scales-again">Read more</button>' +
+        '<button type="button" class="btn btn--ghost" id="btn-scales-switch">Pick a different scale</button>' +
+      '</div></div>';
+    $('btn-scales-again').addEventListener('click', function () {
+      Audio.play('click');
+      scalesSession = { instrument: s.instrument, done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
+      nextScaleQuestion();
+    });
+    $('btn-scales-switch').addEventListener('click', function () {
+      Audio.play('click');
+      scalesSession = { instrument: s.instrument, done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
+      renderScales();
+    });
   }
 
   // ------------------------------------------------------------------
@@ -908,19 +1069,22 @@
     html += '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-key-on"' +
       (wsState.withKey ? ' checked' : '') + '> Include answer key</label>' +
       '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button></div>' +
-      '<p class="ws-note">Each worksheet drills the learner\u2019s weakest conversion pairs, plus 2 word problems. ' +
+      '<p class="ws-note">' + M.DIMENSIONS[Store.getDimension()].name + ' worksheets: each drills the learner\u2019s weakest conversion pairs, plus 2 word problems. ' +
       'Answers come from the same engine the game uses.</p>';
 
     var sel = roster.filter(function (l) { return wsState.ids.indexOf(l.id) >= 0; });
     var date = new Date().toLocaleDateString();
+    var dim = Store.getDimension();
+    var dimName = M.DIMENSIONS[dim].name;
     for (var s = 0; s < sel.length; s++) {
       var l = sel[s];
-      if (!wsState.items[l.id]) wsState.items[l.id] = WS.buildItems(Store.progressOf(l.id));
-      var items = wsState.items[l.id];
+      var key = l.id + ':' + dim;
+      if (!wsState.items[key]) wsState.items[key] = WS.buildItems(Store.progressOf(l.id), null, 8, 2, dim);
+      var items = wsState.items[key];
       var convs = items.filter(function (it) { return it.type === 'conv'; });
       var words = items.filter(function (it) { return it.type === 'word'; });
       html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
-        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — Worksheet</div>' +
+        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — ' + dimName + ' Worksheet</div>' +
         '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
         '<p class="ws-instruct">Convert these. Write your answer in the box.</p><div class="ws-qs">';
       for (var c = 0; c < convs.length; c++) {
@@ -936,7 +1100,7 @@
     if (wsState.withKey && sel.length) {
       html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>';
       for (var k = 0; k < sel.length; k++) {
-        var items2 = wsState.items[sel[k].id];
+        var items2 = wsState.items[sel[k].id + ':' + dim];
         html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
           '<ol class="ws-key-list">';
         for (var a = 0; a < items2.length; a++) {
@@ -1017,6 +1181,23 @@
         { label: 'Recent', w: 80 }
       ], prs);
     }
+    var sc = prog.scales;
+    var anyScale = sc && (sc.ruler.attempts || sc.kitchen.attempts || sc.jug.attempts);
+    if (anyScale) {
+      doc.section('Scales');
+      var srows = [];
+      for (var si = 0; si < Store.SCALE_INSTRUMENTS.length; si++) {
+        var ins = Store.SCALE_INSTRUMENTS[si];
+        var srec = sc[ins];
+        srows.push([SCALE_LABELS[ins], String(srec.attempts), pct(srec), recentPct(srec)]);
+      }
+      doc.table([
+        { label: 'Scale', w: 200 },
+        { label: 'Tries', w: 70 },
+        { label: 'First-try', w: 80 },
+        { label: 'Recent', w: 80 }
+      ], srows);
+    }
     return doc;
   }
 
@@ -1038,16 +1219,18 @@
     var sel = roster.filter(function (l) { return wsState.ids && wsState.ids.indexOf(l.id) >= 0; });
     if (!sel.length) return;
     var date = new Date().toLocaleDateString();
+    var dim = Store.getDimension();
+    var dimName = M.DIMENSIONS[dim].name;
     var doc = PDF.createDoc({});
     var first = true;
     for (var i = 0; i < sel.length; i++) {
       var l = sel[i];
       if (!first) doc.pageBreak();
       first = false;
-      var items = wsState.items[l.id] || WS.buildItems(Store.progressOf(l.id));
+      var items = wsState.items[l.id + ':' + dim] || WS.buildItems(Store.progressOf(l.id), null, 8, 2, dim);
       var convs = items.filter(function (it) { return it.type === 'conv'; });
       var words = items.filter(function (it) { return it.type === 'word'; });
-      doc.title('Metric Jumps — Worksheet');
+      doc.title('Metric Jumps — ' + dimName + ' Worksheet');
       doc.subtitle('For: ' + l.name + '  ·  ' + date);
       doc.para('Convert these. Write your answer in the box.', { bold: true });
       doc.blankLine(2);
@@ -1066,7 +1249,7 @@
       doc.pageBreak();
       doc.title('Answer Key');
       for (var k = 0; k < sel.length; k++) {
-        var items2 = wsState.items[sel[k].id] || WS.buildItems(Store.progressOf(sel[k].id));
+        var items2 = wsState.items[sel[k].id + ':' + dim] || WS.buildItems(Store.progressOf(sel[k].id), null, 8, 2, dim);
         doc.section(sel[k].name);
         var ans = items2.map(function (it) { return it.answer; });
         for (var a = 0; a < ans.length; a += 5) {
@@ -1185,6 +1368,8 @@
     renderWorksheets: renderWorksheets,
     exportReportPdf: exportReportPdf,
     exportWorksheetPdf: exportWorksheetPdf,
+    renderDimensionPills: renderDimensionPills,
+    renderScales: renderScales,
     setSoundIcons: setSoundIcons
   };
 
