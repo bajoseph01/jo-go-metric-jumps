@@ -337,7 +337,13 @@ Check for these so you don't reinvent them:
       answer
 - [ ] No result auto-advances: every correct answer awaits the learner's
       own tap (Next button + gentle streak celebration, no timers)
-- [ ] Every screen screenshot-checked for cramped/overlapping layout
+- [ ] **Real-pixel visual check:** `node tests/visual-check.js` drives the
+      app in headless Edge/Chrome, screenshots the actual rendered page,
+      decodes the PNG, and asserts on the pixels (7 checks incl. the
+      arrow-above-ruler geometry). Never rely on the interactive preview
+      compositor for verification — it can be stale or unavailable; the
+      harness is deterministic and CI-runnable. Add a screen + assertions
+      whenever a visual changes.
 - [ ] Print layout verified (`@media print`)
 - [ ] PDF exports open validly — including multi-page and worst-case ordering
 - [ ] Service worker pre-cache includes any new files; SW cache name bumped
