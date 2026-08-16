@@ -387,14 +387,18 @@
   // Practice screen
   // ------------------------------------------------------------------
 
-  function renderPractice() {
+  function renderPractice(all) {
     show('screen-practice');
+    $('practice-title').textContent = all ? 'Teacher Practice' : 'Practice';
     var body = $('practice-body');
     var st = Store.get();
-    var html = '<div class="stage-list">';
+    var html = all
+      ? '<p class="practice-note">All levels are unlocked for teacher practice.</p>'
+      : '';
+    html += '<div class="stage-list">';
     for (var i = 0; i < Q.STAGES.length; i++) {
       var stage = Q.STAGES[i];
-      var locked = stage.id > st.unlocked;
+      var locked = !all && stage.id > st.unlocked;
       var cat = st.categories[stage.category];
       var acc = cat && cat.attempts ? Math.round((cat.firstTry / cat.attempts) * 100) : null;
       var status = locked ? 'Locked'
@@ -538,12 +542,32 @@
       '<li>Best streak: ' + st.bestStreak + '</li>' +
       '<li>Unlocked up to stage: ' + st.unlocked + '</li>' +
       '</ul></div>' +
-      '<button type="button" class="btn btn--danger" data-action="reset">Reset all progress</button>';
+      '<div class="teacher-actions">' +
+        '<button type="button" class="btn btn--primary" data-action="practice-all">Practice all levels</button>' +
+        '<button type="button" class="btn btn--ghost" data-action="lock">Lock teacher mode</button>' +
+        '<button type="button" class="btn btn--danger" data-action="reset">Reset all progress</button>' +
+      '</div>';
 
     panel.innerHTML = html;
     $('teacher-backdrop').classList.add('overlay--show');
 
     panel.querySelector('[data-action="close"]').addEventListener('click', closeTeacher);
+    var pa = panel.querySelector('[data-action="practice-all"]');
+    if (pa) {
+      pa.addEventListener('click', function () {
+        Audio.play('click');
+        closeTeacher();
+        renderPractice(true);
+      });
+    }
+    var lk = panel.querySelector('[data-action="lock"]');
+    if (lk) {
+      lk.addEventListener('click', function () {
+        Audio.play('click');
+        closeTeacher();
+        if (root.JOGO.Teacher) root.JOGO.Teacher.lock();
+      });
+    }
     var r = panel.querySelector('[data-action="reset"]');
     if (r) {
       r.addEventListener('click', function () {
@@ -557,6 +581,73 @@
 
   function closeTeacher() {
     $('teacher-backdrop').classList.remove('overlay--show');
+  }
+
+  /**
+   * Teacher PIN prompt. On a correct entry closes itself and calls onSuccess.
+   * Wrong entries shake the panel, clear the dots and show a hint.
+   */
+  function showPin(expectedPin, onSuccess) {
+    var modal = $('pin-modal');
+    var dots = $('pin-dots');
+    var error = $('pin-error');
+    var panel = modal.querySelector('.pin-panel');
+    var entered = '';
+
+    function renderDots() {
+      dots.innerHTML = '';
+      for (var i = 0; i < 4; i++) {
+        dots.appendChild(el('span', 'pin-dot' + (i < entered.length ? ' pin-dot--filled' : '')));
+      }
+    }
+
+    function fail() {
+      panel.classList.remove('pin-panel--shake');
+      void panel.offsetWidth;
+      panel.classList.add('pin-panel--shake');
+      entered = '';
+      renderDots();
+      error.textContent = 'Incorrect PIN — try again.';
+    }
+
+    function key(d) {
+      if (entered.length >= 4) return;
+      entered += d;
+      error.textContent = '';
+      renderDots();
+      if (entered.length === 4) {
+        if (entered === expectedPin) {
+          modal.classList.remove('overlay--show');
+          if (onSuccess) onSuccess();
+        } else {
+          fail();
+        }
+      }
+    }
+
+    error.textContent = '';
+    entered = '';
+    renderDots();
+    modal.classList.add('overlay--show');
+
+    var keys = modal.querySelectorAll('.pin-key');
+    for (var i = 0; i < keys.length; i++) {
+      keys[i].addEventListener('click', function () {
+        Audio.play('click');
+        var d = this.getAttribute('data-pin');
+        if (d) { key(d); return; }
+        var a = this.getAttribute('data-action');
+        if (a === 'clear') { entered = ''; renderDots(); error.textContent = ''; }
+        else if (a === 'cancel') { modal.classList.remove('overlay--show'); }
+      });
+    }
+  }
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
   }
 
   // ------------------------------------------------------------------
@@ -592,6 +683,7 @@
     renderProgress: renderProgress,
     renderTeacher: renderTeacher,
     closeTeacher: closeTeacher,
+    showPin: showPin,
     showModal: showModal,
     setSoundIcons: setSoundIcons
   };

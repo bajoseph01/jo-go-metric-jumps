@@ -89,21 +89,22 @@
   // Jo⚡Go logo on the home screen, or press "T" on the home screen.
   // ------------------------------------------------------------------
 
+  var teacherFired = false;
+
   function wireTeacherTrigger() {
     var logo = $('brand-logo');
     var timer = null;
     var tapCount = 0;
     var tapTimer = null;
-    var fired = false;
 
     function fire() {
-      if (fired) return;
-      fired = true;
-      UI.renderTeacher();
+      if (!Teacher.unlocked && teacherFired) return; // locked: one prompt attempt
+      teacherFired = true;
+      Teacher.open();
     }
 
-    function pressStart(e) {
-      if (fired) return;
+    function pressStart() {
+      if (!Teacher.unlocked && teacherFired) return;
       timer = setTimeout(fire, 700);
     }
     function pressEnd() {
@@ -116,7 +117,7 @@
     logo.addEventListener('pointerleave', pressEnd);
 
     logo.addEventListener('click', function () {
-      if (fired) return;
+      if (!Teacher.unlocked && teacherFired) return;
       tapCount++;
       if (tapTimer) clearTimeout(tapTimer);
       tapTimer = setTimeout(function () { tapCount = 0; }, 800);
@@ -124,7 +125,7 @@
     });
 
     root.addEventListener('keydown', function (e) {
-      if (fired) return;
+      if (!Teacher.unlocked && teacherFired) return;
       var active = document.querySelector('.screen--active');
       if (active && active.id === 'screen-home' && (e.key === 't' || e.key === 'T')) {
         fire();
@@ -132,6 +133,30 @@
     });
   }
 
+
+  // ------------------------------------------------------------------
+  // Teacher mode: PIN-gated access to the teacher panel and to practice of
+  // every level (locked ones included). The PIN is a light classroom lock,
+  // not real security — it lives in client-side code only.
+  // ------------------------------------------------------------------
+
+  var Teacher = {
+    PIN: '5241',
+    unlocked: false,
+    open: function () {
+      if (Teacher.unlocked) { UI.renderTeacher(); return; }
+      UI.showPin(Teacher.PIN, function () {
+        Teacher.unlocked = true;
+        UI.renderTeacher();
+      });
+    },
+    lock: function () {
+      Teacher.unlocked = false;
+      teacherFired = false;   // re-arm the logo/tap/T triggers
+    }
+  };
+  root.JOGO = root.JOGO || {};
+  root.JOGO.Teacher = Teacher;
 
   function registerServiceWorker() {
     if ('serviceWorker' in root.navigator && root.location.protocol.indexOf('http') === 0) {

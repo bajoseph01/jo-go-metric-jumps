@@ -46,8 +46,10 @@ internalise "smaller unit → bigger number; the length never changes."
 - **Practice** — free practice on any unlocked stage (menu on the home screen).
 - **My Progress** — mastery per category, streaks, and session counts.
 - **How It Works** — in-app explanation of the ×/÷ ladder rule.
-- **Teacher panel** — discreet (long-press the logo or press T): mastery
-  percentages per category, attempts, weak conversion pairs, reset progress.
+- **Teacher mode (PIN 5241)** — discreet (long-press the logo, 5 taps, or press
+  T): mastery percentages per category, attempts, weak conversion pairs, reset,
+  and **Practice all levels** — every stage including locked ones, for teacher-
+  led demonstration. Stays unlocked for the session; "Lock" re-arms the PIN.
 - **Sound toggle** — persistent preference; app is fully usable silent.
 
 ## Architecture
@@ -130,8 +132,9 @@ this environment.
   data loses progress (by design — no accounts).
 - The service worker is network-first, so offline play requires a first
   online visit to populate the cache.
-- Teacher panel is intentionally local and unauthenticated (a classroom helper,
-  not an admin system).
+- The teacher PIN (5241) is a light classroom lock in client-side code, not
+  real security — anyone with the source can read it. It is not stored in
+  localStorage; the session unlock lasts until "Lock" or reload.
 - Out-of-range conversions (km↔cm, km↔mm) are deliberately excluded from the
   game: the six ladder-adjacent relationships are the Grade 4 target.
 

@@ -896,6 +896,76 @@ button {
   flex-wrap: wrap;
 }
 
+/* teacher PIN prompt */
+.pin-panel {
+  max-width: 320px;
+  text-align: center;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin: 14px 0 4px;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.pin-dot--filled { background: var(--blue); }
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+
+.pin-key {
+  min-height: 56px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pin-key:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.pin-key--util { background: var(--yellow-soft); font-size: 1.1rem; }
+
+.pin-error {
+  min-height: 1.2em;
+  color: #c0392b;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.pin-panel--shake { animation: track-shake 0.4s ease; }
+
+.teacher-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.practice-note {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
 .teacher-head {
   display: flex;
   justify-content: space-between;

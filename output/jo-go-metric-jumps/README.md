@@ -84,7 +84,8 @@ node tests/run-tests.js    # runs the automated suite (3150 checks)
 
 Progress (mastery per category, attempts, streaks, unlocks) is saved in
 `localStorage` — no accounts, no data leaves the device. On the home screen,
-long-press the Jo⚡Go logo (or press **T**) for the teacher panel: mastery
-percentages, weak conversion pairs, and reset.
+long-press the Jo⚡Go logo (or press **T**) to open **teacher mode** (PIN: 5241):
+mastery percentages, weak conversion pairs, reset, and **Practice all levels** —
+every stage including locked ones, for teacher-led demonstration.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

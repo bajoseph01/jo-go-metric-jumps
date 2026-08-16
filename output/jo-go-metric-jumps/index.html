@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#2F6BFF">
   <meta name="description" content="Jo⚡Go Metric Jumps — a Grade 4 learning game for converting km, m, cm and mm by moving the decimal comma.">
   <title>Jo⚡Go Metric Jumps</title>
-  <link rel="icon" href="assets/favicon.svg?v=12" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/icon-180.png?v=12">
-  <link rel="manifest" href="manifest.webmanifest?v=12">
-  <link rel="stylesheet" href="css/styles.css?v=12">
+  <link rel="icon" href="assets/favicon.svg?v=16" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png?v=16">
+  <link rel="manifest" href="manifest.webmanifest?v=16">
+  <link rel="stylesheet" href="css/styles.css?v=16">
 </head>
 <body>
   <div id="app">
@@ -131,6 +131,30 @@
       <div class="overlay-panel teacher-panel" id="teacher-panel" role="dialog" aria-label="Teacher panel"></div>
     </div>
 
+    <!-- ===================== TEACHER PIN ===================== -->
+    <div class="overlay" id="pin-modal" aria-hidden="true">
+      <div class="overlay-panel pin-panel" role="dialog" aria-label="Teacher PIN">
+        <h2 class="modal-title">🔐 Teacher Mode</h2>
+        <p class="modal-text" id="pin-hint">Enter the 4-digit PIN.</p>
+        <div class="pin-dots" id="pin-dots" aria-hidden="true"></div>
+        <div class="pin-pad">
+          <button type="button" class="pin-key" data-pin="1">1</button>
+          <button type="button" class="pin-key" data-pin="2">2</button>
+          <button type="button" class="pin-key" data-pin="3">3</button>
+          <button type="button" class="pin-key" data-pin="4">4</button>
+          <button type="button" class="pin-key" data-pin="5">5</button>
+          <button type="button" class="pin-key" data-pin="6">6</button>
+          <button type="button" class="pin-key" data-pin="7">7</button>
+          <button type="button" class="pin-key" data-pin="8">8</button>
+          <button type="button" class="pin-key" data-pin="9">9</button>
+          <button type="button" class="pin-key pin-key--util" data-action="clear" aria-label="Clear">⌫</button>
+          <button type="button" class="pin-key" data-pin="0">0</button>
+          <button type="button" class="pin-key pin-key--util" data-action="cancel" aria-label="Cancel">✕</button>
+        </div>
+        <p class="pin-error" id="pin-error" aria-live="polite"></p>
+      </div>
+    </div>
+
     <!-- ===================== CONFIRM MODAL ===================== -->
     <div class="overlay" id="confirm-modal" aria-hidden="true">
       <div class="overlay-panel modal-panel" role="alertdialog" aria-label="Confirm">
@@ -145,14 +169,14 @@
 
   </div>
 
-  <script src="js/math.js?v=12"></script>
-  <script src="js/formatting.js?v=12"></script>
-  <script src="js/questions.js?v=12"></script>
-  <script src="js/storage.js?v=12"></script>
-  <script src="js/audio.js?v=12"></script>
-  <script src="js/input.js?v=12"></script>
-  <script src="js/ui.js?v=12"></script>
-  <script src="js/game.js?v=12"></script>
-  <script src="js/app.js?v=12"></script>
+  <script src="js/math.js?v=16"></script>
+  <script src="js/formatting.js?v=16"></script>
+  <script src="js/questions.js?v=16"></script>
+  <script src="js/storage.js?v=16"></script>
+  <script src="js/audio.js?v=16"></script>
+  <script src="js/input.js?v=16"></script>
+  <script src="js/ui.js?v=16"></script>
+  <script src="js/game.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>
