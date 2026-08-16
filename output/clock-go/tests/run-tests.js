@@ -96,6 +96,17 @@ const q305 = { h: 3, m: 5 };
 ok(C.isCorrect(q305, C.parseTime('3:05')), 'leading zero accepted');
 ok(C.isCorrect(q305, C.parseTime('3:5')), 'no leading zero accepted');
 
+// the colon is PART of the lesson: right time without ':' is 'format', not correct
+eq(C.judge(q345, '3:45'), 'correct', '3:45 with colon is correct');
+eq(C.judge(q345, ' 3 : 45 '), 'correct', 'spaced colon input is correct');
+eq(C.judge(q345, '345'), 'format', '345 (no colon) is so-close format');
+eq(C.judge(q345, '3.45'), 'format', '3.45 (dot, no colon) is so-close format');
+eq(C.judge({ h: 12, m: 0 }, '12'), 'format', '12 for 12:00 is so-close format');
+eq(C.judge({ h: 12, m: 0 }, '12:00'), 'correct', '12:00 with colon is correct');
+eq(C.judge(q345, '3:30'), 'wrong', '3:30 is wrong');
+eq(C.judge(q345, 'abc'), 'invalid', 'garbage is invalid');
+eq(C.judge(q345, ''), 'invalid', 'empty is invalid');
+
 // feedback is kid language and always mentions the correct time
 ok(C.feedback({ h: 3, m: 0 }).indexOf('3 o') >= 0, '3:00 feedback says 3 o\u2019clock');
 ok(C.feedback({ h: 3, m: 45 }).indexOf('quarter to 4') >= 0, '3:45 feedback says quarter to 4');
@@ -311,6 +322,22 @@ ok(uiSrc.indexOf('stroke="#E64545"') > -1, 'svg minute hand is vivid red');
 eq(uiSrc.indexOf('fill="#1E4ED8"'), -1, 'old faded blue minute hand removed from svg');
 ok(uiSrc.indexOf('handPoly') === -1, 'degenerate polygon hands removed entirely');
 ok(uiSrc.indexOf('0.902 0.271 0.271') > -1, 'pdf minute hand red, not grey');
+
+// Colon is taught, and correct answers advance on the child's OWN tap:
+// no auto-advance timer may live inside submitAnswer.
+ok(uiSrc.indexOf('function nextQuestion') > -1, 'a nextQuestion() step exists');
+ok(uiSrc.indexOf('data-key="next"') > -1, 'the Next button is built in ui.js');
+ok(uiSrc.indexOf('So close! That is the right time') > -1, 'format feedback says so-close, not wrong');
+{
+  const sub = uiSrc.slice(uiSrc.indexOf('function submitAnswer'), uiSrc.indexOf('function showFeedback'));
+  ok(sub.indexOf('setTimeout') === -1, 'submitAnswer never auto-advances (no setTimeout)');
+  ok(sub.indexOf('C.judge') > -1, 'submitAnswer judges via C.judge (colon rule)');
+  ok(sub.indexOf('showNext()') > -1, 'correct answers hand control to a Next button');
+}
+
+// The colon lesson is in the learner-facing copy (intro + guide + how-it-works).
+const htmlSrc = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+ok((htmlSrc.match(/little colon :/g) || []).length >= 3, 'colon taught in intro, guide and how-it-works copy');
 
 // PDF: a 12:00 clock (BOTH hands vertical — the old degeneracy) must emit
 // two thick stroked lines with the red + near-black colors.

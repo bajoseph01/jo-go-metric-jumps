@@ -306,6 +306,22 @@ Check for these so you don't reinvent them:
     rotating elements are strokes and every polygon has a fixed
     non-collinear shape — but the rasterizer now proves it at every
     extreme position, so the class of bug can't silently return.
+20. **The answer FORMAT is part of the lesson — and so is the pause after
+    it.** Tick⚡Tock accepted "630" as correct for 6:30, silently hiding
+    the colon the teacher was trying to teach; and a correct answer
+    auto-advanced after 0.9s, so the child never got to sit with the
+    feedback. Two fixes, both testable: (1) correctness now REQUIRES the
+    literal ':' — a right-time-without-colon gets "So close! … the
+    little colon : …" and is not counted (formatting is not
+    comprehension, so firstTry is untouched and the child just retypes);
+    the judge() pure function makes the rule unit-testable. (2) A
+    correct answer hands control to an explicit "Next question →"
+    button — no setTimeout in submitAnswer, keypad locked meanwhile —
+    so the feedback moment belongs to the child. General lessons: in a
+    teaching app, every input convention the teacher cares about must be
+    enforced AND taught (in the intro, the guide, and the how-it-works
+    copy, not just in the validator), and the "done" moment must never
+    race the learner — reading feedback is part of the practice.
 
 ---
 

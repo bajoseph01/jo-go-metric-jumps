@@ -226,6 +226,7 @@
   }
 
   function onKey() {
+    if (session.locked) return; // awaiting the Next tap — the question is done
     var k = this.getAttribute('data-key');
     if (k === 'check') { submitAnswer(); return; }
     if (k === '⌫') { answerBuffer = answerBuffer.slice(0, -1); }
@@ -276,33 +277,54 @@
     if (session.locked) return;
     var raw = answerBuffer;
     if (!raw) return;
-    var parsed = C.parseTime(raw);
     var a = store.activeLearner();
-    if (!parsed) {
+    var res = C.judge(session.q, raw);
+    answerBuffer = ''; updateDisplay();
+    if (res === 'invalid') {
       Audio.play('wrong');
       showFeedback('Hmm, that does not look like a time. Type it like 3:45.', false);
-      answerBuffer = ''; updateDisplay();
       return;
     }
-    var ok = C.isCorrect(session.q, parsed);
-    store.record(a.id, session.level, session.firstTry && ok);
-    answerBuffer = ''; updateDisplay();
-    if (ok) {
-      Audio.play('correct');
-      session.correct++;
-      showFeedback('Yes! ' + sample() + ' — ' + C.feedback(session.q), true);
-      session.locked = true;
-      setTimeout(function () {
-        session.done++;
-        if (session.done >= session.target) { finishGame(); return; }
-        session.locked = false;
-        ask();
-      }, 900);
-    } else {
+    if (res === 'format') {
+      // Right time, missing the colon — teach the presentation, don't count
+      // it as a wrong attempt and don't reveal a new question. The child
+      // retypes with the ':' key (firstTry is left untouched: formatting is
+      // not comprehension).
+      Audio.play('wrong');
+      showFeedback('So close! That is the right time — but something is missing: the little colon : between the hours and the minutes, like ' + sample() + '. Type it again!', false);
+      return;
+    }
+    if (res === 'wrong') {
       Audio.play('wrong');
       session.firstTry = false;
       showFeedback('Not quite — ' + C.feedback(session.q) + ' Try again!', false);
+      return;
     }
+    // correct
+    store.record(a.id, session.level, session.firstTry);
+    Audio.play('correct');
+    session.correct++;
+    showFeedback('Yes! ' + sample() + ' — ' + C.feedback(session.q), true);
+    session.locked = true;
+    showNext();
+  }
+
+  /** Replace the keypad with a Next button so the child can sit with the
+   *  feedback as long as they need, then advance on their own tap. */
+  function showNext() {
+    var box = $('keypad');
+    if (!box) return;
+    box.innerHTML = '<button type="button" class="key key--next" data-key="next">Next question →</button>';
+    var b = box.querySelector('[data-key="next"]');
+    if (b) b.addEventListener('click', nextQuestion);
+  }
+
+  function nextQuestion() {
+    if (!session.locked) return;
+    session.done++;
+    if (session.done >= session.target) { finishGame(); return; }
+    session.locked = false;
+    ask();
   }
 
   function showFeedback(msg, ok) {

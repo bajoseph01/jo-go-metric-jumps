@@ -89,6 +89,19 @@
     return !!parsed && parsed.h === q.h && parsed.m === q.m;
   }
 
+  /**
+   * Judge an answer submission. The colon is PART of the lesson: a time
+   * that matches (h, m) but was typed without ":" is 'format' (so close —
+   * teach the presentation, don't count it), not 'correct'.
+   * Returns 'correct' | 'format' | 'wrong' | 'invalid'.
+   */
+  function judge(q, raw) {
+    var parsed = parseTime(raw);
+    if (!parsed) return 'invalid';
+    if (parsed.h !== q.h || parsed.m !== q.m) return 'wrong';
+    return String(raw).indexOf(':') >= 0 ? 'correct' : 'format';
+  }
+
   /** The number the minute hand points at ("the minute hand is on the 9"). */
   function minuteMark(m) {
     var n = Math.round(m / 5);
@@ -147,6 +160,7 @@
     parseTime: parseTime,
     answerText: answerText,
     isCorrect: isCorrect,
+    judge: judge,
     minuteMark: minuteMark,
     feedback: feedback,
     hint: hint,

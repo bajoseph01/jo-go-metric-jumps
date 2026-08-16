@@ -272,6 +272,18 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   font-size: 1.2rem;
 }
 .key--clear { background: var(--orange-soft); }
+.key--next {
+  grid-column: 1 / -1;
+  background: var(--blue, #2F6BFF);
+  color: #fff;
+  min-height: 58px;
+  font-size: 1.2rem;
+  animation: keypop 0.25s ease-out;
+}
+@keyframes keypop {
+  from { transform: scale(0.96); opacity: 0.4; }
+  to { transform: scale(1); opacity: 1; }
+}
 
 .prog-dots { display: flex; gap: 6px; justify-content: center; }
 .prog-dot {
