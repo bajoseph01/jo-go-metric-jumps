@@ -631,7 +631,7 @@
       var av = $('learner-chip-avatar');
       var nm = $('learner-chip-name');
       if (av) av.textContent = avatar;
-      if (nm) nm.textContent = name;
+      if (nm) { nm.textContent = name; nm.style.color = a ? a.color : ''; }
       chip.setAttribute('aria-label', a ? 'Choose who is playing — currently ' + name : 'Choose who is playing');
     }
     var hud = $('btn-learner-hud');
@@ -673,7 +673,7 @@
       html += '<div class="learner-card' + (isActive ? ' learner-card--active' : '') + '">' +
         '<span class="learner-avatar" aria-hidden="true">' + l.emoji + '</span>' +
         '<div class="learner-info">' +
-          '<h3 class="learner-name">' + esc(l.name) + '</h3>' +
+          '<h3 class="learner-name" style="color:' + l.color + '">' + esc(l.name) + '</h3>' +
           '<p class="learner-meta">Stage ' + l.unlocked + ' · ' + l.totalAnswered + ' questions</p>' +
         '</div>' +
         (isActive
@@ -1397,7 +1397,7 @@
       html += remaining.map(function (l) {
         return '<button type="button" class="chal-learner" data-chal-learner="' + l.id + '">' +
           '<span class="chal-learner-emoji">' + l.emoji + '</span>' +
-          '<span class="chal-learner-name">' + esc(l.name) + '</span></button>';
+          '<span class="chal-learner-name" style="color:' + l.color + '">' + esc(l.name) + '</span></button>';
       }).join('');
     }
     html += '</div><div class="chal-board-actions">';
@@ -1479,6 +1479,14 @@
   }
 
   function chalStart(learnerId) {
+    if (!Store.challengeIntroSeen(learnerId)) {
+      showChallengeIntro(learnerId);
+      return;
+    }
+    chalBegin(learnerId);
+  }
+
+  function chalBegin(learnerId) {
     chalState.learnerId = learnerId;
     chalState.qIndex = 0;
     chalState.correct = 0;
@@ -1488,6 +1496,37 @@
     chalState.startTs = Date.now();
     chalState.deadline = chalState.startTs + chalState.duration * 1000;
     renderChallenge();
+  }
+
+  /** First-time overlay, spoken in kid language. */
+  function showChallengeIntro(learnerId) {
+    var overlay = el('div', 'overlay chal-intro-overlay');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'How the timed challenge works');
+    overlay.innerHTML =
+      '<div class="overlay-panel chal-intro" role="document">' +
+        '<div class="chal-intro-emoji">🏁</div>' +
+        '<h2 class="chal-intro-title">Ready, set, GO!</h2>' +
+        '<p class="chal-intro-sub">Here is how the race works:</p>' +
+        '<ul class="chal-intro-list">' +
+          '<li>🧐 <strong>Read</strong> each scale carefully.</li>' +
+          '<li>⌨️ <strong>Type</strong> the number, then press Check.</li>' +
+          '<li>⏱️ One try each — <strong>no second chances</strong>!</li>' +
+          '<li>🏆 Beat the clock and climb the <strong>leaderboard</strong>.</li>' +
+        '</ul>' +
+        '<button type="button" class="btn btn--primary chal-intro-go">Got it — let\'s go!</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    requestAnimationFrame(function () { overlay.classList.add('overlay--show'); });
+    var go = overlay.querySelector('.chal-intro-go');
+    go.addEventListener('click', function () {
+      Audio.play('click');
+      Store.markChallengeIntro(learnerId);
+      overlay.classList.remove('overlay--show');
+      setTimeout(function () { overlay.remove(); }, 250);
+      chalBegin(learnerId);
+    });
   }
 
   function chalSubmit() {
@@ -1583,6 +1622,7 @@
       return {
         learner: r.learner,
         name: (l ? l.emoji + ' ' + l.name : '?'),
+        color: l ? l.color : '',
         correct: r.correct,
         answered: r.answered,
         seconds: r.seconds
@@ -1600,7 +1640,7 @@
       var r = ranked[i];
       html += '<div class="chal-row' + (i < 3 ? ' chal-row--top' : '') + '">' +
         '<span class="chal-rank">' + (medals[i] || (i + 1)) + '</span>' +
-        '<span class="chal-name">' + r.name + '</span>' +
+        '<span class="chal-name" style="color:' + r.color + '">' + r.name + '</span>' +
         '<span class="chal-acc">' + chalAccuracy(r.correct, r.answered) + '%</span>' +
         '<span class="chal-stats">' + r.correct + '/' + r.answered + ' · ' + r.seconds + 's</span>' +
       '</div>';

@@ -54,7 +54,16 @@
   }
 
   var AVATARS = ['🦊', '🐼', '🦁', '🐸', '🐙', '🦄', '🐢', '🦉'];
+  // Kid-friendly, readable-on-white name colours, one per avatar index.
+  var LEARNER_COLORS = ['#2F6BFF', '#E64545', '#18A957', '#FF8A1E', '#8B5CF6', '#E6459B', '#0E9CA3', '#C47A18'];
   var DEFAULT_NAME = 'Learner 1';
+
+  function hashId(id) {
+    var h = 0;
+    var s = String(id);
+    for (var i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
 
   function freshCategories() {
     var cats = {};
@@ -166,6 +175,8 @@
       id: typeof l.id === 'string' && l.id ? l.id : genId(),
       name: typeof l.name === 'string' && l.name.trim() ? l.name.trim().slice(0, 18) : DEFAULT_NAME,
       emoji: AVATARS.indexOf(l.emoji) >= 0 ? l.emoji : AVATARS[0],
+      color: LEARNER_COLORS.indexOf(l.color) >= 0 ? l.color : LEARNER_COLORS[hashId(l.id) % LEARNER_COLORS.length],
+      challengeIntroSeen: !!l.challengeIntroSeen,
       unlocked: typeof l.unlocked === 'number' ? Math.min(8, Math.max(1, Math.round(l.unlocked))) : 1,
       lastStage: typeof l.lastStage === 'number' ? Math.min(8, Math.max(1, Math.round(l.lastStage))) : 1,
       unlockedBy: sanitizeUnlocks(l.unlockedBy),
@@ -279,7 +290,17 @@
     }
 
     function learnerSummary(l) {
-      return { id: l.id, name: l.name, emoji: l.emoji, unlocked: l.unlocked, totalAnswered: l.totalAnswered };
+      return { id: l.id, name: l.name, emoji: l.emoji, color: l.color, unlocked: l.unlocked, totalAnswered: l.totalAnswered };
+    }
+
+    /** First colour not already claimed by another learner (fallback: blue). */
+    function firstFreeColor(excludeId) {
+      var used = {};
+      device.learners.forEach(function (l) { if (l.id !== excludeId) used[l.color] = true; });
+      for (var i = 0; i < LEARNER_COLORS.length; i++) {
+        if (!used[LEARNER_COLORS[i]]) return LEARNER_COLORS[i];
+      }
+      return LEARNER_COLORS[0];
     }
 
     function progressOfLearner(l) {
@@ -315,7 +336,7 @@
         for (var k in p) view[k] = p[k];
         view.unlocked = l.unlockedBy[dim] || 1;
         view.lastStage = l.lastStageBy[dim] || 1;
-        view.activeLearner = { id: l.id, name: l.name, emoji: l.emoji };
+        view.activeLearner = { id: l.id, name: l.name, emoji: l.emoji, color: l.color };
       } else {
         var d = freshProgress();
         for (var k2 in d) view[k2] = d[k2];
@@ -525,10 +546,24 @@
 
     function addLearner(name, emoji) {
       var learner = sanitizeLearner({ id: genId(), name: name, emoji: emoji });
+      learner.color = firstFreeColor(null);
       device.learners.push(learner);
       device.activeLearnerId = learner.id;
       save();
       return learnerSummary(learner);
+    }
+
+    /** Mark a learner as having seen the timed-challenge intro. */
+    function markChallengeIntro(id) {
+      var l = learnerById(id);
+      if (!l) return;
+      l.challengeIntroSeen = true;
+      save();
+    }
+
+    function challengeIntroSeen(id) {
+      var l = learnerById(id);
+      return l ? !!l.challengeIntroSeen : false;
     }
 
     function removeLearner(id) {
@@ -592,8 +627,11 @@
       addLearner: addLearner,
       removeLearner: removeLearner,
       renameLearner: renameLearner,
+      markChallengeIntro: markChallengeIntro,
+      challengeIntroSeen: challengeIntroSeen,
       progressOf: progressOf,
       AVATARS: AVATARS,
+      LEARNER_COLORS: LEARNER_COLORS,
       categoryLabels: CATEGORY_LABELS,
       categories: CATEGORIES,
       DIMENSIONS: DIMENSIONS,
@@ -662,7 +700,10 @@
     addLearner: singleton.addLearner,
     removeLearner: singleton.removeLearner,
     renameLearner: singleton.renameLearner,
-    progressOf: singleton.progressOf
+    markChallengeIntro: singleton.markChallengeIntro,
+    challengeIntroSeen: singleton.challengeIntroSeen,
+    progressOf: singleton.progressOf,
+    LEARNER_COLORS: LEARNER_COLORS
   };
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = Store; }

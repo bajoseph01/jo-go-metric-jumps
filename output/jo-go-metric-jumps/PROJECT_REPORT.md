@@ -130,7 +130,7 @@ sw.js                 offline service worker (network-first, cache fallback)
 ## Testing performed
 
 **Automated (Node, no dependencies)** — `node tests/run-tests.js`:
-6068 checks, 0 failures, covering:
+6077 checks, 0 failures, covering:
 - the six canonical conversions (direction, factor, jumps, exact values);
 - all mission error cases (0,5 m → cm; 0,05 m → cm; 5 m → mm; 5 000 mm → m;
   250 cm → m; 25 cm → m; 2,5 km → m; 0,003 km → m; 450 cm → m; 4 500 mm → m;
@@ -197,7 +197,18 @@ sw.js                 offline service worker (network-first, cache fallback)
   (verified: 🐼 offered once 🦊 is taken), the clock pulses red in the last
   10 seconds, the score card shows a tier emoji (🌟/🎉/👍/💪), and the
   subtitle reads like a teacher saying it aloud. Asset cache versions bumped
-  (css v21 + scripts v23 → v30) so stale stylesheets can never render again.
+  (css v21 + scripts v23 → v30) so stale stylesheets can never render again;
+- second design pass (home + gameplay): the PLAY button gets a warm
+  yellow→orange gradient with a hover lift, Read the Scales is now a
+  highlighted 📏 orange button so the second activity is discoverable,
+  dimension pills grew with press physics, the HUD stage line is bolder, and
+  the keypad Check key is taller. Every learner gets a distinct name colour
+  from an 8-colour palette (first-free at creation, stable derived fallback
+  for migrated records) shown on the home chip, learner cards, challenge
+  picker and leaderboard — verified live with two fox learners distinguished
+  as orange vs blue. A per-learner, kid-language intro overlay ("Ready, set,
+  GO!") explains the challenge on first open and never repeats for that
+  learner.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

@@ -85,7 +85,7 @@ sw.js                 offline service worker
 
 ```bash
 node tools/serve.js        # starts a local static server on http://localhost:4173
-node tests/run-tests.js    # runs the automated suite (6068 checks)
+node tests/run-tests.js    # runs the automated suite (6077 checks)
 ```
 
 ## Progress & teacher panel
@@ -121,7 +121,11 @@ closes with a **leaderboard ranked by first-try accuracy**, then items
 answered, then time. The clock pulses red in the final 10 seconds and each
 score card ends with a tier emoji (🌟 perfect, 🎉 great, 👍 solid, 💪 keep
 going). Adding a learner auto-suggests an animal avatar nobody else has yet,
-so no two kids ever look identical. Everything is generated locally — no
-network, no data leaves the device.
+and every learner gets their own name colour from a palette — so even two
+kids who pick the same animal are told apart instantly, everywhere their
+name appears (home chip, learner cards, challenge picker, leaderboard). The
+first time each learner opens the challenge, a short overlay explains the
+rules in kid language ("Read, type, one try each, climb the board!").
+Everything is generated locally — no network, no data leaves the device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

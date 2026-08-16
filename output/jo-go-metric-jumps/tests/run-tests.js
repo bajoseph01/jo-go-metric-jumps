@@ -968,6 +968,45 @@ st5.mutate(d => {
 ok(Array.isArray(st5.challengesOf(chD.id)), 'missing challenges sanitised to array');
 
 // ------------------------------------------------------------------
+section('19. Learner colours + challenge intro flag');
+// ------------------------------------------------------------------
+
+// distinct colours, even for learners sharing an avatar
+const st6 = Store.createStore({ getItem: () => null, setItem: () => {} });
+for (const l of st6.learners()) st6.removeLearner(l.id);
+const cAda = st6.addLearner('Ada', '🦊');
+const cBen = st6.addLearner('Ben', '🐼');
+const cCara = st6.addLearner('Cara', '🦊'); // same avatar as Ada
+const colors = st6.learners().map(l => l.color);
+eq(new Set(colors).size, 3, 'every learner gets a distinct colour');
+eq(cCara.color !== cAda.color, true, 'same-avatar learners differ by colour');
+ok(colors.every(c => Store.LEARNER_COLORS.indexOf(c) >= 0), 'colours come from the palette');
+
+// colours survive a reload (persisted)
+const mem2 = { data: null, getItem() { return this.data; }, setItem(k, v) { this.data = v; } };
+const sA = Store.createStore(mem2);
+for (const l of sA.learners()) sA.removeLearner(l.id);
+const d1 = sA.addLearner('Didi', '🐸');
+sA.mutate(d => { d.learners.find(l => l.id === d1.id).color = undefined; }); // pre-colour record
+const sB = Store.createStore(mem2);
+const d2 = sB.learners().find(l => l.id === d1.id);
+ok(typeof d2.color === 'string' && d2.color.indexOf('#') === 0, 'missing colour derived on load');
+const sC = Store.createStore(mem2);
+const d3 = sC.learners().find(l => l.id === d1.id);
+eq(d2.color, d3.color, 'derived colour is stable across reloads');
+
+// challenge intro flag, per learner
+const st7 = Store.createStore({ getItem: () => null, setItem: () => {} });
+const iAda = st7.addLearner('Ada', '🦊');
+const iBen = st7.addLearner('Ben', '🐼');
+eq(st7.challengeIntroSeen(iAda.id), false, 'intro unseen by default');
+st7.markChallengeIntro(iAda.id);
+eq(st7.challengeIntroSeen(iAda.id), true, 'intro marked seen');
+eq(st7.challengeIntroSeen(iBen.id), false, 'other learner unaffected');
+st7.markChallengeIntro('nope');
+eq(st7.challengeIntroSeen(iBen.id), false, 'unknown learner ignored');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');
