@@ -192,13 +192,28 @@
     }
     html += inner;
     if (session.stage.ladder && session.q && session.q.from) {
-      html += '<div class="ladder-wrap" data-role="ladder"></div>';
+      // The ladder's factor pills and direction arrow would give the
+      // answer away — they stay hidden until the child taps Show hint.
+      html += '<div class="ladder-wrap' + (session.showHint ? '' : ' ladder-wrap--hint') + '" data-role="ladder"></div>';
+      if (!session.showHint) {
+        html += '<div class="hint-row"><button type="button" class="btn btn--mini btn--hint" id="btn-show-hint">💡 Show hint</button></div>';
+      }
     }
     html += '</div>';
     $('gameBody').innerHTML = html;
     if (session.stage.ladder && session.q && session.q.from) {
       var lc = $('gameBody').querySelector('[data-role="ladder"]');
       renderLadder(lc, session.q.from, session.q.to, session.dimension);
+      var hintBtn = $('btn-show-hint');
+      if (hintBtn) {
+        hintBtn.addEventListener('click', function () {
+          Audio.play('click');
+          session.showHint = true;
+          var wrap = $('gameBody').querySelector('[data-role="ladder"]');
+          if (wrap) wrap.classList.remove('ladder-wrap--hint');
+          hintBtn.hidden = true;
+        });
+      }
     }
   }
 

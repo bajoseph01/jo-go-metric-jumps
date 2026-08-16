@@ -45,7 +45,8 @@
       attempts: 0,
       trackCtl: null,
       firstTryCount: 0,
-      locked: false
+      locked: false,
+      showHint: false
     };
     Q.setDimension(session.dimension);
     Store.setLastStage(stageId);
@@ -74,6 +75,7 @@
     session.attempts = 0;
     session.sub = null;
     session.trackCtl = null;
+    session.showHint = false; // the ladder's pills/arrow re-hide every question
     UI.clearFeedback();
     renderCurrent();
   }

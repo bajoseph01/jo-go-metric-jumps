@@ -256,6 +256,43 @@ async function run() {
     }
     check(ss.dark > 200, 'scales: tick marks paint inside the ruler (' + ss.dark + ' px)');
 
+    // ---- Screen 3: GAME — the ladder must not hand the answer away ----
+    // Factor pills and the direction arrow stay hidden until Show hint.
+    await evalJs(cdp, "document.getElementById('btn-play').click(); true");
+    // a fresh learner meets the one-time teaching overlay first
+    await waitForJs(cdp, "!document.getElementById('intro-backdrop') || document.getElementById('intro-backdrop').classList.contains('overlay--show') || !!document.querySelector('[data-role=\"ladder\"]')", 10000);
+    const introShown = await evalJs(cdp, "document.getElementById('intro-backdrop') && document.getElementById('intro-backdrop').classList.contains('overlay--show')");
+    if (introShown) { await evalJs(cdp, "document.getElementById('intro-go').click(); true"); }
+    await waitForJs(cdp, "!!document.querySelector('[data-role=\"ladder\"]')", 10000);
+    await sleep(300);
+    const gated = await evalJs(cdp, "(() => { const wrap = document.querySelector('[data-role=\"ladder\"]'); const pill = wrap.querySelector('.ladder-gap-f'); return { hidden: wrap.classList.contains('ladder-wrap--hint'), pillVis: getComputedStyle(pill).visibility, hasBtn: !!document.getElementById('btn-show-hint') }; })()");
+    check(gated.hidden, 'game: ladder starts with hints off (ladder-wrap--hint)');
+    check(gated.pillVis === 'hidden', 'game: factor pills are hidden until Show hint');
+    check(gated.hasBtn, 'game: a Show hint button is present');
+    const revealed = await evalJs(cdp, "(() => { document.getElementById('btn-show-hint').click(); const pill = document.querySelector('[data-role=\"ladder\"] .ladder-gap-f'); const btn = document.getElementById('btn-show-hint'); return { vis: getComputedStyle(pill).visibility, btnHidden: btn ? btn.hidden : true }; })()");
+    await sleep(150);
+    check(revealed.vis === 'visible', 'game: Show hint reveals the factor pills');
+    check(revealed.btnHidden, 'game: Show hint button hides itself after being tapped');
+
+    // Answer this question, advance, and confirm the NEXT question starts
+    // with the ladder hidden again (hints are per-question, not sticky).
+    // Parse the op from the QUESTION PROMPT only — the body contains hidden
+    // screens whose text (e.g. How It Works' "km → m is a 1000-jump") would
+    // fool a body-wide regex into answering the wrong pair.
+    const answered = await evalJs(cdp, "(() => { const pr = document.querySelector('.question-prompt'); if (!pr) return 'no-prompt'; const parts = pr.textContent.split('\\u2192').map(s => s.trim()); if (parts.length < 2) return 'no-arrow: ' + pr.textContent; const LAD = ['km','m','cm','mm','kg','g','mg','kL','L','mL']; const i = LAD.indexOf(parts[0]), j = LAD.indexOf(parts[1]); if (i < 0 || j < 0) return 'bad-units: ' + parts.join('/'); const op = i < j ? '\\u00d7' : '\\u00f7'; const btns = Array.from(document.querySelectorAll('.btn--op')); if (!btns.length) return 'no-op-btns'; const b = btns.find(x => x.textContent.trim().startsWith(op)); if (!b) return 'no-btn-for-' + op; b.click(); return 'answered ' + parts.join(' \\u2192 ') + ' as ' + op; })()");
+    console.log('  game: answered ' + JSON.stringify(answered));
+    try {
+      await waitForJs(cdp, "!!document.querySelector('#btn-next-question')", 8000);
+    } catch (e) {
+      const diag = await evalJs(cdp, "(() => { const pr = document.querySelector('.question-prompt'); const fb = document.getElementById('feedback'); const mm = document.body.textContent.match(/(km|m|cm|mm|kg|g|mg|kL|L|mL)\\s*\\u2192\\s*(km|m|cm|mm|kg|g|mg|kL|L|mL)/); return { prompt: pr ? pr.textContent : null, feedback: fb ? fb.textContent : null, matched: mm ? mm[0] : null, screen: (document.querySelector('.screen--active') || {}).id || null, text: document.body.textContent.replace(/\\s+/g, ' ').slice(0, 260) }; })()");
+      const shot = await capture(cdp, 'game-fail');
+      throw new Error('next button never appeared; diag: ' + JSON.stringify(diag) + '; shot: ' + shot);
+    }
+    await evalJs(cdp, "document.querySelector('#btn-next-question').click(); true");
+    await sleep(400);
+    const rehidden = await evalJs(cdp, "(() => { const wrap = document.querySelector('[data-role=\"ladder\"]'); const pill = wrap ? wrap.querySelector('.ladder-gap-f') : null; return { hidden: wrap ? wrap.classList.contains('ladder-wrap--hint') : null, pillVis: pill ? getComputedStyle(pill).visibility : null, hasBtn: !!document.getElementById('btn-show-hint') }; })()");
+    check(rehidden.hidden === true && rehidden.pillVis === 'hidden' && rehidden.hasBtn, 'game: next question re-hides the ladder');
+
     cdp.close();
     child.kill();
     await sleep(400); // let Edge release the profile dir before deleting it

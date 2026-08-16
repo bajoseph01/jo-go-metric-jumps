@@ -476,6 +476,24 @@ button {
 
 .ladder-wrap { margin-top: 16px; }
 
+/* In-game ladder: the factor pills and direction arrow would hand over
+   the answer — hidden until the child taps Show hint (visibility keeps
+   the layout stable so revealing never causes a jump). */
+.ladder-wrap--hint .ladder-gap-f,
+.ladder-wrap--hint .ladder-gap-arrow { visibility: hidden; }
+
+.hint-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+.btn--hint {
+  background: var(--yellow-soft);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
 .ladder {
   display: flex;
   flex-direction: column;

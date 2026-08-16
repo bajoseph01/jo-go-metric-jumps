@@ -1215,6 +1215,22 @@ const cssSrc2 = fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'),
 ok(cssSrc2.indexOf('.streak-pill') > -1, 'streak pill is styled');
 ok(cssSrc2.indexOf('.btn--next') > -1, 'Next button is styled');
 
+// The in-game ladder must NOT hand the answer away: factor pills and the
+// direction arrow stay hidden until the child taps Show hint.
+{
+  const g2 = fs.readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
+  ok(g2.indexOf('session.showHint = false') > -1, 'game resets showHint (ladder re-hides every question)');
+  ok(g2.indexOf('showHint: false') > -1, 'session starts with hints off');
+}
+{
+  const u2 = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
+  const qs = u2.slice(u2.indexOf('function questionShell'), u2.indexOf('// Question renderers'));
+  ok(qs.indexOf('ladder-wrap--hint') > -1, 'ladder renders hidden until Show hint');
+  ok(qs.indexOf('btn-show-hint') > -1, 'a Show hint button is rendered with the ladder');
+  ok(qs.indexOf("classList.remove('ladder-wrap--hint')") > -1, 'Show hint reveals the ladder');
+  ok(qs.indexOf('visibility: hidden') === -1 && cssSrc2.indexOf('.ladder-wrap--hint .ladder-gap-f') > -1, 'CSS hides the pills/arrow under ladder-wrap--hint');
+}
+
 // ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
