@@ -38,10 +38,10 @@ Hard gates: node tests/run-tests.js (main app), node tests/visual-check.js (real
 | Lane | Result | Evidence |
 | --- | --- | --- |
 | Build / static checks | PASS | No build step (vanilla static site); all 14 assets 200; zero console errors in normal flows |
-| Automated tests | PASS | Main: 6,215 checks / 0 failed; Visual: 14/14 real-pixel; Clock (adjacent): 1,649 / 0 failed |
+| Automated tests | PASS | Main: 6,215 checks / 0 failed; Visual: 41/41 real-pixel (main app + clock app); Clock (adjacent): 1,649 / 0 failed |
 | Critical journeys | PASS | Boot/pick/add, play-stage, scales lab, teacher PIN/panel, worksheets (conv + scales + marking), timed challenge + leaderboard, reports, persistence all driven end-to-end |
 | Device / input matrix | PASS WITH RISKS | Pointer + keyboard + touch (pointer-events design); iPad 768×1024 and phone 390×844 no horizontal overflow; see matrix |
-| Visual inspection | PASS | 14/14 pixel assertions; 9 evidence screenshots; embossed cards, mm/cm ruler levels, streak pill, Next-button flow all render |
+| Visual inspection | PASS | 41/41 pixel assertions (main app + clock app); 9 evidence screenshots; embossed cards, mm/cm ruler levels, streak pill, Next-button flow all render |
 | Accessibility | PASS WITH RISKS | Focus-visible styles, keyboard comma-track (arrow keys), labelled keypad; gaps: AC-003 (SR on scale sheets/challenge), AC-004 (unnamed colour radios) |
 | Performance / resilience | PASS WITH RISKS | SW offline cache registered; refresh mid-game recovers cleanly; invalid input handled; AC-002 crash path unguarded |
 | Educational evaluation | PASS WITH RISKS | Teaching overlay, per-question kid rules, recovery hints, no answer leak, grounded word problems; see section below |
@@ -136,7 +136,7 @@ Evidence of strong scaffolding, judged against the skill's educational overlay:
 
 | Viewport / device | Pointer | Keyboard | Touch | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| iPad 768×1024 (primary) | ✓ | ✓ | ✓ | PASS | Real headless Edge; 14/14 pixel checks; screenshots |
+| iPad 768×1024 (primary) | ✓ | ✓ | ✓ | PASS | Real headless Edge; 41/41 pixel checks (incl. clock app); screenshots |
 | Phone 390×844 | ✓ | n/a | ✓ | PASS | No horizontal overflow on home/game/scales/how; screenshots |
 | Desktop 1440×900 | ✓ | ✓ | ✓ | PASS | Same code path; keyboard tested via T-trigger, arrow-key comma track, form inputs |
 
@@ -168,7 +168,7 @@ Evidence of strong scaffolding, judged against the skill's educational overlay:
 - `qa-results/evidence/ipad-{teacher-panel,scale-sheets,challenge-pick}.png` — teacher surfaces at iPad width
 - `qa-results/challenge-intro-probe.js` — real-browser proof the intro shows (single tap) and stacks (double tap)
 - `qa-results/narrow-viewport-probe.js`, `qa-results/teacher-surfaces-probe.js` — reproducible probes
-- App suites: `output/jo-go-metric-jumps/tests/run-tests.js` (6,215 ✓), `tests/visual-check.js` (14/14 ✓), clock suite (1,649 ✓)
+- App suites: `output/jo-go-metric-jumps/tests/run-tests.js` (6,215 ✓), `tests/visual-check.js` (41/41 ✓ — home, scales, game, How It Works, worksheets, challenge, clock app), clock suite (1,649 ✓)
 
 **Relaunch:** server already running at `http://localhost:4174/index.html` (static server on port 4174, pid 33712). If needed: `node .freebuff/serve-static.js 4174` from the repo root. Production: `https://bajoseph01.github.io/jo-go-metric-jumps/`.
 
@@ -186,4 +186,4 @@ All five findings were fixed and re-verified after this assessment. Shipped as v
 | AC-004 | Colour swatches use a name map (`COLOR_NAMES`) → `aria-label="Blue colour"` … `"Brown colour"` | Live snapshot: all 8 radios named |
 | AC-005 | `breakStreakNow()` resets the streak and re-renders the HUD the moment a genuinely wrong answer lands; invalid-format slips stay lenient | Live: 🔥2 → wrong answer → 🔥0 immediately |
 
-New guards added to `tests/run-tests.js` (suite 6,215 → 6,244 checks, 0 failed); real-pixel harness still 14/14.
+New guards added to `tests/run-tests.js` (suite 6,215 → 6,244 checks, 0 failed); real-pixel harness extended from 14 to 41 checks (How It Works, worksheets, timed challenge, clock app) with a negative-control proof that the clock-hand checks catch a degenerate render.

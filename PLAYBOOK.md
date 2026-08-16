@@ -358,11 +358,13 @@ Check for these so you don't reinvent them:
       until the conversion is the thing being taught.
 - [ ] **Real-pixel visual check:** `node tests/visual-check.js` drives the
       app in headless Edge/Chrome, screenshots the actual rendered page,
-      decodes the PNG, and asserts on the pixels (7 checks incl. the
-      arrow-above-ruler geometry). Never rely on the interactive preview
+      decodes the PNG, and asserts on the pixels (41 checks across home,
+      scales, game, How It Works, worksheets, the timed challenge, AND the
+      clock app in a second session). Never rely on the interactive preview
       compositor for verification — it can be stale or unavailable; the
       harness is deterministic and CI-runnable. Add a screen + assertions
-      whenever a visual changes.
+      whenever a visual changes. Prove a new pixel check catches its bug
+      class once with a temporary negative control before trusting it.
 - [ ] Print layout verified (`@media print`)
 - [ ] PDF exports open validly — including multi-page and worst-case ordering
 - [ ] Service worker pre-cache includes any new files; SW cache name bumped
