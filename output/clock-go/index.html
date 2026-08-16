@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#2F6BFF">
   <meta name="description" content="Tick⚡Tock — a Grade 2-3 game for learning to read analogue clocks.">
   <title>Tick⚡Tock</title>
-  <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=2">
+  <link rel="icon" href="assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body>
   <div id="app">
@@ -92,11 +92,15 @@
           <p class="ws-label">Level</p>
           <div class="ws-levels" id="ws-levels"></div>
           <div class="ws-actions">
-            <button type="button" class="btn" id="ws-generate">Generate sheet</button>
-            <button type="button" class="btn btn--ghost" id="ws-new">New questions</button>
-            <button type="button" class="btn btn--ghost" id="ws-key-toggle">Show answer key</button>
-            <button type="button" class="btn" id="ws-print">🖨️ Print</button>
-            <button type="button" class="btn" id="ws-pdf">📄 Download PDF</button>
+            <div class="ws-actions-primary">
+              <button type="button" class="btn btn--hero" id="ws-generate">＋ Generate sheet</button>
+              <button type="button" class="btn btn--ghost" id="ws-new">New questions</button>
+            </div>
+            <div class="ws-actions-secondary">
+              <button type="button" class="btn btn--mini" id="ws-key-toggle">Show answer key</button>
+              <button type="button" class="btn btn--mini" id="ws-print">🖨️ Print</button>
+              <button type="button" class="btn btn--mini" id="ws-pdf">📄 PDF</button>
+            </div>
           </div>
         </div>
         <div class="ws-sheets print-area" id="ws-sheets"></div>
@@ -142,6 +146,7 @@
         <h2>Teacher mode</h2>
         <p class="pin-hint">Enter the teacher PIN</p>
         <input class="pin-input" id="pin-input" inputmode="numeric" autocomplete="off" aria-label="PIN" placeholder="••••">
+        <p class="pin-err" id="pin-err" hidden></p>
         <button type="button" class="btn" id="pin-go">Unlock</button>
         <button type="button" class="btn btn--ghost" data-close>Cancel</button>
       </div>
@@ -149,7 +154,8 @@
 
     <div class="overlay" id="teacher-backdrop">
       <div class="sheet" role="dialog" aria-modal="true" aria-label="Teacher panel">
-        <h2>Teacher panel</h2>
+        <div class="sheet-head"><h2>Teacher panel</h2>
+        <button type="button" class="sheet-x" data-close aria-label="Close teacher panel">✕</button></div>
         <div class="teacher-actions">
           <button type="button" class="btn" data-action="practice">🎮 Practice any level</button>
           <button type="button" class="btn" data-action="report">📊 Reports</button>
@@ -185,11 +191,11 @@
 
   </div>
 
-  <script src="js/clock.js?v=2"></script>
-  <script src="js/storage.js?v=2"></script>
-  <script src="js/pdf.js?v=2"></script>
-  <script src="js/audio.js?v=2"></script>
-  <script src="js/ui.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/clock.js?v=3"></script>
+  <script src="js/storage.js?v=3"></script>
+  <script src="js/pdf.js?v=3"></script>
+  <script src="js/audio.js?v=3"></script>
+  <script src="js/ui.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>

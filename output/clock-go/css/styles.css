@@ -318,7 +318,21 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .ws-label { font-weight: 800; margin: 12px 0 6px; }
 .ws-learners, .ws-levels { display: flex; gap: 10px; flex-wrap: wrap; }
 .ws-check { display: inline-flex; align-items: center; gap: 6px; }
-.ws-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.ws-actions { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+.ws-actions-primary { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.ws-actions-secondary { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.btn--hero {
+  background: linear-gradient(180deg, var(--yellow), var(--orange));
+  font-size: 1.15rem;
+  padding: 14px 18px;
+  border-radius: 18px;
+}
+.btn--mini {
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  box-shadow: var(--shadow-sm);
+}
+.btn--mini:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
 
 .ws-sheet {
   background: #fff;
@@ -368,6 +382,19 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 }
 .sheet h2 { margin-top: 0; }
 .sheet .btn { margin: 8px 8px 0 0; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sheet-head h2 { margin: 0; }
+.sheet-x {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.sheet-x:active { transform: translateY(2px); box-shadow: 0 0 0 var(--ink); }
 
 .pin-input {
   width: 120px;
@@ -380,6 +407,7 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   font-family: inherit;
 }
 .pin-hint { color: var(--ink-soft); }
+.pin-err { color: var(--red); font-weight: 800; margin: 8px 0 0; }
 
 .teacher-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .teacher-actions .btn { margin: 0; justify-content: flex-start; }

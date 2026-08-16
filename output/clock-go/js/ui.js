@@ -167,16 +167,21 @@
   // Game
   // ------------------------------------------------------------------
 
+  // Format examples shown in the helper text — NEVER the current answer.
+  var EXAMPLES = ['3:45', '8:05', '11:30'];
+
   function ask() {
     session.q = C.generate(C.levelByKey(session.level));
     session.firstTry = true;
     var stage = $('clock-stage');
     if (stage) stage.innerHTML = clockSvg(session.q, 230);
     var sub = $('q-sub');
-    if (sub) sub.textContent = 'Type the time, like ' + sample() + ' · level: ' + C.levelByKey(session.level).name;
+    if (sub) sub.textContent = 'Type the time, like ' + EXAMPLES[session.done % EXAMPLES.length];
     var hud = $('hud-stage');
     if (hud) hud.textContent = 'Level: ' + C.levelByKey(session.level).name;
     renderProgress();
+    var disp = $('key-display');
+    if (disp) updateDisplay();
     var fb = $('feedback');
     if (fb) { fb.hidden = true; fb.className = 'feedback'; }
   }
@@ -410,6 +415,8 @@
 
   function showPin() {
     $('pin-input').value = '';
+    var err = $('pin-err');
+    if (err) err.hidden = true;
     showOverlay('pin-backdrop');
   }
 
@@ -718,11 +725,15 @@
 
   function tryPin() {
     var ok = store.verifyPin($('pin-input').value);
-    if (ok) { Audio.play('unlock'); openTeacher(); }
-    else {
+    var err = $('pin-err');
+    if (ok) {
+      Audio.play('unlock');
+      if (err) err.hidden = true;
+      openTeacher();
+    } else {
       Audio.play('wrong');
       $('pin-input').value = '';
-      $('pin-input').placeholder = 'Nope — try again';
+      if (err) { err.textContent = 'Hmm, that is not the PIN. Try again.'; err.hidden = false; }
     }
   }
 
