@@ -16,6 +16,8 @@ if (typeof global !== 'undefined') { global.self = global; }
 const C = require('../js/clock.js');
 const Store = require('../js/storage.js');
 const PDF = require('../js/pdf.js');
+const fs = require('fs');
+const path = require('path');
 
 let passed = 0;
 let failed = 0;
@@ -190,6 +192,36 @@ for (const n of [1, 2, 3, 5]) {
   ok(t.indexOf('startxref') > -1 && t.indexOf('%%EOF') > -1, n + ' page(s): xref trailer present');
   ok(/\/Count \d+/.test(t), n + ' page(s): pages tree has a Count');
 }
+
+// ------------------------------------------------------------------
+section('7. Teaching hints (method, never the answer) + intro flag');
+// ------------------------------------------------------------------
+// Level rules teach HOW to read the clock; they must never look like a time.
+ok(C.hint('whole').indexOf('quarter past') >= 0, 'whole hint teaches quarters');
+ok(C.hint('five').indexOf('5 minutes') >= 0, 'five hint teaches count-by-5s');
+ok(C.hint('one').indexOf('tick') >= 0, 'one hint teaches minute ticks');
+for (const key of ['whole', 'five', 'one']) {
+  const h = C.hint(key);
+  ok(h.indexOf(':') < 0, key + ' hint contains no colon (cannot leak a time)');
+  ok(h.length > 20, key + ' hint is a real explanation, not a one-liner');
+}
+
+// intro flag is per learner, survives reloads, ignores unknowns
+const stI = Store.createStore(mem());
+const iA = stI.addLearner('Ada', '🦊');
+const iB = stI.addLearner('Ben', '🐼');
+eq(stI.seenIntro(iA.id), false, 'intro unseen by default');
+ok(stI.markIntro(iA.id), 'markIntro returns true for a real learner');
+eq(stI.seenIntro(iA.id), true, 'intro marked seen for Ada');
+eq(stI.seenIntro(iB.id), false, 'other learner unaffected');
+ok(!stI.markIntro('nope'), 'unknown learner ignored');
+
+// Static helper text must never look like a time (catalog #15/#16):
+// no colon, no digits that could read as an answer. The rule itself is
+// injected at ask() time, so the markup fallback must stay generic.
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const sub = html.match(/id="q-sub"[^>]*>([^<]*)</);
+ok(sub && sub[1].indexOf(':') < 0 && !/\d/.test(sub[1]), 'static q-sub fallback is generic (no colon, no digits)');
 
 // ------------------------------------------------------------------
 // Summary

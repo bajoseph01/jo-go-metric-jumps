@@ -53,6 +53,7 @@
           firstTry: Math.max(0, Math.floor(p.firstTry || 0))
         };
       }
+      rec.introSeen = !!l.introSeen;
       return rec;
     }).filter(Boolean);
     if (typeof s.activeId !== 'string' || !s.learners.some(function (l) { return l.id === s.activeId; })) {
@@ -177,6 +178,19 @@
       save(s);
     }
 
+    function seenIntro(id) {
+      var s = load();
+      for (var i = 0; i < s.learners.length; i++) if (s.learners[i].id === id) return s.learners[i].introSeen;
+      return false;
+    }
+    function markIntro(id) {
+      var s = load();
+      for (var i = 0; i < s.learners.length; i++) {
+        if (s.learners[i].id === id) { s.learners[i].introSeen = true; save(s); return true; }
+      }
+      return false;
+    }
+
     function verifyPin(input) { return String(input) === PIN; }
 
     function reset() {
@@ -193,6 +207,8 @@
       record: record,
       unlockedLevels: unlockedLevels,
       progressOf: progressOf,
+      seenIntro: seenIntro,
+      markIntro: markIntro,
       sound: sound,
       setSound: setSound,
       verifyPin: verifyPin,

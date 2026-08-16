@@ -12,9 +12,9 @@
 
   // The three levels, taught in order. step = minute granularity.
   var LEVELS = [
-    { key: 'whole', name: 'Whole & Half',  step: 30, hint: 'o\u2019clock, half past, quarter past & to' },
-    { key: 'five',  name: 'Five minutes', step: 5,  hint: 'count in fives round the clock' },
-    { key: 'one',   name: 'One minute',   step: 1,  hint: 'every single minute' }
+    { key: 'whole', name: 'Whole & Half',  step: 30 },
+    { key: 'five',  name: 'Five minutes', step: 5 },
+    { key: 'one',   name: 'One minute',   step: 1 }
   ];
   var LEVEL_KEYS = LEVELS.map(function (l) { return l.key; });
 
@@ -111,6 +111,21 @@
   }
 
   /**
+   * Per-level "how to read the clock" rule, in Grade-3 language. These are
+   * METHOD hints — they teach the reading steps and can never contain a
+   * time (no ':'), so they can't leak the answer of a live question.
+   */
+  var HINTS = {
+    whole: 'Big hand on 12 = o\u2019clock · 3 = quarter past · 6 = half past · 9 = quarter to',
+    five:  'Count by 5s — each number on the clock is worth 5 minutes',
+    one:   'Each little tick is 1 minute — count on from the last number'
+  };
+
+  function hint(levelKey) {
+    return HINTS[levelKey] || HINTS.whole;
+  }
+
+  /**
    * A worksheet: `count` deterministic clock questions for a level.
    * Returns { level, items: [{h, m}], seed }.
    */
@@ -134,6 +149,7 @@
     isCorrect: isCorrect,
     minuteMark: minuteMark,
     feedback: feedback,
+    hint: hint,
     worksheet: worksheet
   };
 

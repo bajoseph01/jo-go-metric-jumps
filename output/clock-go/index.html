@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#2F6BFF">
   <meta name="description" content="Tick⚡Tock — a Grade 2-3 game for learning to read analogue clocks.">
   <title>Tick⚡Tock</title>
-  <link rel="icon" href="assets/favicon.svg?v=3" type="image/svg+xml">
-  <link rel="stylesheet" href="css/styles.css?v=3">
+  <link rel="icon" href="assets/favicon.svg?v=4" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=4">
 </head>
 <body>
   <div id="app">
@@ -53,7 +53,7 @@
         <div class="question-card">
           <p class="q-prompt">What time is it?</p>
           <div class="clock-stage" id="clock-stage" aria-label="A clock face"></div>
-          <p class="q-sub" id="q-sub">Type the time, like 3:45</p>
+          <p class="q-sub" id="q-sub">Read the hands, then type the time below.</p>
         </div>
         <div class="feedback" id="feedback" hidden></div>
         <div class="keypad" id="keypad"></div>
@@ -180,6 +180,19 @@
       </div>
     </div>
 
+    <div class="overlay" id="intro-backdrop">
+      <div class="sheet intro-sheet" role="dialog" aria-modal="true" aria-label="How to read a clock">
+        <h2>How to read a clock 🕐</h2>
+        <div class="intro-clock" id="intro-clock" aria-hidden="true"></div>
+        <ol class="intro-steps">
+          <li><strong>Look at the BIG hand.</strong> Each number on the clock is worth 5 minutes (5, 10, 15…).</li>
+          <li><strong>Look at the little hand.</strong> It points just past the hour.</li>
+          <li><strong>Type the time</strong> — like 3:45 — and press Check!</li>
+        </ol>
+        <button type="button" class="btn" id="intro-go">Got it — let’s go! ⚡</button>
+      </div>
+    </div>
+
     <div class="overlay" id="modal-backdrop">
       <div class="sheet" role="dialog" aria-modal="true" aria-label="Confirm">
         <h2 id="modal-title">Are you sure?</h2>
@@ -191,11 +204,11 @@
 
   </div>
 
-  <script src="js/clock.js?v=3"></script>
-  <script src="js/storage.js?v=3"></script>
-  <script src="js/pdf.js?v=3"></script>
-  <script src="js/audio.js?v=3"></script>
-  <script src="js/ui.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/clock.js?v=4"></script>
+  <script src="js/storage.js?v=4"></script>
+  <script src="js/pdf.js?v=4"></script>
+  <script src="js/audio.js?v=4"></script>
+  <script src="js/ui.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

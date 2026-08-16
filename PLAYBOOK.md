@@ -197,6 +197,12 @@ served on GitHub Pages alongside this game at `/jo-go-metric-jumps/clock-go/`.
    builders) updated whenever behaviour changes.
 9. **Design passes are a standing step, not a reaction.** Instead of waiting
    for "this is ugly", schedule the human-first critique per screen.
+10. **Pedagogical review is a standing step too.** "Correct" is not the same
+    as "teaches". Before shipping, put a child who *cannot do the skill yet*
+    in front of the screen (in your head) and check they can start, learn,
+    and self-correct from the screen alone. Every game needs a first-play
+    teaching moment, a per-level "how to read it" rule, and a format sample
+    that can never be the answer.
 
 ---
 
@@ -248,6 +254,15 @@ Check for these so you don't reinvent them:
     format example must be a FIXED sample that can never coincide with a
     live question, and a design pass should assert subtext-vs-answer
     mismatch explicitly.
+16. **Pointers that assume the skill the app is meant to teach.**
+    Tick⚡Tock's prompt told a new reader "Type the time, like 3:45" — but
+    a child who can't read a clock yet can't produce a time at all, so the
+    instruction was useless to exactly the kid it needed to help. Scaffold
+    from the learner's side: a one-time teaching overlay, a per-level
+    kid-language reading rule ("Big hand on 12 = o'clock · 3 = quarter
+    past…"), and a placeholder with a FIXED format sample. The checks
+    missed it because the suite verifies correctness, not teachability —
+    that gap is why process rule 10 exists.
 
 ---
 
@@ -256,6 +271,11 @@ Check for these so you don't reinvent them:
 - [ ] `node tests/run-tests.js` green (all sections, 0 failed)
 - [ ] Full flow driven in a live preview: setup → play → teacher PIN →
       reports → worksheets → PDF export → challenge
+- [ ] **First-five-minutes test:** a child who can't do the skill yet can
+      start, learn, and self-correct from the screen alone (teaching
+      overlay, per-level rule, safe format sample)
+- [ ] No helper text, example, or placeholder anywhere can equal the live
+      answer
 - [ ] Every screen screenshot-checked for cramped/overlapping layout
 - [ ] Print layout verified (`@media print`)
 - [ ] PDF exports open validly — including multi-page and worst-case ordering

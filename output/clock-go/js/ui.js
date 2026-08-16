@@ -167,16 +167,16 @@
   // Game
   // ------------------------------------------------------------------
 
-  // Format examples shown in the helper text — NEVER the current answer.
-  var EXAMPLES = ['3:45', '8:05', '11:30'];
-
   function ask() {
     session.q = C.generate(C.levelByKey(session.level));
     session.firstTry = true;
     var stage = $('clock-stage');
     if (stage) stage.innerHTML = clockSvg(session.q, 230);
+    // The line under the clock TEACHES the reading rule for this level
+    // (method only — never the answer). The format example lives in the
+    // answer box's placeholder instead.
     var sub = $('q-sub');
-    if (sub) sub.textContent = 'Type the time, like ' + EXAMPLES[session.done % EXAMPLES.length];
+    if (sub) sub.textContent = '💡 ' + C.hint(session.level);
     var hud = $('hud-stage');
     if (hud) hud.textContent = 'Level: ' + C.levelByKey(session.level).name;
     renderProgress();
@@ -229,7 +229,14 @@
 
   function updateDisplay() {
     var d = $('key-display');
-    if (d) d.textContent = answerBuffer || '\u00a0';
+    if (!d) return;
+    if (answerBuffer) {
+      d.textContent = answerBuffer;
+      d.classList.remove('answer-display--empty');
+    } else {
+      d.textContent = 'e.g. 3:45';
+      d.classList.add('answer-display--empty');
+    }
   }
 
   function startGame() {
@@ -237,9 +244,25 @@
     if (!a) { renderLearners(); return; } // never silently default
     session.done = 0; session.correct = 0; session.locked = false;
     answerBuffer = '';
+    // First-ever play: teach HOW to read a clock before the first question.
+    if (showIntro()) return;
+    beginRound();
+  }
+
+  function beginRound() {
     show('screen-game');
     buildKeypad();
     ask();
+  }
+
+  /** Show the one-time teaching overlay for a learner; true if it showed. */
+  function showIntro() {
+    var a = store.activeLearner();
+    if (!a || store.seenIntro(a.id)) return false;
+    var box = $('intro-clock');
+    if (box) box.innerHTML = clockSvg({ h: 3, m: 45 }, 150);
+    showOverlay('intro-backdrop');
+    return true;
   }
 
   function submitAnswer() {
@@ -686,6 +709,15 @@
         else if (act === 'lock') { session.practiceAll = false; closeTeacher(); renderHome(); }
       });
     }
+
+    // first-play teaching overlay
+    $('intro-go').addEventListener('click', function () {
+      var a = store.activeLearner();
+      if (a) store.markIntro(a.id);
+      closeOverlay('intro-backdrop');
+      Audio.play('unlock');
+      beginRound();
+    });
 
     // modal
     $('modal-ok').addEventListener('click', function () {
