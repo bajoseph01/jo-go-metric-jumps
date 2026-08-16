@@ -242,6 +242,12 @@ Check for these so you don't reinvent them:
 14. **`build()` returns a Blob in modern Node** (global `Blob` since
     Node 18), so headless PDF tests silently get an empty string when they
     stringify it. Tests must call `buildBytes()`.
+15. **Helper text that leaks the answer.** Tick⚡Tock's prompt read
+    "Type the time, like 10:15" — where 10:15 was *the current question's
+    answer*. The game was trivially solvable by reading the subtext. Any
+    format example must be a FIXED sample that can never coincide with a
+    live question, and a design pass should assert subtext-vs-answer
+    mismatch explicitly.
 
 ---
 
