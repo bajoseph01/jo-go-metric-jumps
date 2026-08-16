@@ -5,7 +5,7 @@
  */
 'use strict';
 
-var CACHE = 'ticktock-v3';
+var CACHE = 'ticktock-v4';
 
 var CORE = [
   './',

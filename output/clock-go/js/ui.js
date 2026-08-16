@@ -79,11 +79,13 @@
       s += '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + size * 0.028).toFixed(1) + '" text-anchor="middle" font-size="' + (size * 0.085).toFixed(1) + '" font-weight="800" fill="#2B2A33" font-family="inherit">' + n + '</text>';
     }
     var h = C.handsFor(q.h, q.m);
-    var hp = handPoly(cx, cy, h.hour, r * 0.52, r * 0.09);
-    var mp = handPoly(cx, cy, h.minute, r * 0.72, r * 0.055);
-    s += '<polygon points="' + hp.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="#2B2A33"/>';
-    s += '<polygon points="' + mp.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="#1E4ED8"/>';
-    s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.06).toFixed(1) + '" fill="#2B2A33"/>';
+    // High-contrast hands: near-black hour, vivid RED minute (classroom
+    // convention — kids can never mix up which hand is which), dark hub.
+    var hp = handPoly(cx, cy, h.hour, r * 0.52, r * 0.10);
+    var mp = handPoly(cx, cy, h.minute, r * 0.72, r * 0.07);
+    s += '<polygon points="' + hp.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="#1A1A1F"/>';
+    s += '<polygon points="' + mp.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="#E64545"/>';
+    s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.06).toFixed(1) + '" fill="#1A1A1F"/>';
     s += '</svg>';
     return s;
   }
@@ -102,9 +104,11 @@
       doc.textAt(p.x, p.y, String(n), 8.5, true, '0.2', 'middle');
     }
     var h = C.handsFor(q.h, q.m);
-    doc.poly(handPoly(cx, cy, h.hour, r * 0.52, r * 0.09), '0.2');
-    doc.poly(handPoly(cx, cy, h.minute, r * 0.72, r * 0.055), '0.24');
-    doc.circle(cx, cy, r * 0.06, { fill: '0.2' });
+    // PDF hands match the screen: near-black hour, red minute (classroom
+    // convention), dark hub — never faded grey.
+    doc.poly(handPoly(cx, cy, h.hour, r * 0.52, r * 0.10), '0.04');
+    doc.poly(handPoly(cx, cy, h.minute, r * 0.72, r * 0.07), '0.902 0.271 0.271');
+    doc.circle(cx, cy, r * 0.06, { fill: '0.04' });
   }
 
   // ------------------------------------------------------------------

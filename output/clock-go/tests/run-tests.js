@@ -237,6 +237,19 @@ ok(html.indexOf('Worksheets') > -1 && html.indexOf('answer key') > -1, 'guide co
 ok(html.indexOf('5241') > -1, 'guide states the PIN for every device');
 
 // ------------------------------------------------------------------
+section('9. Hand contrast (never faded grey)');
+// ------------------------------------------------------------------
+// The hands must read clearly against the white face in BOTH the on-screen
+// SVG and the PDF: near-black hour, vivid red minute (classroom convention).
+const uiSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
+ok(uiSrc.indexOf('fill="#1A1A1F"') > -1, 'svg hour hand is near-black');
+ok(uiSrc.indexOf('fill="#E64545"') > -1, 'svg minute hand is vivid red');
+eq(uiSrc.indexOf('fill="#1E4ED8"'), -1, 'old faded blue minute hand removed from svg');
+ok(uiSrc.indexOf('doc.poly(handPoly(cx, cy, h.hour') > -1 && uiSrc.indexOf("'0.04'") > -1, 'pdf hour hand near-black, not grey');
+ok(uiSrc.indexOf('0.902 0.271 0.271') > -1, 'pdf minute hand red, not grey');
+ok(uiSrc.indexOf("doc.poly(handPoly(cx, cy, h.minute, r * 0.72, r * 0.055), '0.24')") === -1, 'faded-grey pdf minute hand removed');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

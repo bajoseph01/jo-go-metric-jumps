@@ -275,6 +275,16 @@ Check for these so you don't reinvent them:
     line = 1 mm / 20 g / 25 mL). Every learner-facing instruction should
     be asserted for kid-language words and for never stating a concrete
     answer.
+18. **Faded clock hands — screen/print contrast drift.** Tick⚡Tock's
+    on-screen hands were dark ink while the PDF path drew them as light
+    grey (0.2/0.24 grayscale fill), and at small sizes even near-black
+    polygons antialias into washed-out grey. Fixed with one source of
+    truth: a near-black hour hand and a vivid RED minute hand (the
+    classic classroom convention — kids can't mix up which hand is
+    which) used identically in the SVG and PDF, plus a source-level test
+    that bans the faded-grey fill values. When the same graphic exists
+    on screen AND in print, its colors must be decided once and asserted
+    in both.
 
 ---
 
