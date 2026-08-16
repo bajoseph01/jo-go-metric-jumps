@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2F6BFF">
+  <meta name="description" content="Tick⚡Tock — a Grade 2-3 game for learning to read analogue clocks.">
+  <title>Tick⚡Tock</title>
+  <link rel="icon" href="assets/favicon.svg?v=1" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css?v=1">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===================== HOME ===================== -->
+    <section class="screen" id="screen-home" aria-labelledby="home-title">
+      <header class="home-top">
+        <div class="home-clock" id="home-clock" aria-hidden="true"></div>
+        <button type="button" class="btn-icon" id="home-sound" aria-label="Toggle sound">
+          <span data-role="sound-icon" aria-hidden="true">🔊</span>
+        </button>
+      </header>
+      <main class="home-main">
+        <div class="brand">
+          <div class="clock-badge" aria-hidden="true">🕐</div>
+          <h1 class="brand-title" id="home-title">Tick<span class="bolt-inline">⚡</span>Tock</h1>
+          <p class="brand-sub">Read the Clock</p>
+          <p class="brand-tagline">Every clock tells a story. Read it!</p>
+        </div>
+        <button type="button" class="learner-chip" id="btn-learner" aria-label="Choose who's playing">
+          <span class="learner-chip-avatar" id="learner-chip-avatar" aria-hidden="true">🦊</span>
+          <span class="learner-chip-name" id="learner-chip-name">Pick a learner</span>
+          <span class="learner-chip-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="level-pills" id="level-pills" role="group" aria-label="Choose a level"></div>
+        <button type="button" class="btn btn--play" id="btn-play">PLAY</button>
+        <div class="home-actions">
+          <button type="button" class="btn btn--ghost" id="btn-worksheets">📝 Worksheets</button>
+          <button type="button" class="btn btn--ghost" id="btn-how">How It Works</button>
+        </div>
+        <p class="home-tip">No timer. No pressure. Accuracy first. ⚡</p>
+      </main>
+    </section>
+
+    <!-- ===================== GAME ===================== -->
+    <section class="screen" id="screen-game" aria-labelledby="hud-stage">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <span class="page-title" id="hud-stage">Level</span>
+        <button type="button" class="btn-icon" id="btn-learner-hud" aria-label="Choose who's playing">🦊</button>
+      </header>
+      <main class="game-main">
+        <div class="question-card">
+          <p class="q-prompt">What time is it?</p>
+          <div class="clock-stage" id="clock-stage" aria-label="A clock face"></div>
+          <p class="q-sub" id="q-sub">Type the time, like 3:45</p>
+        </div>
+        <div class="feedback" id="feedback" hidden></div>
+        <div class="keypad" id="keypad"></div>
+        <div class="prog-dots" id="hud-progress" aria-label="Progress"></div>
+      </main>
+    </section>
+
+    <!-- ===================== REPORT ===================== -->
+    <section class="screen" id="screen-report" aria-labelledby="report-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="report-title">Report</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body">
+        <div class="report-picker" id="report-picker" role="group" aria-label="Choose a learner"></div>
+        <div class="report print-area" id="report-body"></div>
+        <div class="report-actions">
+          <button type="button" class="btn" id="btn-report-print">🖨️ Print</button>
+          <button type="button" class="btn" id="btn-report-pdf">📄 Download PDF</button>
+        </div>
+      </main>
+    </section>
+
+    <!-- ===================== WORKSHEETS ===================== -->
+    <section class="screen" id="screen-worksheets" aria-labelledby="ws-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="ws-title">Worksheets</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body">
+        <div class="ws-controls">
+          <p class="ws-label">For which learners?</p>
+          <div class="ws-learners" id="ws-learners"></div>
+          <p class="ws-label">Level</p>
+          <div class="ws-levels" id="ws-levels"></div>
+          <div class="ws-actions">
+            <button type="button" class="btn" id="ws-generate">Generate sheet</button>
+            <button type="button" class="btn btn--ghost" id="ws-new">New questions</button>
+            <button type="button" class="btn btn--ghost" id="ws-key-toggle">Show answer key</button>
+            <button type="button" class="btn" id="ws-print">🖨️ Print</button>
+            <button type="button" class="btn" id="ws-pdf">📄 Download PDF</button>
+          </div>
+        </div>
+        <div class="ws-sheets print-area" id="ws-sheets"></div>
+      </main>
+    </section>
+
+    <!-- ===================== HOW ===================== -->
+    <section class="screen" id="screen-how" aria-labelledby="how-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="how-title">How It Works</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body">
+        <div class="card how-card">
+          <h2>The Big Hand and the Little Hand</h2>
+          <p>The <strong>long hand</strong> counts minutes — each number on the clock is worth 5 minutes. The
+          <strong>short hand</strong> points at the hour.</p>
+          <div class="how-clock" id="how-clock" aria-hidden="true"></div>
+        </div>
+        <div class="card how-card">
+          <h2>Three Levels</h2>
+          <ol class="how-steps">
+            <li><strong>Whole &amp; Half</strong> — o'clock, half past, quarter past, quarter to.</li>
+            <li><strong>Five minutes</strong> — count in fives round the clock.</li>
+            <li><strong>One minute</strong> — every single minute.</li>
+          </ol>
+        </div>
+        <div class="card how-card">
+          <h2>Three Steps</h2>
+          <ol class="how-steps">
+            <li><strong>Read the big hand.</strong> It points at a number worth 5 minutes each.</li>
+            <li><strong>Read the little hand.</strong> It sits just past the hour.</li>
+            <li><strong>Type the time.</strong> Like 3:45. Then check!</li>
+          </ol>
+        </div>
+      </main>
+    </section>
+
+    <!-- ===================== OVERLAYS ===================== -->
+    <div class="overlay" id="pin-backdrop">
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="Teacher PIN">
+        <h2>Teacher mode</h2>
+        <p class="pin-hint">Enter the teacher PIN</p>
+        <input class="pin-input" id="pin-input" inputmode="numeric" autocomplete="off" aria-label="PIN" placeholder="••••">
+        <button type="button" class="btn" id="pin-go">Unlock</button>
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="teacher-backdrop">
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="Teacher panel">
+        <h2>Teacher panel</h2>
+        <div class="teacher-actions">
+          <button type="button" class="btn" data-action="practice">🎮 Practice any level</button>
+          <button type="button" class="btn" data-action="report">📊 Reports</button>
+          <button type="button" class="btn" data-action="worksheets">📝 Worksheets</button>
+          <button type="button" class="btn btn--ghost" data-action="learners">👧 Learners</button>
+          <button type="button" class="btn btn--ghost" data-action="reset">♻️ Reset active learner</button>
+          <button type="button" class="btn btn--ghost" data-action="lock">🔒 Lock</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="learners-backdrop">
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="Learners">
+        <h2>Learners</h2>
+        <div id="learners-list"></div>
+        <form class="learner-form" id="learner-form">
+          <input id="learner-name-input" placeholder="New learner's name" maxlength="20" aria-label="Name">
+          <div class="learner-emojis" id="learner-emojis" role="radiogroup" aria-label="Pick an avatar"></div>
+          <div class="learner-colors" id="learner-colors" role="radiogroup" aria-label="Pick a colour"></div>
+          <button type="submit" class="btn" id="learner-add">Add learner</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="overlay" id="modal-backdrop">
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="Confirm">
+        <h2 id="modal-title">Are you sure?</h2>
+        <p id="modal-text"></p>
+        <button type="button" class="btn" id="modal-ok">OK</button>
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/clock.js?v=1"></script>
+  <script src="js/storage.js?v=1"></script>
+  <script src="js/pdf.js?v=1"></script>
+  <script src="js/audio.js?v=1"></script>
+  <script src="js/ui.js?v=1"></script>
+  <script src="js/app.js?v=1"></script>
+</body>
+</html>

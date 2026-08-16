@@ -199,6 +199,14 @@ Check for these so you don't reinvent them:
 12. **Chrome's default button rendering** when CSS fails to load — an
     unstyled page can look "broken" to users who have a cached old CSS.
     Cache discipline fixes this.
+13. **A picker sheet that can't dismiss itself.** The learners sheet in the
+    Tick⚡Tock experiment opened on first launch but had no way to close —
+    tapping a learner didn't dismiss it and there was no close button.
+    Any overlay that opens for selection must close on selection (or offer
+    an explicit close). Live-preview-only bug — no unit test catches it.
+14. **`build()` returns a Blob in modern Node** (global `Blob` since
+    Node 18), so headless PDF tests silently get an empty string when they
+    stringify it. Tests must call `buildBytes()`.
 
 ---
 
