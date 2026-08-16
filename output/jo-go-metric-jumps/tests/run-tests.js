@@ -850,6 +850,18 @@ eq(Math.round(rNeedle.x1 * 10) / 10, 30 + 137 * 1.7, 'ruler pointer sits at 137 
 eq(rNeedle.x1, rNeedle.x2, 'ruler pointer vertical');
 eq(rp.filter(c => c.t === 'line').length, 251 + 1, 'ruler: 250 ticks + pointer');
 eq(rp.filter(c => c.t === 'text').length, 27, 'ruler: 26 cm labels (0-25) + cm label');
+// The pointer arrow must point AT the ruler from ABOVE: its tip stops
+// short of the ruler body (top edge y=30) so it never covers a tick.
+{
+  const rPoly = rp.filter(c => c.t === 'poly')[0];
+  const rTipY = Math.max.apply(null, rPoly.pts.map(p => p[1]));
+  ok(rTipY < 30, 'ruler arrow tip stays above the ruler body (tip y=' + rTipY + ')');
+  const svgTip = (Scales.rulerSVG(137).match(/polygon points="([^"]+)"/) || [])[1];
+  if (svgTip) {
+    const tipY = Math.max.apply(null, svgTip.split(' ').map(p => Number(p.split(',')[1])));
+    ok(tipY < 30, 'svg ruler arrow tip stays above the ruler body (tip y=' + tipY + ')');
+  }
+}
 const kp = Scales.kitchenPDF(500);
 const kNeedle = kp.filter(c => c.t === 'line' && c.color === '#e63946')[0];
 ok(Math.abs(kNeedle.x1 - 190) < 1e-9, 'kitchen needle at 500 g points straight up (x=190)');

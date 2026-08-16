@@ -53,9 +53,11 @@
       }
     }
     var px2 = x0 + mm * px;
+    // The arrow points AT the ruler from ABOVE — its tip stops 1px short
+    // of the ruler's top edge (y=30) so it never covers the tick below.
     html += '<g stroke="#e63946" fill="#e63946">' +
-      '<line x1="' + px2.toFixed(1) + '" y1="6" x2="' + px2.toFixed(1) + '" y2="28" stroke-width="3"/>' +
-      '<polygon points="' + (px2 - 7).toFixed(1) + ',26 ' + (px2 + 7).toFixed(1) + ',26 ' + px2.toFixed(1) + ',38"/>' +
+      '<line x1="' + px2.toFixed(1) + '" y1="4" x2="' + px2.toFixed(1) + '" y2="16" stroke-width="3"/>' +
+      '<polygon points="' + (px2 - 7).toFixed(1) + ',16 ' + (px2 + 7).toFixed(1) + ',16 ' + px2.toFixed(1) + ',29"/>' +
       '</g>' +
       '<text x="' + (w - 8) + '" y="26" text-anchor="end" font-size="10" font-weight="700">cm</text>' +
       '</svg>';
@@ -164,8 +166,9 @@
       if (isMajor) c.push({ t: 'text', x: x, y: 80, str: String(m / 10), size: 9, bold: true, color: '#2d2d2d', anchor: 'middle' });
     }
     var px2 = x0 + mm * px;
-    c.push({ t: 'line', x1: px2, y1: 6, x2: px2, y2: 28, w: 3, color: '#e63946' });
-    c.push({ t: 'poly', pts: [[px2 - 7, 26], [px2 + 7, 26], [px2, 38]], fill: '#e63946' });
+    // Mirrors rulerSVG: arrow tip stops above the ruler's top edge.
+    c.push({ t: 'line', x1: px2, y1: 4, x2: px2, y2: 16, w: 3, color: '#e63946' });
+    c.push({ t: 'poly', pts: [[px2 - 7, 16], [px2 + 7, 16], [px2, 29]], fill: '#e63946' });
     c.push({ t: 'text', x: w - 8, y: 26, str: 'cm', size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
     return c;
   }
