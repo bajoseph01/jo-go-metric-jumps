@@ -1155,6 +1155,55 @@ if (wsItem && wsItem.length) {
 }
 
 // ------------------------------------------------------------------
+section('21. Next-button pacing + gentle streak (Tick⚡Tock design)');
+// ------------------------------------------------------------------
+// The main game now shares Tick⚡Tock's child-paced pause: after a
+// correct answer the streak pill + Next button appear and stay (no
+// timer), and the child advances on their own tap.
+const gSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
+{
+  const qd = gSrc.slice(gSrc.indexOf('function questionDone'), gSrc.indexOf('function stageComplete'));
+  ok(qd.indexOf('setTimeout') === -1, 'questionDone never auto-advances (no setTimeout)');
+  ok(qd.indexOf('showNextButton') > -1, 'questionDone hands control to the Next button');
+  ok(qd.indexOf('session.streak++') > -1, 'correct answers grow the streak');
+  ok(qd.indexOf('session.streak = 0') > -1, 'wrong answers reset the streak');
+  ok(qd.indexOf('advanceTimer') === -1, 'advance timer plumbing removed');
+}
+ok(gSrc.indexOf('function nextQuestion') > -1, 'nextQuestion still exists for the intro path');
+
+const uiSrc2 = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
+ok(uiSrc2.indexOf('function showNextButton') > -1, 'ui.js exposes showNextButton');
+{
+  const snb = uiSrc2.slice(uiSrc2.indexOf('function showNextButton'), uiSrc2.indexOf('function starsFor'));
+  ok(snb.indexOf('in a row') > -1, 'streak celebration wording lives in the Next area');
+  ok(snb.indexOf('Next question →') > -1, 'Next button label present');
+  ok(snb.indexOf('Finish — see results →') > -1, 'last question says Finish');
+  ok(snb.indexOf('setTimeout') === -1, 'Next area has no timer');
+}
+{
+  const cfb = uiSrc2.slice(uiSrc2.indexOf('function clearFeedback'), uiSrc2.indexOf('function showFeedback'));
+  ok(cfb.indexOf('next-area') > -1, 'clearFeedback resets the Next area');
+}
+{
+  const pcf = uiSrc2.slice(uiSrc2.indexOf('function playCommaFeedback'), uiSrc2.indexOf('function starsFor'));
+  ok(pcf.indexOf('setTimeout') === -1, 'comma feedback has no auto-advance timer');
+}
+
+{
+  const srl = uiSrc2.slice(uiSrc2.indexOf('function showResultLine'), uiSrc2.indexOf('function playCommaFeedback'));
+  ok(srl.indexOf("q.kind === 'op'") > -1, 'op questions get a real result line');
+  ok(srl.indexOf("q.kind === 'jumps'") > -1, 'jumps questions get a real result line');
+  ok(srl.indexOf('undefined') === -1, 'result line never emits undefined');
+}
+
+const htmlSrc2 = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+ok(htmlSrc2.indexOf('id="next-area"') > -1, 'game screen hosts the Next area');
+
+const cssSrc2 = fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'), 'utf8');
+ok(cssSrc2.indexOf('.streak-pill') > -1, 'streak pill is styled');
+ok(cssSrc2.indexOf('.btn--next') > -1, 'Next button is styled');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

@@ -335,6 +335,8 @@ Check for these so you don't reinvent them:
       overlay, per-level rule, safe format sample)
 - [ ] No helper text, example, or placeholder anywhere can equal the live
       answer
+- [ ] No result auto-advances: every correct answer awaits the learner's
+      own tap (Next button + gentle streak celebration, no timers)
 - [ ] Every screen screenshot-checked for cramped/overlapping layout
 - [ ] Print layout verified (`@media print`)
 - [ ] PDF exports open validly — including multi-page and worst-case ordering

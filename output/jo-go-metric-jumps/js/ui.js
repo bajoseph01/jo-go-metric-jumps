@@ -145,6 +145,8 @@
     if (fb) { fb.textContent = ''; fb.className = 'feedback'; }
     var rl = $('result-line');
     if (rl) { rl.textContent = ''; rl.className = 'result-line'; }
+    var na = $('next-area');
+    if (na) { na.innerHTML = ''; na.hidden = true; }
   }
 
   function showFeedback(text, ok) {
@@ -349,7 +351,16 @@
   function showResultLine(q, firstTryOk) {
     var rl = $('result-line');
     if (!rl) return;
-    var eq = q.sourceSA + ' ' + q.from + ' ' + q.conv.opLabel + ' = ' + q.expectedSA + ' ' + q.to;
+    // Op/jumps questions carry no concrete number (there is no source
+    // value yet) — show the conversion itself instead of a blank value.
+    var eq;
+    if (q.kind === 'op') {
+      eq = q.from + ' → ' + q.to + ' uses ' + q.conv.opLabel;
+    } else if (q.kind === 'jumps') {
+      eq = q.from + ' → ' + q.to + ' = ' + q.conv.opLabel + ' (' + q.conv.jumps + ' jump' + (q.conv.jumps > 1 ? 's' : '') + ')';
+    } else {
+      eq = q.sourceSA + ' ' + q.from + ' ' + q.conv.opLabel + ' = ' + q.expectedSA + ' ' + q.to;
+    }
     rl.textContent = eq;
     rl.className = 'result-line result-line--show';
     var fb = $('feedback');
@@ -376,7 +387,33 @@
     if (!q.track) q.track = M.buildTrack(q.source.scaled, q.source.scale, q.conv);
     Input.animateTrack(host, q.track, function () {
       showResultLine(q, true);
-      setTimeout(function () { if (done) done(); }, 900);
+      if (done) done(); // Next button appears right after the animation
+    });
+  }
+
+  /**
+   * The pause moment after a correct answer (Tick⚡Tock's pacing): a
+   * gentle streak pill plus a Next button that stays until the child taps
+   * — no timer, no fading. Label flips to "Finish" on the last question.
+   */
+  function showNextButton(session, advance) {
+    var area = $('next-area');
+    if (!area) { if (advance) advance(); return; }
+    var last = session.done >= session.target;
+    var celeb = '';
+    if (session.streak >= 2) {
+      var words = session.streak >= 10 ? 'in a row — unstoppable! 🏆' :
+        session.streak >= 5 ? 'in a row — you are on fire! 🔥' :
+        session.streak >= 3 ? 'in a row — keep going! ⭐' : 'in a row! 🌟';
+      celeb = '<div class="streak-pill" aria-live="polite">' + session.streak + ' ' + words + '</div>';
+    }
+    area.innerHTML = celeb + '<button type="button" class="btn btn--next" id="btn-next-question">' +
+      (last ? 'Finish — see results →' : 'Next question →') + '</button>';
+    area.hidden = false;
+    var b = $('btn-next-question');
+    if (b) b.addEventListener('click', function () {
+      Audio.play('click');
+      advance();
     });
   }
 
@@ -2068,6 +2105,7 @@
     renderLadder: renderLadder,
     renderGameHUD: renderGameHUD,
     clearFeedback: clearFeedback,
+    showNextButton: showNextButton,
     showFeedback: showFeedback,
     showPraise: showPraise,
     renderQuestion: renderQuestion,

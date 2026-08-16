@@ -45,8 +45,7 @@
       attempts: 0,
       trackCtl: null,
       firstTryCount: 0,
-      locked: false,
-      advanceTimer: null
+      locked: false
     };
     Q.setDimension(session.dimension);
     Store.setLastStage(stageId);
@@ -302,8 +301,10 @@
     session.done++;
     UI.renderGameHUD(session);
 
+    // The child advances on their OWN tap (no timer, no pressure — the
+    // same Next-button pacing as Tick⚡Tock): the streak celebration and
+    // Next button appear with the result and stay until they're ready.
     var advance = function () {
-      session.advanceTimer = null;
       if (!session) return;
       if (session.done >= session.target) {
         stageComplete();
@@ -315,11 +316,10 @@
     // Stage 5 (Independent Conversion): replay the comma movement as
     // feedback so the learner sees why the answer is right.
     if (session && session.stageId === 5 && q.kind === 'input') {
-      UI.playCommaFeedback(q, advance);
+      UI.playCommaFeedback(q, function () { UI.showNextButton(session, advance); });
     } else {
       UI.showResultLine(q, firstTryOk);
-      if (session.advanceTimer) clearTimeout(session.advanceTimer);
-      session.advanceTimer = setTimeout(advance, 1200);
+      UI.showNextButton(session, advance);
     }
   }
 

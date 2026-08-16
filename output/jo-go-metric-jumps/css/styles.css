@@ -780,6 +780,38 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/* The pause moment after a correct answer — no timer, child-paced. */
+.next-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.streak-pill {
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: var(--yellow-soft);
+  border: var(--card-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  box-shadow: var(--shadow-sm);
+  animation: streakpop 0.3s ease-out;
+}
+@keyframes streakpop {
+  from { transform: scale(0.9); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
+.btn--next {
+  background: var(--blue);
+  color: #fff;
+  min-width: 240px;
+  padding: 14px 28px;
+  font-size: 1.15rem;
+}
+
 /* ---------------- done screen ---------------- */
 
 .done-card { text-align: center; margin-top: 6vh; }
