@@ -172,15 +172,21 @@
     '</div>';
   }
 
-  function ruleChip(q) {
-    return '<div class="rule-chip">× = RIGHT &nbsp;·&nbsp; ÷ = LEFT &nbsp;·&nbsp; ZEROES = JUMPS</div>';
+  /**
+   * Kid-language method line shown on every question card (playbook rule 10:
+   * teach the skill, never assume it). Static per stage — it teaches the
+   * method for THIS kind of question without ever stating the live answer.
+   */
+  function kidRuleLine(stage) {
+    if (!stage || !stage.kidRule) return '';
+    return '<p class="kid-rule" role="note">💡 ' + esc(stage.kidRule) + '</p>';
   }
 
   function questionShell(session, inner, opts) {
     opts = opts || {};
     var html = '<div class="card question-card">';
-    if (session.stage.rule && opts.rule !== false && session.q && session.q.kind !== 'sanity') {
-      html += ruleChip(session.q);
+    if (opts.rule !== false && session.q) {
+      html += kidRuleLine(session.stage);
     }
     html += inner;
     if (session.stage.ladder && session.q && session.q.from) {
@@ -254,8 +260,8 @@
     if (!q.track) q.track = M.buildTrack(q.source.scaled, q.source.scale, q.conv);
     var inner = equationHTML(q, '___ ' + q.to) +
       '<div class="track-host" data-role="track"></div>' +
-      '<p class="step-hint">Step 3 · Move the comma with your finger, mouse or pencil.</p>';
-    questionShell(session, inner, { rule: false });
+      '<p class="step-hint">Move the comma with your finger, mouse or pencil.</p>';
+    questionShell(session, inner);
     var host = $('gameBody').querySelector('[data-role="track"]');
     var ctl = Input.createTrack(host, q.track, {
       markers: session.stage.markers,
@@ -281,7 +287,7 @@
         '<p class="question-ask">Type the answer in ' + esc(q.to) + ':</p>';
     }
     inner += '<div class="keypad-host" data-role="keypad"></div>';
-    questionShell(session, inner, { rule: false });
+    questionShell(session, inner);
     var host = $('gameBody').querySelector('[data-role="keypad"]');
     var ctl = Input.createKeypad(host, {
       onSubmit: function (value) {
@@ -675,6 +681,23 @@
   }
 
   // ------------------------------------------------------------------
+  // First-play teaching overlay
+  // ------------------------------------------------------------------
+
+  /** Open the one-time "meet the ladder" overlay for a fresh learner. */
+  function showIntroOverlay() {
+    var box = $('intro-ladder');
+    if (box) box.innerHTML = ladderHtml('length', null, null);
+    var ov = $('intro-backdrop');
+    if (ov) ov.classList.add('overlay--show');
+  }
+
+  function closeIntroOverlay() {
+    var ov = $('intro-backdrop');
+    if (ov) ov.classList.remove('overlay--show');
+  }
+
+  // ------------------------------------------------------------------
   // Learner profiles
   // ------------------------------------------------------------------
 
@@ -1051,6 +1074,7 @@
     var stage = $('scales-stage');
     stage.innerHTML = '<div class="scales-q">' +
       '<p class="scales-prompt">Question ' + (s.done + 1) + ' of ' + s.target + '. Read the scale. How many <strong>' + spec.ask + '</strong>?</p>' +
+      '<p class="scales-how" role="note">💡 ' + esc(spec.howTo) + '</p>' +
       svg +
       '<form class="scales-answer" id="scales-form" novalidate>' +
         '<label for="scales-input" class="scales-label">Answer:</label>' +
@@ -2067,7 +2091,9 @@
     renderHomeLadders: renderHomeLadders,
     ladderHtml: ladderHtml,
     renderScales: renderScales,
-    setSoundIcons: setSoundIcons
+    setSoundIcons: setSoundIcons,
+    showIntroOverlay: showIntroOverlay,
+    closeIntroOverlay: closeIntroOverlay
   };
 
   root.JOGO = root.JOGO || {};

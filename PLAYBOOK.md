@@ -263,6 +263,18 @@ Check for these so you don't reinvent them:
     past…"), and a placeholder with a FIXED format sample. The checks
     missed it because the suite verifies correctness, not teachability —
     that gap is why process rule 10 exists.
+17. **Abstract "golden rule" chips that assume the vocabulary.** Jo⚡Go's
+    in-game chip read "× = RIGHT · ÷ = LEFT · ZEROES = JUMPS" — a compact
+    cheat-code only meaningful to someone who already understands
+    conversions. A first-time child can't decode it. Replaced with a
+    per-stage kid-language method line ("Is the new unit SMALLER? Then we
+    need MORE of it — the number gets bigger, so ×") rendered on every
+    question, plus a first-play "meet the ladder" overlay that teaches the
+    comma mechanic before question one. Same fix in the scales lab:
+    "Read the scale" now ships with per-instrument how-to (each small
+    line = 1 mm / 20 g / 25 mL). Every learner-facing instruction should
+    be asserted for kid-language words and for never stating a concrete
+    answer.
 
 ---
 

@@ -11,9 +11,12 @@
   'use strict';
 
   var SCALE_SPECS = {
-    ruler:   { label: 'Ruler',         unit: 'mm',  ask: 'millimetres', min: 30, max: 250, major: 10, minor: 1 },
-    kitchen: { label: 'Kitchen scale', unit: 'g',   ask: 'grams',       min: 80, max: 980, major: 100, minor: 20 },
-    jug:     { label: 'Measuring jug', unit: 'mL',  ask: 'millilitres', min: 100, max: 900, major: 100, minor: 25 }
+    ruler:   { label: 'Ruler',         unit: 'mm',  ask: 'millimetres', min: 30, max: 250, major: 10, minor: 1,
+               howTo: 'Find the nearest big number, then count the small lines on from there. Each small line is 1 mm.' },
+    kitchen: { label: 'Kitchen scale', unit: 'g',   ask: 'grams',       min: 80, max: 980, major: 100, minor: 20,
+               howTo: 'The big lines are 100 g apart. Each small line is 20 g. Count up from the nearest big line.' },
+    jug:     { label: 'Measuring jug', unit: 'mL',  ask: 'millilitres', min: 100, max: 900, major: 100, minor: 25,
+               howTo: 'The big lines are 100 mL apart. Each small line is 25 mL. Count up from the nearest big line.' }
   };
 
   /** Random reading that always lands exactly on a minor tick. */

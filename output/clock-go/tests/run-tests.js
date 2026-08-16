@@ -224,6 +224,19 @@ const sub = html.match(/id="q-sub"[^>]*>([^<]*)</);
 ok(sub && sub[1].indexOf(':') < 0 && !/\d/.test(sub[1]), 'static q-sub fallback is generic (no colon, no digits)');
 
 // ------------------------------------------------------------------
+section('8. Teacher guide (the first five minutes)');
+// ------------------------------------------------------------------
+// The teacher panel must offer the guide, and the guide must walk through
+// exactly what a child sees: the intro steps, the levels, worksheets.
+ok(html.indexOf('data-action="guide"') > -1, 'teacher panel has a guide action');
+ok(html.indexOf('guide-backdrop') > -1, 'guide overlay present in markup');
+ok(html.indexOf('The first five minutes') > -1, 'guide titled for the teacher');
+ok(html.indexOf('First play') > -1 && html.indexOf('teaching intro') > -1, 'guide covers the first-play intro');
+ok(html.indexOf('Whole &amp; Half') > -1 && html.indexOf('Five minutes') > -1 && html.indexOf('One minute') > -1, 'guide covers all three levels');
+ok(html.indexOf('Worksheets') > -1 && html.indexOf('answer key') > -1, 'guide covers worksheets + answer key');
+ok(html.indexOf('5241') > -1, 'guide states the PIN for every device');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

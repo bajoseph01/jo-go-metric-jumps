@@ -365,6 +365,19 @@ button {
   letter-spacing: 0.02em;
 }
 
+/* Kid-language method line on every question card (playbook rule 10) */
+.kid-rule {
+  color: var(--ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.45;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  background: var(--blue-soft);
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+  text-align: left;
+}
+
 .question-prompt {
   font-size: clamp(1.7rem, 7vw, 2.5rem);
   margin: 6px 0 10px;
@@ -997,6 +1010,32 @@ button {
 .modal-title { font-size: 1.5rem; }
 .modal-text { color: var(--ink-soft); }
 
+/* first-play teaching overlay */
+.intro-panel { max-width: 480px; text-align: left; }
+.intro-panel .modal-title { text-align: center; }
+.intro-ladder {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 6px;
+  transform: scale(0.8);
+}
+.intro-steps {
+  margin: 8px 0 10px;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+  line-height: 1.45;
+  font-size: 1.02rem;
+}
+.intro-steps strong { color: var(--ink); }
+.intro-tag {
+  text-align: center;
+  font-weight: 800;
+  color: var(--ink-soft);
+  margin: 4px 0 14px;
+}
+.intro-panel .btn { width: 100%; }
+
 .modal-actions {
   display: flex;
   gap: 12px;
@@ -1402,6 +1441,19 @@ button {
 
 .scales-q { text-align: center; }
 .scales-prompt { font-weight: 800; font-size: 1.1rem; margin: 0 0 12px; }
+
+/* kid-language "how to read it" line on the scales lab */
+.scales-how {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--blue-soft);
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+  text-align: left;
+}
 .scale-svg {
   max-width: 100%;
   height: auto;

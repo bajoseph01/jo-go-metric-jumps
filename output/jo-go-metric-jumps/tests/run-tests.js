@@ -1071,6 +1071,51 @@ const allDims = UI.ladderHtml('length') + UI.ladderHtml('mass') + UI.ladderHtml(
 ok(!/undefined/.test(allDims), 'no undefined labels anywhere in the ladders');
 
 // ------------------------------------------------------------------
+section('21. First-play teaching scaffold (kid rules + intro + scale how-to)');
+// ------------------------------------------------------------------
+// Every stage must carry a kid-language method rule that teaches HOW to
+// answer without ever stating the live answer (playbook rule 10 + #16).
+const KID_WORDS = ['comma', 'ladder', 'zero', 'big', 'small', 'jump', 'number', 'real'];
+for (const s of Q.STAGES) {
+  ok(s.kidRule && s.kidRule.length > 20, 'stage ' + s.id + ' (' + s.name + ') has a kid-language rule');
+  const low = s.kidRule.toLowerCase();
+  ok(KID_WORDS.some((w) => low.indexOf(w) >= 0), 'stage ' + s.id + ' rule speaks kid language');
+  // Safety: a rule must never state a concrete conversion answer like "km → m is ×1000".
+  ok(!/\b(km|m|cm|mm|kg|g|mg|kL|L|mL)\b[^.]*?(\d{3,4}|×1000|÷1000)/.test(s.kidRule),
+     'stage ' + s.id + ' rule never states a concrete conversion factor');
+}
+
+// introSeen flag: per-learner, survives save/load, ignored for unknowns
+const kidAdapter = memAdapter();
+const kidStore = Store.createStore(kidAdapter);
+const kidAda = kidStore.addLearner('Ada', '🦊');
+const kidBen = kidStore.addLearner('Ben', '🐼');
+eq(kidStore.seenIntro(kidAda.id), false, 'intro unseen by default');
+ok(kidStore.markIntro(kidAda.id), 'markIntro true for a real learner');
+eq(kidStore.seenIntro(kidAda.id), true, 'intro marked seen for Ada');
+eq(kidStore.seenIntro(kidBen.id), false, 'other learner unaffected');
+ok(!kidStore.markIntro('nope'), 'unknown learner ignored');
+const kidStore2 = Store.createStore(kidAdapter);
+eq(kidStore2.seenIntro(kidAda.id), true, 'intro flag survives reload on the same device');
+
+// The overlay markup ships with the teaching steps and a way to continue.
+const fs = require('fs');
+const path = require('path');
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+ok(html.indexOf('intro-backdrop') > -1, 'first-play overlay present in markup');
+ok(html.indexOf('intro-go') > -1, 'overlay has a continue button');
+ok(html.indexOf('Units live on a ladder') > -1, 'overlay teaches the ladder concept');
+ok(html.indexOf('Down = ×, up = ÷') > -1, 'overlay teaches direction rule');
+ok(html.indexOf('comma is a little traveller') > -1, 'overlay teaches the comma mechanic');
+ok(html.indexOf('power of ten') === -1, 'teacher-speak "power of ten" gone from How It Works');
+ok(html.indexOf('Find the operation') === -1, 'assumptive "Find the operation" gone');
+
+// Every scale instrument teaches how to READ it, kid language, method only.
+ok(Scales.SCALE_SPECS.ruler.howTo && Scales.SCALE_SPECS.ruler.howTo.indexOf('1 mm') >= 0, 'ruler how-to mentions the 1 mm tick');
+ok(Scales.SCALE_SPECS.kitchen.howTo && Scales.SCALE_SPECS.kitchen.howTo.indexOf('20 g') >= 0, 'kitchen how-to mentions the 20 g tick');
+ok(Scales.SCALE_SPECS.jug.howTo && Scales.SCALE_SPECS.jug.howTo.indexOf('25 mL') >= 0, 'jug how-to mentions the 25 mL tick');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#2F6BFF">
   <meta name="description" content="Jo⚡Go Metric Jumps — a Grade 4 learning game for converting km, m, cm and mm by moving the decimal comma.">
   <title>Jo⚡Go Metric Jumps</title>
-  <link rel="icon" href="assets/favicon.svg?v=21" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/icon-180.png?v=21">
-  <link rel="manifest" href="manifest.webmanifest?v=21">
-  <link rel="stylesheet" href="css/styles.css?v=33">
+  <link rel="icon" href="assets/favicon.svg?v=22" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png?v=22">
+  <link rel="manifest" href="manifest.webmanifest?v=22">
+  <link rel="stylesheet" href="css/styles.css?v=34">
 </head>
 <body>
   <div id="app">
@@ -57,16 +57,16 @@
         <div class="card how-card">
           <h2>The Golden Rule</h2>
           <div class="rule-big">× = RIGHT &nbsp;·&nbsp; ÷ = LEFT &nbsp;·&nbsp; ZEROES = JUMPS</div>
-          <p>Going <strong>down</strong> the ladder means <strong>multiply</strong>. Going <strong>up</strong> means <strong>divide</strong>.</p>
+          <p><strong>Down</strong> the ladder → <strong>multiply</strong> (the number grows). <strong>Up</strong> the ladder → <strong>divide</strong> (the number shrinks). Same amount, new unit!</p>
           <div class="how-ladder" id="how-ladder" aria-hidden="true"></div>
-          <p class="how-note">Each gap has its own power of ten: <strong>km → m is ×1000</strong>, <strong>m → cm is ×100</strong>, <strong>cm → mm is ×10</strong>.</p>
+          <p class="how-note">Each gap on the ladder has its own jump size: <strong>km → m is a 1000-jump</strong>, <strong>m → cm is a 100-jump</strong>, <strong>cm → mm is a 10-jump</strong>.</p>
         </div>
 
         <div class="card how-card">
           <h2>Three Steps</h2>
           <ol class="how-steps">
-            <li><strong>Find the operation.</strong> Smaller unit → bigger number → multiply. Bigger unit → smaller number → divide.</li>
-            <li><strong>Count the jumps.</strong> The zeroes in 10, 100 or 1000 tell you how many places the comma moves.</li>
+            <li><strong>Which way are we going?</strong> To a SMALLER unit → the number gets bigger → multiply. To a BIGGER unit → the number gets smaller → divide.</li>
+            <li><strong>Count the zeroes.</strong> They tell you how many places the comma moves — 10 has one zero, 100 has two, 1000 has three.</li>
             <li><strong>Move the comma.</strong> Drag it across the place-value track. Watch the zeroes appear!</li>
           </ol>
         </div>
@@ -195,6 +195,21 @@
       <div class="overlay-panel teacher-panel" id="teacher-panel" role="dialog" aria-label="Teacher panel"></div>
     </div>
 
+    <!-- ===================== FIRST-PLAY TEACHING OVERLAY ===================== -->
+    <div class="overlay" id="intro-backdrop" aria-hidden="true">
+      <div class="overlay-panel intro-panel" role="dialog" aria-modal="true" aria-label="Meet the ladder">
+        <h2 class="modal-title">First, meet the ladder! ⚡</h2>
+        <div class="intro-ladder" id="intro-ladder" aria-hidden="true"></div>
+        <ol class="intro-steps">
+          <li><strong>Units live on a ladder.</strong> km is BIG, mm is tiny. To change units, we jump between the rungs.</li>
+          <li><strong>Down = ×, up = ÷.</strong> Going down to a smaller unit? The number gets bigger (2,5 m = 250 cm). Going up? The number gets smaller.</li>
+          <li><strong>The comma is a little traveller.</strong> Every zero in the × or ÷ moves it ONE place — right for ×, left for ÷.</li>
+        </ol>
+        <p class="intro-tag">Same amount. New unit. Let's jump!</p>
+        <button type="button" class="btn btn--primary" id="intro-go">Got it — let's jump! ⚡</button>
+      </div>
+    </div>
+
     <!-- ===================== TEACHER PIN ===================== -->
     <div class="overlay" id="pin-modal" aria-hidden="true">
       <div class="overlay-panel pin-panel" role="dialog" aria-label="Teacher PIN">
@@ -233,17 +248,17 @@
 
   </div>
 
-  <script src="js/math.js?v=33"></script>
-  <script src="js/formatting.js?v=33"></script>
-  <script src="js/questions.js?v=33"></script>
-  <script src="js/worksheets.js?v=33"></script>
-  <script src="js/scales.js?v=33"></script>
-  <script src="js/pdf.js?v=33"></script>
-  <script src="js/storage.js?v=33"></script>
-  <script src="js/audio.js?v=33"></script>
-  <script src="js/input.js?v=33"></script>
-  <script src="js/ui.js?v=33"></script>
-  <script src="js/game.js?v=33"></script>
-  <script src="js/app.js?v=33"></script>
+  <script src="js/math.js?v=34"></script>
+  <script src="js/formatting.js?v=34"></script>
+  <script src="js/questions.js?v=34"></script>
+  <script src="js/worksheets.js?v=34"></script>
+  <script src="js/scales.js?v=34"></script>
+  <script src="js/pdf.js?v=34"></script>
+  <script src="js/storage.js?v=34"></script>
+  <script src="js/audio.js?v=34"></script>
+  <script src="js/input.js?v=34"></script>
+  <script src="js/ui.js?v=34"></script>
+  <script src="js/game.js?v=34"></script>
+  <script src="js/app.js?v=34"></script>
 </body>
 </html>

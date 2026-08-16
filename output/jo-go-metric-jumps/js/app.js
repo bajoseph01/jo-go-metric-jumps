@@ -115,6 +115,17 @@
         UI.renderScales();
       });
     }
+
+    var introGo = $('intro-go');
+    if (introGo) {
+      introGo.addEventListener('click', function () {
+        Audio.play('click');
+        var a = Store.activeLearner();
+        if (a) Store.markIntro(a.id);
+        UI.closeIntroOverlay();
+        Game.nextQuestion();
+      });
+    }
   }
 
   function wireHud() {

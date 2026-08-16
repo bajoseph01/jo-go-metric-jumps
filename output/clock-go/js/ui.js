@@ -450,6 +450,12 @@
 
   function closeTeacher() { closeOverlay('teacher-backdrop'); }
 
+  /** Teacher guide: the first five minutes, exactly as a child sees them. */
+  function openGuide() {
+    closeTeacher();
+    showOverlay('guide-backdrop');
+  }
+
   // ------------------------------------------------------------------
   // Report
   // ------------------------------------------------------------------
@@ -693,7 +699,8 @@
       tacts[t].addEventListener('click', function () {
         var act = this.getAttribute('data-action');
         Audio.play('click');
-        if (act === 'practice') { session.practiceAll = true; closeTeacher(); renderHome(); }
+        if (act === 'guide') { openGuide(); }
+        else if (act === 'practice') { session.practiceAll = true; closeTeacher(); renderHome(); }
         else if (act === 'report') { closeTeacher(); renderReport(); }
         else if (act === 'worksheets') { closeTeacher(); renderWorksheets(); }
         else if (act === 'learners') { closeTeacher(); renderLearners(); }

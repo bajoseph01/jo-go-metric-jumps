@@ -21,14 +21,22 @@
   // ------------------------------------------------------------------
 
   var STAGES = [
-    { id: 1, key: 'op',          name: 'Which Operation?',        category: 'conversion_direction',     target: 6, kinds: ['op'],        ops: 2, markers: false, ladder: true,  rule: true,  sanityChance: 0 },
-    { id: 2, key: 'jumps',       name: 'How Many Jumps?',         category: 'jump_count',                target: 6, kinds: ['jumps'],     ops: 0, markers: false, ladder: true,  rule: true,  sanityChance: 0 },
-    { id: 3, key: 'guided',      name: 'Guided Comma Move',       category: 'guided_comma',              target: 6, kinds: ['pipeline'],  ops: 6, markers: true,  ladder: true,  rule: true,  sanityChance: 0 },
-    { id: 4, key: 'predict',     name: 'Predict Then Move',       category: 'guided_comma',              target: 6, kinds: ['pipeline'],  ops: 6, markers: false, ladder: true,  rule: false, sanityChance: 0 },
-    { id: 5, key: 'independent', name: 'Independent Conversion',  category: 'independent_conversion',    target: 6, kinds: ['input'],     ops: 0, markers: false, ladder: false, rule: false, sanityChance: 0.2 },
-    { id: 6, key: 'mixed',       name: 'Mixed Metric Challenge',  category: 'mixed_conversion',          target: 8, kinds: ['input'],     ops: 0, markers: false, ladder: false, rule: false, sanityChance: 0.2 },
-    { id: 7, key: 'sanity',      name: 'Spot the Mistake',        category: 'reasonableness_check',      target: 6, kinds: ['sanity'],    ops: 0, markers: false, ladder: true,  rule: false, sanityChance: 0 },
-    { id: 8, key: 'transfer',    name: 'Transfer Challenge',      category: 'transfer',                  target: 6, kinds: ['transfer'],  ops: 0, markers: false, ladder: false, rule: false, sanityChance: 0 }
+    { id: 1, key: 'op',          name: 'Which Operation?',        category: 'conversion_direction',     target: 6, kinds: ['op'],        ops: 2, markers: false, ladder: true,  rule: true,  sanityChance: 0,
+      kidRule: 'Is the new unit SMALLER? Then we need MORE of it — the number gets bigger, so ×. Bigger unit? Fewer of it — ÷.' },
+    { id: 2, key: 'jumps',       name: 'How Many Jumps?',         category: 'jump_count',                target: 6, kinds: ['jumps'],     ops: 0, markers: false, ladder: true,  rule: true,  sanityChance: 0,
+      kidRule: 'The zeroes tell you the jumps: ×10 = 1 jump · ×100 = 2 · ×1000 = 3. Count the zeroes!' },
+    { id: 3, key: 'guided',      name: 'Guided Comma Move',       category: 'guided_comma',              target: 6, kinds: ['pipeline'],  ops: 6, markers: true,  ladder: true,  rule: true,  sanityChance: 0,
+      kidRule: 'Move the comma ONE place for every zero in the × or ÷. Watch the zeroes appear!' },
+    { id: 4, key: 'predict',     name: 'Predict Then Move',       category: 'guided_comma',              target: 6, kinds: ['pipeline'],  ops: 6, markers: false, ladder: true,  rule: false, sanityChance: 0,
+      kidRule: 'Think first: which way, and how far? Down = × moves the comma RIGHT, up = ÷ moves it LEFT.' },
+    { id: 5, key: 'independent', name: 'Independent Conversion',  category: 'independent_conversion',    target: 6, kinds: ['input'],     ops: 0, markers: false, ladder: false, rule: false, sanityChance: 0.2,
+      kidRule: 'Big unit → small unit: comma goes RIGHT, number gets bigger. Small → big: comma LEFT, number smaller.' },
+    { id: 6, key: 'mixed',       name: 'Mixed Metric Challenge',  category: 'mixed_conversion',          target: 8, kinds: ['input'],     ops: 0, markers: false, ladder: false, rule: false, sanityChance: 0.2,
+      kidRule: 'Same amount, new unit! Big → small: comma RIGHT. Small → big: comma LEFT.' },
+    { id: 7, key: 'sanity',      name: 'Spot the Mistake',        category: 'reasonableness_check',      target: 6, kinds: ['sanity'],    ops: 0, markers: false, ladder: true,  rule: false, sanityChance: 0,
+      kidRule: 'Think of the real thing: a door is about 2 m tall, a pencil about 15 cm — not thousands!' },
+    { id: 8, key: 'transfer',    name: 'Transfer Challenge',      category: 'transfer',                  target: 6, kinds: ['transfer'],  ops: 0, markers: false, ladder: false, rule: false, sanityChance: 0,
+      kidRule: 'Three steps: 1) Which way are we going? 2) Count the zeroes. 3) Move the comma.' }
   ];
 
   function stageById(id) {

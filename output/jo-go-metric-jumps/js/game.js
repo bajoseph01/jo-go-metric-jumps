@@ -53,6 +53,12 @@
     UI.show('screen-game');
     UI.renderGameHUD(session);
     UI.clearFeedback();
+    // First-ever play: teach HOW the game works before the first question.
+    var a = Store.activeLearner();
+    if (a && !Store.seenIntro(a.id)) {
+      UI.showIntroOverlay();
+      return;
+    }
     nextQuestion();
   }
 

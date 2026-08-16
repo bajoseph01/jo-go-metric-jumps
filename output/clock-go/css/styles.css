@@ -401,6 +401,29 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 }
 .sheet-x:active { transform: translateY(2px); box-shadow: 0 0 0 var(--ink); }
 
+/* teacher guide: the first five minutes */
+.guide-sheet { max-width: 620px; }
+.guide-intro {
+  font-size: 1.02rem;
+  line-height: 1.45;
+  margin: 10px 0 16px;
+  padding: 10px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--yellow-soft, #FFF3CF);
+  font-weight: 700;
+}
+.guide-section { margin: 0 0 16px; }
+.guide-section h3 { margin: 0 0 6px; font-size: 1.08rem; }
+.guide-section p { margin: 0 0 8px; line-height: 1.5; }
+.guide-list { margin: 6px 0; padding-left: 22px; }
+.guide-list li { margin-bottom: 6px; line-height: 1.45; }
+.guide-note {
+  font-size: 0.95rem;
+  color: var(--ink-soft, #5F5C6B);
+  margin-top: 6px;
+}
+
 .pin-input {
   width: 120px;
   text-align: center;

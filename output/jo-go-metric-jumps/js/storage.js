@@ -177,6 +177,7 @@
       emoji: AVATARS.indexOf(l.emoji) >= 0 ? l.emoji : AVATARS[0],
       color: LEARNER_COLORS.indexOf(l.color) >= 0 ? l.color : LEARNER_COLORS[hashId(l.id) % LEARNER_COLORS.length],
       challengeIntroSeen: !!l.challengeIntroSeen,
+      introSeen: !!l.introSeen,
       unlocked: typeof l.unlocked === 'number' ? Math.min(8, Math.max(1, Math.round(l.unlocked))) : 1,
       lastStage: typeof l.lastStage === 'number' ? Math.min(8, Math.max(1, Math.round(l.lastStage))) : 1,
       unlockedBy: sanitizeUnlocks(l.unlockedBy),
@@ -566,6 +567,20 @@
       return l ? !!l.challengeIntroSeen : false;
     }
 
+    /** Mark a learner as having seen the first-play teaching overlay. */
+    function markIntro(id) {
+      var l = learnerById(id);
+      if (!l) return false;
+      l.introSeen = true;
+      save();
+      return true;
+    }
+
+    function seenIntro(id) {
+      var l = learnerById(id);
+      return l ? !!l.introSeen : false;
+    }
+
     function removeLearner(id) {
       var idx = -1;
       for (var i = 0; i < device.learners.length; i++) {
@@ -630,6 +645,8 @@
       renameLearner: renameLearner,
       markChallengeIntro: markChallengeIntro,
       challengeIntroSeen: challengeIntroSeen,
+      markIntro: markIntro,
+      seenIntro: seenIntro,
       progressOf: progressOf,
       AVATARS: AVATARS,
       LEARNER_COLORS: LEARNER_COLORS,
@@ -703,6 +720,8 @@
     renameLearner: singleton.renameLearner,
     markChallengeIntro: singleton.markChallengeIntro,
     challengeIntroSeen: singleton.challengeIntroSeen,
+    markIntro: singleton.markIntro,
+    seenIntro: singleton.seenIntro,
     progressOf: singleton.progressOf,
     LEARNER_COLORS: LEARNER_COLORS
   };
