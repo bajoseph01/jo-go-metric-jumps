@@ -923,6 +923,51 @@ eq(Scales.parseInput(''), null, 'empty input parses to null (blank)');
 eq(Scales.parseInput('   '), null, 'whitespace parses to null (blank)');
 
 // ------------------------------------------------------------------
+section('18. Timed class-set challenges');
+// ------------------------------------------------------------------
+
+// ranking: first-try accuracy, then more answered, then faster time
+const ranked = Store.challengeRank([
+  { learner: 'a', correct: 8, answered: 9, seconds: 55 },
+  { learner: 'b', correct: 5, answered: 10, seconds: 40 },
+  { learner: 'c', correct: 2, answered: 2, seconds: 50 },
+  { learner: 'd', correct: 2, answered: 2, seconds: 30 }
+]);
+eq(ranked.map(r => r.learner).join(','), 'd,c,a,b', 'rank by accuracy, then answered, then time');
+eq(ranked[0].learner, 'd', '100% accuracy beats volume');
+
+// history records per learner, newest last, capped at 20
+const st3 = Store.createStore({ getItem: () => null, setItem: () => {} });
+const chAda = st3.addLearner('Ada', '🦊');
+const chBen = st3.addLearner('Ben', '🐼');
+for (let i = 0; i < 25; i++) st3.recordChallenge(chAda.id, 5, 10, 5, 30 + i);
+st3.recordChallenge(chBen.id, 10, 10, 10, 45);
+eq(st3.challengesOf(chAda.id).length, 20, 'challenge history capped at 20');
+eq(st3.challengesOf(chAda.id)[19].seconds, 54, 'most recent kept (newest last)');
+eq(st3.challengesOf(chAda.id)[0].seconds, 35, 'oldest kept after cap');
+eq(st3.challengesOf(chBen.id).length, 1, 'Ben has one run');
+eq(st3.challengesOf(chBen.id)[0].correct, 10, 'Ben run recorded');
+ok(/^\d{4}-\d{2}-\d{2}$/.test(st3.challengesOf(chBen.id)[0].date), 'challenge date recorded as YYYY-MM-DD');
+
+// sanitisation drops malformed entries
+const st4 = Store.createStore({ getItem: () => null, setItem: () => {} });
+const chL = st4.addLearner('Cara', '🦁');
+st4.mutate(d => {
+  const target = d.learners.find(l => l.id === chL.id);
+  target.challenges = [{ correct: 3, total: 10, answered: 4, seconds: 20 }, { bogus: true }, null, 'x'];
+});
+eq(st4.challengesOf(chL.id).length, 1, 'malformed challenge entries dropped');
+
+// a learner persisted without challenges migrates cleanly
+const st5 = Store.createStore({ getItem: () => null, setItem: () => {} });
+const chD = st5.addLearner('Didi', '🐸');
+st5.mutate(d => {
+  const target = d.learners.find(l => l.id === chD.id);
+  delete target.challenges;
+});
+ok(Array.isArray(st5.challengesOf(chD.id)), 'missing challenges sanitised to array');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

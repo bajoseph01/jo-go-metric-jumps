@@ -1143,6 +1143,7 @@
 
   /** Teacher worksheet pack: one sheet per selected learner, plus key. */
   function renderWorksheets() {
+    chalStopTimer();
     show('screen-worksheets');
     var body = $('worksheets-body');
     var roster = Store.learners();
@@ -1166,7 +1167,9 @@
       (wsState.classSet ? ' checked' : '') + '> Class set — same sheet for everyone</label>' +
       '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-key-on"' +
       (wsState.withKey ? ' checked' : '') + '> Include answer key</label>' +
-      '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button></div>';
+      '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button>' +
+      (wsState.mode === 'scales' ? '<button type="button" class="btn btn--small" id="btn-ws-challenge">⚡ Start timed challenge</button>' : '') +
+      '</div>';
 
     var sel = roster.filter(function (l) { return wsState.ids.indexOf(l.id) >= 0; });
     var date = new Date().toLocaleDateString();
@@ -1273,6 +1276,24 @@
         renderWorksheets();
       });
     }
+    var chalBtn = $('btn-ws-challenge');
+    if (chalBtn) {
+      chalBtn.addEventListener('click', function () {
+        Audio.play('click');
+        if (!wsState.classSet) {
+          wsState.classSet = true;
+          wsState.items = {};
+          wsState.scaleItems = {};
+          var cb = $('ws-class-on');
+          if (cb) cb.checked = true;
+        }
+        chalState.items = Scales.worksheetItems(null, null);
+        chalState.results = [];
+        chalState.done = {};
+        chalState.learnerId = null;
+        renderChallenge();
+      });
+    }
     var checks = body.querySelectorAll('[data-ws-check]');
     for (var ck = 0; ck < checks.length; ck++) {
       checks[ck].addEventListener('click', function () {
@@ -1304,6 +1325,285 @@
         this.textContent = 'Marked';
         Audio.play(score === inputs.length ? 'correct' : 'pop');
       });
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Timed class-set challenge (teacher mode, scales sheets)
+  // ------------------------------------------------------------------
+
+  var chalState = {
+    learnerId: null,   // who is playing right now
+    items: null,       // one shared scale sheet for everyone
+    qIndex: 0,
+    correct: 0,
+    answeredCount: 0,
+    startTs: 0,
+    deadline: 0,
+    duration: 90,
+    results: [],       // [{ learner, correct, answered, seconds }] this session
+    done: {},          // learnerId -> true once they have played
+    submitted: false,
+    finished: false,
+    timer: null
+  };
+
+  function chalStopTimer() {
+    if (chalState.timer) { clearInterval(chalState.timer); chalState.timer = null; }
+  }
+
+  function chalClockLabel() {
+    var s = Math.max(0, Math.ceil((chalState.deadline - Date.now()) / 1000));
+    return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+  }
+
+  function chalAccuracy(correct, answered) {
+    return answered ? Math.round((correct / answered) * 100) : 0;
+  }
+
+  /** Phase pick: choose the time limit, then who is playing next. */
+  function renderChallengePick(body) {
+    body = body || $('challenge-body');
+    var roster = Store.learners();
+    var remaining = roster.filter(function (l) { return !chalState.done[l.id]; });
+    if (!remaining.length && chalState.results.length) { renderChallengeBoard(body); return; }
+    var html = '<div class="chal-card chal-pick">' +
+      '<h2 class="chal-h">⚡ Timed Challenge</h2>' +
+      '<p class="chal-sub">One shared sheet for everyone: ' + chalState.items.length +
+      ' scale readings, ' + chalState.duration + ' seconds on the clock, no second chances. ' +
+      'The leaderboard ranks first-try accuracy.</p>' +
+      '<div class="chal-duration"><span class="chal-dur-label">Time per learner</span>' +
+      [60, 90, 120].map(function (d) {
+        return '<button type="button" class="btn btn--small chal-dur' + (chalState.duration === d ? ' chal-dur--on' : '') +
+          '" data-chal-dur="' + d + '">' + d + 's</button>';
+      }).join('') + '</div>' +
+      '<div class="chal-who-title">Who is playing?</div>' +
+      '<div class="chal-learners">';
+    if (!remaining.length) {
+      html += '<p class="chal-empty">Everyone has played — start a fresh challenge or see the board.</p>';
+    } else {
+      html += remaining.map(function (l) {
+        return '<button type="button" class="learner-emoji chal-learner" data-chal-learner="' + l.id + '">' +
+          l.emoji + ' ' + esc(l.name) + '</button>';
+      }).join('');
+    }
+    html += '</div><div class="chal-board-actions">';
+    if (chalState.results.length) {
+      html += '<button type="button" class="btn btn--small" id="btn-chal-board">See the leaderboard</button>';
+    }
+    html += '</div></div>';
+    body.innerHTML = html;
+    var durBtns = body.querySelectorAll('[data-chal-dur]');
+    for (var d = 0; d < durBtns.length; d++) {
+      durBtns[d].addEventListener('click', function () {
+        Audio.play('click');
+        chalState.duration = Number(this.getAttribute('data-chal-dur'));
+        renderChallenge();
+      });
+    }
+    var learners = body.querySelectorAll('[data-chal-learner]');
+    for (var lg = 0; lg < learners.length; lg++) {
+      learners[lg].addEventListener('click', function () {
+        Audio.play('click');
+        chalStart(this.getAttribute('data-chal-learner'));
+      });
+    }
+    var boardBtn = $('btn-chal-board');
+    if (boardBtn) {
+      boardBtn.addEventListener('click', function () { Audio.play('click'); renderChallengeBoard(body); });
+    }
+  }
+
+  /** Phase play: the clock runs while the learner answers each reading once. */
+  function renderChallengePlay(body) {
+    body = body || $('challenge-body');
+    var item = chalState.items[chalState.qIndex];
+    var learner = Store.learners().filter(function (l) { return l.id === chalState.learnerId; })[0];
+    body.innerHTML = '<div class="chal-play">' +
+      '<div class="chal-top">' +
+        '<div class="chal-clock" id="chal-clock" aria-live="off">' + chalClockLabel() + '</div>' +
+        '<div class="chal-progress">Item ' + (chalState.qIndex + 1) + ' of ' + chalState.items.length +
+          (learner ? ' · ' + learner.emoji + ' ' + esc(learner.name) : '') + '</div>' +
+      '</div>' +
+      '<div class="scales-q chal-item">' +
+        '<p class="scales-prompt">Read the scale. How many ' + Scales.SCALE_SPECS[item.instrument].ask + '?</p>' +
+        wsScaleSVG(item) +
+        '<div class="scales-answer chal-answer">' +
+          '<input class="answer-input scales-input chal-input" id="chal-input" inputmode="decimal" autocomplete="off" aria-label="Your answer" />' +
+          '<span class="scales-unit">' + item.unit + '</span>' +
+          '<button type="button" class="btn btn--primary" id="btn-chal-check">Check</button>' +
+        '</div>' +
+        '<p class="chal-fb" id="chal-fb" role="status"></p>' +
+      '</div>' +
+    '</div>';
+    var input = $('chal-input');
+    if (input) {
+      input.focus();
+      input.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') { ev.preventDefault(); chalSubmit(); }
+      });
+    }
+    var check = $('btn-chal-check');
+    if (check) check.addEventListener('click', function () { chalSubmit(); });
+    chalState.timer = setInterval(function () {
+      var clk = $('chal-clock');
+      if (clk) clk.textContent = chalClockLabel();
+      if (Date.now() >= chalState.deadline) chalFinish();
+    }, 200);
+  }
+
+  function renderChallenge() {
+    show('screen-challenge');
+    chalStopTimer();
+    if (!chalState.items) chalState.items = Scales.worksheetItems(null, null);
+    var body = $('challenge-body');
+    if (!chalState.learnerId) renderChallengePick(body);
+    else renderChallengePlay(body);
+  }
+
+  function chalStart(learnerId) {
+    chalState.learnerId = learnerId;
+    chalState.qIndex = 0;
+    chalState.correct = 0;
+    chalState.answeredCount = 0;
+    chalState.submitted = false;
+    chalState.finished = false;
+    chalState.startTs = Date.now();
+    chalState.deadline = chalState.startTs + chalState.duration * 1000;
+    renderChallenge();
+  }
+
+  function chalSubmit() {
+    if (chalState.submitted || chalState.finished) return;
+    chalState.submitted = true;
+    var input = $('chal-input');
+    var fb = $('chal-fb');
+    var item = chalState.items[chalState.qIndex];
+    var parsed = Scales.parseInput(input.value);
+    var ok = parsed !== null && parsed === item.answer;
+    Store.recordScaleFor(chalState.learnerId, item.instrument, ok);
+    if (ok) chalState.correct++;
+    chalState.answeredCount++;
+    fb.textContent = ok
+      ? '✓ Correct! It reads ' + item.answer + ' ' + item.unit + '.'
+      : '✗ Not quite — it reads ' + item.answer + ' ' + item.unit + '.';
+    fb.className = 'chal-fb ' + (ok ? 'chal-fb--ok' : 'chal-fb--bad');
+    input.disabled = true;
+    var check = $('btn-chal-check');
+    if (check) check.disabled = true;
+    Audio.play(ok ? 'correct' : 'wrong');
+    var last = chalState.qIndex >= chalState.items.length - 1;
+    setTimeout(function () {
+      chalState.submitted = false;
+      if (last) { chalFinish(); return; }
+      chalState.qIndex++;
+      renderChallenge();
+    }, ok ? 650 : 1100);
+  }
+
+  /** Time up or all items done: record the run and show the score card. */
+  function chalFinish() {
+    if (chalState.finished) return;
+    chalState.finished = true;
+    chalStopTimer();
+    var answered = chalState.answeredCount;
+    var seconds = Math.max(1, Math.round((Date.now() - chalState.startTs) / 1000));
+    var learner = Store.learners().filter(function (l) { return l.id === chalState.learnerId; })[0] || {};
+    var result = {
+      learner: chalState.learnerId,
+      name: learner.name || 'Learner',
+      emoji: learner.emoji || '',
+      correct: chalState.correct,
+      total: chalState.items.length,
+      answered: answered,
+      seconds: seconds
+    };
+    Store.recordChallenge(result.learner, result.correct, result.total, result.answered, result.seconds);
+    chalState.results.push(result);
+    chalState.done[result.learner] = true;
+    chalState.learnerId = null;
+    renderChallengeDone(result);
+  }
+
+  /** Phase done: score card, then hand the device to the next learner. */
+  function renderChallengeDone(result) {
+    show('screen-challenge');
+    var body = $('challenge-body');
+    var roster = Store.learners();
+    var remaining = roster.filter(function (l) { return !chalState.done[l.id]; });
+    var allDone = !remaining.length;
+    body.innerHTML = '<div class="chal-card chal-done">' +
+      '<h2 class="chal-h">' + (allDone ? 'Everyone has played! 🎉' : 'Great run!') + '</h2>' +
+      '<div class="chal-score">' + result.emoji + ' ' + esc(result.name) + '</div>' +
+      '<div class="chal-score-big">' + result.correct + ' <span>/</span> ' + result.total + '</div>' +
+      '<p class="chal-sub">' + result.answered + ' answered · ' + chalAccuracy(result.correct, result.answered) +
+      '% first-try · ' + result.seconds + 's</p>' +
+      '<div class="chal-board-actions">' +
+      (allDone
+        ? '<button type="button" class="btn btn--primary" id="btn-chal-board">See the leaderboard</button>'
+        : '<button type="button" class="btn btn--primary" id="btn-chal-next">Next learner</button>' +
+          '<button type="button" class="btn btn--small" id="btn-chal-board2">Leaderboard</button>') +
+      '</div></div>';
+    var next = $('btn-chal-next');
+    if (next) {
+      next.addEventListener('click', function () { Audio.play('click'); renderChallenge(); });
+    }
+    var board = $('btn-chal-board') || $('btn-chal-board2');
+    if (board) {
+      board.addEventListener('click', function () { Audio.play('click'); renderChallengeBoard(body); });
+    }
+  }
+
+  /** Phase board: rank this session's runs by first-try accuracy. */
+  function renderChallengeBoard(body) {
+    body = body || $('challenge-body');
+    var roster = Store.learners();
+    var ranked = Store.challengeRank(chalState.results.map(function (r) {
+      var l = roster.filter(function (x) { return x.id === r.learner; })[0];
+      return {
+        learner: r.learner,
+        name: (l ? l.emoji + ' ' + l.name : '?'),
+        correct: r.correct,
+        answered: r.answered,
+        seconds: r.seconds
+      };
+    }));
+    var medals = ['🥇', '🥈', '🥉'];
+    var html = '<div class="chal-card chal-board">' +
+      '<h2 class="chal-h">🏆 Leaderboard</h2>' +
+      '<p class="chal-sub">Ranked by first-try accuracy, then more answered, then time.</p>' +
+      '<div class="chal-rows">';
+    if (!ranked.length) {
+      html += '<p class="chal-empty">No results yet — start a challenge!</p>';
+    }
+    for (var i = 0; i < ranked.length; i++) {
+      var r = ranked[i];
+      html += '<div class="chal-row' + (i < 3 ? ' chal-row--top' : '') + '">' +
+        '<span class="chal-rank">' + (medals[i] || (i + 1)) + '</span>' +
+        '<span class="chal-name">' + r.name + '</span>' +
+        '<span class="chal-acc">' + chalAccuracy(r.correct, r.answered) + '%</span>' +
+        '<span class="chal-stats">' + r.correct + '/' + r.answered + ' · ' + r.seconds + 's</span>' +
+      '</div>';
+    }
+    html += '</div><div class="chal-board-actions">' +
+      '<button type="button" class="btn btn--primary" id="btn-chal-restart">New challenge</button>' +
+      '<button type="button" class="btn btn--small" data-chal-done="1">Done</button>' +
+      '</div></div>';
+    body.innerHTML = html;
+    var restart = $('btn-chal-restart');
+    if (restart) {
+      restart.addEventListener('click', function () {
+        Audio.play('click');
+        chalState.items = Scales.worksheetItems(null, null);
+        chalState.results = [];
+        chalState.done = {};
+        chalState.learnerId = null;
+        renderChallenge();
+      });
+    }
+    var doneBtn = body.querySelector('[data-chal-done]');
+    if (doneBtn) {
+      doneBtn.addEventListener('click', function () { Audio.play('click'); show('screen-worksheets'); });
     }
   }
 
@@ -1607,6 +1907,7 @@
     updateLearnerChip: updateLearnerChip,
     renderReport: renderReport,
     renderWorksheets: renderWorksheets,
+    renderChallenge: renderChallenge,
     exportReportPdf: exportReportPdf,
     exportWorksheetPdf: exportWorksheetPdf,
     renderDimensionPills: renderDimensionPills,

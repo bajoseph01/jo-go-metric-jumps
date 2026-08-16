@@ -85,7 +85,7 @@ sw.js                 offline service worker
 
 ```bash
 node tools/serve.js        # starts a local static server on http://localhost:4173
-node tests/run-tests.js    # runs the automated suite (6058 checks)
+node tests/run-tests.js    # runs the automated suite (6068 checks)
 ```
 
 ## Progress & teacher panel
@@ -113,7 +113,12 @@ export. **Class set** switches the pack to one identical sheet for everyone
 modes. Scale sheets are also interactive: learners type their readings on
 screen, press **Check my answers**, get ✓/✗ feedback with the correct reading
 revealed on misses, and the results are recorded into each learner's
-per-instrument scale progress. Everything is generated locally — no network,
-no data leaves the device.
+per-instrument scale progress. With **Class set** on, a **⚡ Start timed
+challenge** button opens a countdown challenge: one shared sheet, 60/90/120
+seconds on the clock, one attempt per reading (first-try counts), then the
+next learner takes the device. Runs are recorded per learner and the session
+closes with a **leaderboard ranked by first-try accuracy**, then items
+answered, then time. Everything is generated locally — no network, no data
+leaves the device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

@@ -76,10 +76,14 @@ internalise "smaller unit → bigger number; the length never changes."
   (both modes), so the whole class can be marked together. Scale sheets are
   interactive on screen: learners type readings, **Check my answers** marks
   each one with ✓/✗, reveals the correct reading on misses, and records the
-  results into each learner's per-instrument scale progress. Reports and PDFs
-  are produced entirely in-browser by a bundled dependency-free PDF writer
-  (no network, works offline). Stays unlocked for the session; "Lock" re-arms
-  the PIN.
+  results into each learner's per-instrument scale progress. With Class set
+  on, **⚡ Start timed challenge** runs a live classroom activity: one shared
+  sheet, a 60/90/120s countdown, one attempt per reading (first-try counts),
+  then the next learner takes the device. Runs are stored per learner and the
+  session ends on a leaderboard ranked by first-try accuracy, then items
+  answered, then time. Reports and PDFs are produced entirely in-browser by a
+  bundled dependency-free PDF writer (no network, works offline). Stays
+  unlocked for the session; "Lock" re-arms the PIN.
 - **Sound toggle** — persistent preference; app is fully usable silent.
 
 ## Architecture
@@ -93,7 +97,8 @@ js/questions.js       stages, generators, adaptive pair weighting (3 dimensions)
 js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
 js/scales.js          Scales Lab + scale worksheets: question gen, SVG + PDF
                       vector builders for ruler/dial/jug
-js/storage.js         per-learner profiles, localStorage persistence, mastery model
+js/storage.js         per-learner profiles, localStorage persistence, mastery
+                      model, timed-challenge history + leaderboard ranking
 js/pdf.js             tiny dependency-free PDF writer (reports + worksheet
                       pack; deterministic object layout — Kids + font refs
                       computed for any page count)
@@ -125,7 +130,7 @@ sw.js                 offline service worker (network-first, cache fallback)
 ## Testing performed
 
 **Automated (Node, no dependencies)** — `node tests/run-tests.js`:
-6058 checks, 0 failures, covering:
+6068 checks, 0 failures, covering:
 - the six canonical conversions (direction, factor, jumps, exact values);
 - all mission error cases (0,5 m → cm; 0,05 m → cm; 5 m → mm; 5 000 mm → m;
   250 cm → m; 25 cm → m; 2,5 km → m; 0,003 km → m; 450 cm → m; 4 500 mm → m;
@@ -178,7 +183,13 @@ sw.js                 offline service worker (network-first, cache fallback)
   correct reading revealed on misses, blanks counted separately, results
   recorded per instrument via recordScaleFor (non-active learners' progress
   untouched), verified end-to-end in the browser for all-wrong and
-  all-correct runs.
+  all-correct runs;
+- timed challenge end-to-end: duration pick (60/90/120s), per-learner
+  countdown clock, first-try marking with sound, time-up finish mid-run, the
+  score card, next-learner hand-off, and the leaderboard (🥇 Ben 100% · 10/10
+  · 8s over 🥈 Asha 75% · 3/4) — this surfaced and fixed an answered-count
+  bug where the final item's submission was dropped from the tally; history
+  persisted per learner (capped at 20 runs, sanitised, dated).
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

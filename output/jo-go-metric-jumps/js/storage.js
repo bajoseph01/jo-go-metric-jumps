@@ -64,6 +64,23 @@
     return cats;
   }
 
+  /** Validate a persisted challenge-result array (most recent last). */
+  function sanitizeChallenges(v) {
+    if (!Array.isArray(v)) return [];
+    return v.slice(-20).filter(function (c) {
+      return c && typeof c.correct === 'number' && typeof c.total === 'number' &&
+        typeof c.answered === 'number' && typeof c.seconds === 'number';
+    }).map(function (c) {
+      return {
+        date: typeof c.date === 'string' ? c.date : '',
+        correct: c.correct,
+        total: c.total,
+        answered: c.answered,
+        seconds: c.seconds
+      };
+    });
+  }
+
   function freshProgress() {
     return {
       unlocked: 1,          // legacy: length dimension (kept for back-compat)
@@ -73,6 +90,7 @@
       categories: freshCategories(),
       pairs: {},            // 'km>m': { attempts, firstTry, recent }
       scales: freshScaleRecords(),  // ruler/kitchen/jug reading records
+      challenges: [],       // timed class-set challenge results
       bestStreak: 0,
       sessions: 0,
       totalAnswered: 0,
@@ -155,6 +173,7 @@
       categories: cats,
       pairs: (l.pairs && typeof l.pairs === 'object') ? l.pairs : {},
       scales: sanitizeScales(l.scales),
+      challenges: sanitizeChallenges(l.challenges),
       bestStreak: typeof l.bestStreak === 'number' ? l.bestStreak : 0,
       sessions: typeof l.sessions === 'number' ? l.sessions : 0,
       totalAnswered: typeof l.totalAnswered === 'number' ? l.totalAnswered : 0,
@@ -373,6 +392,43 @@
       });
     }
 
+    /**
+     * Rank challenge results for a leaderboard: first-try accuracy first,
+     * then more items attempted, then faster time. Pure helper.
+     * Each entry: { learner, correct, answered, seconds }.
+     */
+    function challengeRank(list) {
+      return (list || []).slice().sort(function (a, b) {
+        var accA = a.answered ? a.correct / a.answered : 0;
+        var accB = b.answered ? b.correct / b.answered : 0;
+        if (accB !== accA) return accB - accA;
+        if (b.answered !== a.answered) return b.answered - a.answered;
+        return (a.seconds || 0) - (b.seconds || 0);
+      });
+    }
+
+    /** Record a finished timed challenge for a specific learner. */
+    function recordChallenge(id, correct, total, answered, seconds) {
+      var l = learnerById(id);
+      if (!l) return;
+      l.challenges = sanitizeChallenges(l.challenges);
+      l.challenges.push({
+        date: new Date().toISOString().slice(0, 10),
+        correct: correct,
+        total: total,
+        answered: answered,
+        seconds: seconds
+      });
+      if (l.challenges.length > 20) l.challenges = l.challenges.slice(-20);
+      save();
+    }
+
+    /** Timed-challenge history for a learner (most recent last). */
+    function challengesOf(id) {
+      var l = learnerById(id);
+      return l ? sanitizeChallenges(l.challenges) : [];
+    }
+
     /** Record one scale-reading answer against a specific learner. */
     function recordScaleFor(id, instrument, ok) {
       if (SCALE_INSTRUMENTS.indexOf(instrument) < 0) return;
@@ -513,6 +569,9 @@
       recordAnswer: recordAnswer,
       recordScale: recordScale,
       recordScaleFor: recordScaleFor,
+      recordChallenge: recordChallenge,
+      challengesOf: challengesOf,
+      challengeRank: challengeRank,
       recordStreak: recordStreak,
       recordSession: recordSession,
       unlockUpTo: unlockUpTo,
@@ -581,6 +640,9 @@
     recordAnswer: singleton.recordAnswer,
     recordScale: singleton.recordScale,
     recordScaleFor: singleton.recordScaleFor,
+    recordChallenge: singleton.recordChallenge,
+    challengesOf: singleton.challengesOf,
+    challengeRank: singleton.challengeRank,
     recordStreak: singleton.recordStreak,
     recordSession: singleton.recordSession,
     unlockUpTo: singleton.unlockUpTo,
