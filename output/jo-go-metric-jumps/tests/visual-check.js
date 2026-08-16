@@ -299,6 +299,39 @@ async function run() {
     const rehidden = await evalJs(cdp, "(() => { const wrap = document.querySelector('[data-role=\"ladder\"]'); const pill = wrap ? wrap.querySelector('.ladder-gap-f') : null; return { hidden: wrap ? wrap.classList.contains('ladder-wrap--hint') : null, pillVis: pill ? getComputedStyle(pill).visibility : null, hasBtn: !!document.getElementById('btn-show-hint') }; })()");
     check(rehidden.hidden === true && rehidden.pillVis === 'hidden' && rehidden.hasBtn, 'game: next question re-hides the ladder');
 
+    // ---- Screen 4: TIMED CHALLENGE — one intro dialog per learner (AC-001) ----
+    // The regression this section exists for: a rapid double-tap on a
+    // learner card used to stack two intro dialogs and leave one behind
+    // whose button could restart the race. It must now yield exactly ONE
+    // visible dialog, and starting the race must leave ZERO behind.
+    await evalJs(cdp, "(() => { const sc = document.querySelector('.screen--active'); const b = Array.from(sc.querySelectorAll('button')).find(x => x.textContent.trim() === '\\u2302' || x.textContent.trim() === 'Home'); if (b) { b.click(); return true; } return false; })()");
+    await waitForJs(cdp, "!!document.getElementById('screen-home') && document.getElementById('screen-home').classList.contains('screen--active')", 8000);
+    // unlock teacher mode (T key + PIN 5241)
+    await evalJs(cdp, "window.dispatchEvent(new KeyboardEvent('keydown', { key: 't' })); true");
+    await sleep(300);
+    await evalJs(cdp, "(() => { const ov = document.querySelector('.overlay--show'); if (!ov) return false; const press = t => Array.from(ov.querySelectorAll('button')).find(b => b.textContent.trim() === t).click(); ['5','2','4','1'].forEach(press); return true; })()");
+    await waitForJs(cdp, "(() => { const p = document.getElementById('teacher-panel'); return !!p && getComputedStyle(p.closest('.overlay')).display !== 'none'; })()", 6000);
+    await evalJs(cdp, "(() => { const p = document.getElementById('teacher-panel'); Array.from(p.querySelectorAll('button')).find(x => x.textContent.includes('Worksheet pack')).click(); return true; })()");
+    await waitForJs(cdp, "(document.querySelector('.screen--active') || {}).id === 'screen-worksheets'", 6000);
+    // scales mode + class set + timed challenge
+    await evalJs(cdp, "(() => { const tab = Array.from(document.querySelectorAll('.ws-mode-tab')).find(x => x.textContent.includes('Read the Scales')); if (tab) { tab.click(); return true; } return false; })()");
+    await sleep(300);
+    await evalJs(cdp, "document.getElementById('ws-class-on').click(); true");
+    await sleep(300);
+    await evalJs(cdp, "(() => { const b = document.getElementById('btn-ws-challenge'); if (b) { b.click(); return true; } return false; })()");
+    await waitForJs(cdp, "!!document.querySelector('[data-chal-learner]')", 6000);
+    // the double-tap that used to stack two dialogs
+    await evalJs(cdp, "(() => { const l = document.querySelector('[data-chal-learner]'); if (l) { l.click(); l.click(); return true; } return false; })()");
+    await sleep(700);
+    const introState = await evalJs(cdp, "(() => { const intros = Array.from(document.querySelectorAll('.chal-intro-overlay')); const shown = intros.filter(o => o.classList.contains('overlay--show')); return { count: intros.length, shown: shown.length, display: intros.length ? getComputedStyle(intros[0]).display : 'none' }; })()");
+    console.log('  challenge: ' + JSON.stringify(introState));
+    check(introState.count === 1 && introState.shown === 1 && introState.display === 'flex', 'challenge: double-tap shows exactly ONE visible intro dialog');
+    await evalJs(cdp, "(() => { const g = Array.from(document.querySelectorAll('.chal-intro-overlay')).find(o => o.classList.contains('overlay--show')); if (g) g.querySelector('.chal-intro-go').click(); return true; })()");
+    await waitForJs(cdp, "!!document.getElementById('chal-clock')", 6000);
+    await sleep(300);
+    const afterGo = await evalJs(cdp, "(() => ({ clock: !!document.getElementById('chal-clock'), input: !!document.getElementById('chal-input'), overlaysLeft: document.querySelectorAll('.chal-intro-overlay').length }))()");
+    check(afterGo.clock && afterGo.input && afterGo.overlaysLeft === 0, 'challenge: race starts with ZERO intro dialogs left behind');
+
     cdp.close();
     child.kill();
     await sleep(400); // let Edge release the profile dir before deleting it
