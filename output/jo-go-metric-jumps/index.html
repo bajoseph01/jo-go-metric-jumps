@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2F6BFF">
+  <meta name="description" content="Jo⚡Go Metric Jumps — a Grade 4 learning game for converting km, m, cm and mm by moving the decimal comma.">
+  <title>Jo⚡Go Metric Jumps</title>
+  <link rel="icon" href="assets/favicon.svg?v=11" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png?v=11">
+  <link rel="manifest" href="manifest.webmanifest?v=11">
+  <link rel="stylesheet" href="css/styles.css?v=11">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===================== HOME ===================== -->
+    <section class="screen" id="screen-home" aria-labelledby="home-title">
+      <header class="home-top">
+        <div class="home-ladder" id="home-ladder" aria-hidden="true"></div>
+        <button type="button" class="btn-icon" id="home-sound" aria-label="Toggle sound">
+          <span data-role="sound-icon" aria-hidden="true">🔊</span>
+        </button>
+      </header>
+      <main class="home-main">
+        <div class="brand" id="brand-logo">
+          <div class="bolt-badge" aria-hidden="true">⚡</div>
+          <h1 class="brand-title" id="home-title">Jo<span class="bolt-inline">⚡</span>Go</h1>
+          <p class="brand-sub">Metric Jumps</p>
+          <p class="brand-tagline">Master the comma. Master metric length.</p>
+        </div>
+        <button type="button" class="btn btn--play" id="btn-play">PLAY</button>
+        <div class="home-actions">
+          <button type="button" class="btn btn--ghost" id="btn-practice">Practice</button>
+          <button type="button" class="btn btn--ghost" id="btn-progress">My Progress</button>
+          <button type="button" class="btn btn--ghost" id="btn-how">How It Works</button>
+        </div>
+        <p class="home-tip">No timer. No pressure. Accuracy first. ⚡</p>
+      </main>
+    </section>
+
+    <!-- ===================== HOW IT WORKS ===================== -->
+    <section class="screen" id="screen-how" aria-labelledby="how-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="how-title">How It Works</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body">
+        <div class="card how-card">
+          <h2>The Golden Rule</h2>
+          <div class="rule-big">× = RIGHT &nbsp;·&nbsp; ÷ = LEFT &nbsp;·&nbsp; ZEROES = JUMPS</div>
+          <p>Going <strong>down</strong> the ladder means <strong>multiply</strong>. Going <strong>up</strong> means <strong>divide</strong>.</p>
+          <div class="how-ladder" id="how-ladder" aria-hidden="true"></div>
+          <p class="how-note">Each gap has its own power of ten: <strong>km → m is ×1000</strong>, <strong>m → cm is ×100</strong>, <strong>cm → mm is ×10</strong>.</p>
+        </div>
+
+        <div class="card how-card">
+          <h2>Three Steps</h2>
+          <ol class="how-steps">
+            <li><strong>Find the operation.</strong> Smaller unit → bigger number → multiply. Bigger unit → smaller number → divide.</li>
+            <li><strong>Count the jumps.</strong> The zeroes in 10, 100 or 1000 tell you how many places the comma moves.</li>
+            <li><strong>Move the comma.</strong> Drag it across the place-value track. Watch the zeroes appear!</li>
+          </ol>
+        </div>
+
+        <div class="card how-card">
+          <h2>Same Length, New Unit</h2>
+          <div class="how-example">2,5 m = 250 cm</div>
+          <p>The rope did not get longer. We just used a <strong>smaller unit</strong>, so the <strong>number got bigger</strong>. 100 centimetres fit into 1 metre.</p>
+        </div>
+
+        <div class="card how-card">
+          <h2>Check It Makes Sense</h2>
+          <p>After converting, ask yourself: <em>does this answer look like the real world?</em> A door is about 2 m tall. 2,5 m = 0,025 cm would be smaller than an ant — something is wrong!</p>
+        </div>
+
+        <button type="button" class="btn btn--primary" data-back="screen-home">Back</button>
+      </main>
+    </section>
+
+    <!-- ===================== PRACTICE ===================== -->
+    <section class="screen" id="screen-practice" aria-labelledby="practice-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="practice-title">Practice</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body" id="practice-body"></main>
+    </section>
+
+    <!-- ===================== PROGRESS ===================== -->
+    <section class="screen" id="screen-progress" aria-labelledby="progress-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="progress-title">My Progress</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body" id="progress-body"></main>
+    </section>
+
+    <!-- ===================== GAME ===================== -->
+    <section class="screen" id="screen-game" aria-labelledby="game-title">
+      <header class="hud">
+        <button type="button" class="btn-icon" id="btn-home" aria-label="Home">⌂</button>
+        <div class="hud-center">
+          <span class="hud-stage" id="hud-stage">Stage 1</span>
+          <span class="hud-progress" id="hud-progress" aria-hidden="true"></span>
+        </div>
+        <div class="hud-right">
+          <span class="streak" id="hud-streak" aria-label="Current streak">🔥 0</span>
+          <button type="button" class="btn-icon" id="btn-sound" aria-label="Toggle sound">
+            <span data-role="sound-icon" aria-hidden="true">🔊</span>
+          </button>
+        </div>
+      </header>
+      <main class="game-main">
+        <div id="gameBody"></div>
+        <div class="feedback" id="feedback" role="status"></div>
+        <div class="result-line" id="result-line" aria-live="polite"></div>
+      </main>
+    </section>
+
+    <!-- ===================== DONE ===================== -->
+    <section class="screen" id="screen-done" aria-labelledby="done-title">
+      <main class="page-body" id="done-body"></main>
+    </section>
+
+    <!-- ===================== TEACHER PANEL ===================== -->
+    <div class="overlay" id="teacher-backdrop" aria-hidden="true">
+      <div class="overlay-panel teacher-panel" id="teacher-panel" role="dialog" aria-label="Teacher panel"></div>
+    </div>
+
+    <!-- ===================== CONFIRM MODAL ===================== -->
+    <div class="overlay" id="confirm-modal" aria-hidden="true">
+      <div class="overlay-panel modal-panel" role="alertdialog" aria-label="Confirm">
+        <h2 class="modal-title">Are you sure?</h2>
+        <p class="modal-text"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn--danger" data-action="yes">Yes, reset</button>
+          <button type="button" class="btn btn--ghost" data-action="no">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/math.js?v=11"></script>
+  <script src="js/formatting.js?v=11"></script>
+  <script src="js/questions.js?v=11"></script>
+  <script src="js/storage.js?v=11"></script>
+  <script src="js/audio.js?v=11"></script>
+  <script src="js/input.js?v=11"></script>
+  <script src="js/ui.js?v=11"></script>
+  <script src="js/game.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
+</body>
+</html>
