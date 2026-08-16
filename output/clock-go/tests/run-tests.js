@@ -340,6 +340,7 @@ ok(uiSrc.indexOf('the minutes need two digits') > -1, 'zero-pad feedback names t
   ok(sub.indexOf('setTimeout') === -1, 'submitAnswer never auto-advances (no setTimeout)');
   ok(sub.indexOf('C.judge') > -1, 'submitAnswer judges via C.judge (colon rule)');
   ok(sub.indexOf('showNext()') > -1, 'correct answers hand control to a Next button');
+  ok(sub.indexOf('You typed ') > -1, 'correct feedback echoes the child\'s own typed time');
 }
 {
   const ak = uiSrc.slice(uiSrc.indexOf('function ask'), uiSrc.indexOf('function sample'));

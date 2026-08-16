@@ -302,11 +302,14 @@
       showFeedback('Not quite — ' + C.feedback(session.q) + ' Try again!', false);
       return;
     }
-    // correct
+    // correct — echo the child's OWN typed time next to the clock's time so
+    // they see their input matched ("briefly", on the feedback card they
+    // read before tapping Next).
     store.record(a.id, session.level, session.firstTry);
     Audio.play('correct');
     session.correct++;
-    showFeedback('Yes! ' + sample() + ' — ' + C.feedback(session.q), true);
+    var typed = String(raw).trim().replace(/\s+/g, '');
+    showFeedback('Yes! You typed ' + typed + ' ✓ — the clock shows ' + sample() + '. ' + C.feedback(session.q), true);
     session.locked = true;
     showNext();
   }
