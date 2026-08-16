@@ -341,11 +341,20 @@ ok(uiSrc.indexOf('the minutes need two digits') > -1, 'zero-pad feedback names t
   ok(sub.indexOf('C.judge') > -1, 'submitAnswer judges via C.judge (colon rule)');
   ok(sub.indexOf('showNext()') > -1, 'correct answers hand control to a Next button');
   ok(sub.indexOf('You typed ') > -1, 'correct feedback echoes the child\'s own typed time');
+  ok(sub.indexOf('session.streak++') > -1, 'correct answers grow the streak');
+  ok(sub.indexOf('session.streak = 0') > -1, 'wrong answers reset the streak');
+  ok(sub.indexOf('session.best') > -1, 'best streak is tracked');
+  ok(sub.indexOf('format-colon') > -1 && sub.indexOf('format-pad') > -1, 'format slips do not break the streak (no reset in format branch)');
 }
 {
   const ak = uiSrc.slice(uiSrc.indexOf('function ask'), uiSrc.indexOf('function sample'));
   ok(ak.indexOf('buildKeypad') > -1, 'ask() rebuilds the digit keypad after Next');
 }
+ok(uiSrc.indexOf('in a row') > -1, 'streak celebration wording lives in ui.js');
+ok(uiSrc.indexOf('Best streak') > -1, 'round-complete modal names the best streak');
+
+const cssSrc = fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'), 'utf8');
+ok(cssSrc.indexOf('.streak') > -1, 'streak celebration is styled');
 
 // The colon lesson is in the learner-facing copy (intro + guide + how-it-works).
 const htmlSrc = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

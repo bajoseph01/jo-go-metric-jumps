@@ -37,7 +37,7 @@
     for (var i = 0; i < o.length; i++) o[i].classList.remove('overlay--show');
   }
 
-  var session = { level: 'whole', q: null, done: 0, target: 10, correct: 0, firstTry: true, locked: false, practiceAll: false };
+  var session = { level: 'whole', q: null, done: 0, target: 10, correct: 0, firstTry: true, locked: false, practiceAll: false, streak: 0, best: 0 };
 
   // ------------------------------------------------------------------
   // Clock geometry — one source of truth for SVG and PDF
@@ -252,6 +252,7 @@
     var a = store.activeLearner();
     if (!a) { renderLearners(); return; } // never silently default
     session.done = 0; session.correct = 0; session.locked = false;
+    session.streak = 0; session.best = 0;
     answerBuffer = '';
     // First-ever play: teach HOW to read a clock before the first question.
     if (showIntro()) return;
@@ -288,7 +289,8 @@
     if (res === 'format-colon' || res === 'format-pad') {
       // Right time, wrong presentation — teach it, don't count it as a
       // wrong attempt and don't reveal a new question. The child retypes
-      // (firstTry is left untouched: formatting is not comprehension).
+      // (firstTry is left untouched: formatting is not comprehension, and
+      // it doesn't break their streak either — gentle, no pressure).
       Audio.play('wrong');
       var msg = res === 'format-colon'
         ? 'So close! That is the right time — but something is missing: the little colon : between the hours and the minutes, like ' + sample() + '. Type it again!'
@@ -299,6 +301,7 @@
     if (res === 'wrong') {
       Audio.play('wrong');
       session.firstTry = false;
+      session.streak = 0;
       showFeedback('Not quite — ' + C.feedback(session.q) + ' Try again!', false);
       return;
     }
@@ -308,6 +311,8 @@
     store.record(a.id, session.level, session.firstTry);
     Audio.play('correct');
     session.correct++;
+    session.streak++;
+    if (session.streak > session.best) session.best = session.streak;
     var typed = String(raw).trim().replace(/\s+/g, '');
     showFeedback('Yes! You typed ' + typed + ' ✓ — the clock shows ' + sample() + '. ' + C.feedback(session.q), true);
     session.locked = true;
@@ -315,11 +320,20 @@
   }
 
   /** Replace the keypad with a Next button so the child can sit with the
-   *  feedback as long as they need, then advance on their own tap. */
+   *  feedback as long as they need, then advance on their own tap. A gentle
+   *  streak line celebrates consecutive correct answers right here — it
+   *  stays until they tap (no timer, no disappearing). */
   function showNext() {
     var box = $('keypad');
     if (!box) return;
-    box.innerHTML = '<button type="button" class="key key--next" data-key="next">Next question →</button>';
+    var celeb = '';
+    if (session.streak >= 2) {
+      var words = session.streak >= 10 ? 'in a row — unstoppable! 🏆' :
+        session.streak >= 5 ? 'in a row — you are on fire! 🔥' :
+        session.streak >= 3 ? 'in a row — keep going! ⭐' : 'in a row! 🌟';
+      celeb = '<div class="streak" aria-live="polite">' + session.streak + ' ' + words + '</div>';
+    }
+    box.innerHTML = celeb + '<button type="button" class="key key--next" data-key="next">Next question →</button>';
     var b = box.querySelector('[data-key="next"]');
     if (b) b.addEventListener('click', nextQuestion);
   }
@@ -343,7 +357,8 @@
   function finishGame() {
     var a = store.activeLearner();
     var msg = a ? (a.emoji + ' ' + esc(a.name)) : '';
-    showModal('Round complete!', msg + ' got ' + session.correct + ' of ' + session.target + ' on the first try. ' +
+    var streakLine = session.best >= 2 ? ' Best streak: ' + session.best + ' in a row! ' : ' ';
+    showModal('Round complete!', msg + ' got ' + session.correct + ' of ' + session.target + ' on the first try.' + streakLine +
       (session.correct >= 8 ? 'Amazing — the clock is your friend! 🎉' : session.correct >= 5 ? 'Great reading! Keep going! 👍' : 'Practice makes perfect — have another go! 💪'),
       function () { renderHome(); });
     Audio.play('complete');

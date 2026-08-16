@@ -284,6 +284,23 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   from { transform: scale(0.96); opacity: 0.4; }
   to { transform: scale(1); opacity: 1; }
 }
+.streak {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: var(--yellow-soft);
+  border: var(--card-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  box-shadow: var(--shadow-sm);
+  animation: streakpop 0.3s ease-out;
+}
+@keyframes streakpop {
+  from { transform: scale(0.9); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
 
 .prog-dots { display: flex; gap: 6px; justify-content: center; }
 .prog-dot {
