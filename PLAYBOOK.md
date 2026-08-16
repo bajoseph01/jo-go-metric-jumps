@@ -1,0 +1,234 @@
+# Jo⚡Go Metric Jumps — Build Playbook
+
+*For future AI builders (and their human teachers). Read this BEFORE reading the code.*
+
+This repo is not just an app — it is a worked example of a **build process**.
+This playbook captures how the app actually got built: the request stream, the
+process rules that made it work, the bugs that were caught, and the one master
+prompt that would have gotten us here faster. The goal: **never reinvent the
+wheel.** If you are asked to build something similar, you should inherit all
+of this — not rediscover it.
+
+---
+
+## 1. What's in the repo (and what isn't)
+
+| Artifact | What it is | What it's good for |
+|---|---|---|
+| `git log` (15 commits) | The complete timeline of the build | Shows the order requests arrived and how each landed |
+| `output/jo-go-metric-jumps/tests/run-tests.js` | **6,093 executable acceptance checks** (sections 1–20) | Every feature's acceptance criteria, runnable with `node tests/run-tests.js` — the single most valuable artifact |
+| `output/jo-go-metric-jumps/PROJECT_REPORT.md` | Build narrative: learning design, what was verified live, known limitations | Understanding *why* the app is shaped this way |
+| `output/jo-go-metric-jumps/README.md` | Classroom-facing manual | What the teachers and kids see |
+| `output/jo-go-metric-jumps/js/*` | Vanilla JS: math, formatting, questions, worksheets, scales, pdf, storage, audio, input, ui, game, app | The implementation |
+| `.github/workflows/pages.yml` | Auto-deploy to GitHub Pages on push | Ops |
+| `output/jo-go-metric-jumps/sw.js` | Network-first service worker (offline support) | Offline/update behaviour |
+| `tools/` | `make-icon.js`, `serve.js` | Icon generation, local server |
+
+**What is NOT in the repo:** the conversation itself — the requests, the
+reasoning, the trade-offs, the critiques. Only compressed fragments survive in
+commit messages and the project report. **This playbook is the replacement for
+that missing memory.** Read it and you inherit the whole journey.
+
+---
+
+## 2. How this app was actually built
+
+The build was one big mission plus **16 follow-up requests**. Each follow-up
+taught a lesson. The order they arrived:
+
+1. Initial build — 8-stage game, comma track, **length only**.
+2. Design fix: the comma floated between numbers → anchor it to the base of
+   the blocks; circle → rounded rectangle.
+3. Content quality: word problems said "doors 48 m tall" → ground every number
+   in physical reality.
+4. Teacher mode behind PIN 5241 (practice all levels).
+5. Per-learner profiles on a shared classroom device.
+6. Rename learners, pick-before-PLAY, per-learner printable reports.
+7. Class worksheet pack (weak pairs + word problems) with answer keys; PDF export.
+8. **Mass (mg–g–kg) and volume (mL–L–kL)** added; kids must read physical
+   scales (ruler, kitchen scale, jug).
+9. Printable scale-reading worksheets (real instrument graphics, answer keys, PDF).
+10. Class-set mode (identical sheets for the whole class) + on-screen typed
+    answers with auto-marking, results recorded per learner.
+11. Timed class-set challenge: countdown + leaderboard of first-try accuracy.
+12. Human-first design pass #1 (challenge picker): identical avatars, cramped
+    buttons, stale cached stylesheet on users' devices.
+13. Design pass #2 (home + gameplay): PLAY prominence, dimension pills,
+    per-learner **name colours**, kid-language intro overlay.
+14. Design pass #3 (Report + Practice): status badges, mastery bars, coloured
+    report, self-chosen colours.
+15. GitHub Pages deployment + auto-deploy workflow.
+16. Home screen: all three conversion ladders with memory notes + highlight.
+
+**Read the pattern:** most of the *architectural* cost came from requests
+that arrived late (mass/volume, scales, teacher tools, printing). Each one
+forced a retrofit: the ladder had to become dimension-aware, the store had to
+target learners by id, the PDF writer had to grow real vector graphics. **A
+better first prompt anticipates this whole roadmap** (section 3) so the
+architecture is built for it from day one.
+
+---
+
+## 3. The master prompt (reverse-engineered)
+
+If we restarted today, this is the prompt that would get to the current state
+in a fraction of the turns. It is written as a reusable template — swap the
+bracketed bits for any app.
+
+```text
+BUILD: [Jo⚡Go Metric Jumps] — a [browser game teaching Grade 4 metric
+conversions] for [children aged 9-10 on classroom iPads].
+
+DELIVERABLE: a working, classroom-ready web app. Vanilla HTML/CSS/JS only —
+no frameworks, no build step, no accounts, no network calls, no paid APIs.
+Data in localStorage. Offline-capable (service worker). Deployable to
+GitHub Pages with one push. Maintain ONE authoritative implementation path.
+
+SCOPE — ALL of this is in scope from the start. Do not wait to be asked:
+- The core learning loop: [8-stage campaign, drag-the-comma interaction,
+  immediate corrective feedback, retry until right].
+- Content breadth: [ALL THREE metric dimensions (length/mass/volume) with
+  their own unit ladders, PLUS reading physical scales] — not one dimension
+  retrofitted later.
+- Multi-learner profiles from day one: separate progress/unlocks per child,
+  distinct avatar AND name colour (so two kids with the same avatar are
+  still identifiable), a picker that never silently defaults.
+- Teacher mode behind a PIN: practice-all-levels, per-learner reports,
+  worksheet generator, class-wide modes, printable/PDF export of everything.
+- Print and PDF as first-class citizens: print-optimised CSS for every
+  worksheet/report, and a dependency-free PDF writer with REAL vector
+  graphics (not screenshots), correct for ANY page count.
+
+DESIGN PRINCIPLES (non-negotiable, judged on every screen):
+- Human-first: how does a 9-year-old see and feel this on first glance?
+  Big type, thick ink borders, drop shadows with press physics, tap targets
+  >= 44px, no hover dependence, nothing cramped or overlapping.
+- Ground everything in reality: every number in a word problem must be
+  physically plausible. A door is not 48 m tall. [A pencil is ~15 cm.]
+- Kid language everywhere. Never just "wrong" — always teach the why.
+- Delight in the details: a comma that sits AT THE BASE of the number
+  blocks, a clock that pulses red in the final 10 seconds, tier emojis on
+  score cards.
+
+PROCESS CONTRACT — follow on every feature, without being asked:
+1. Write the acceptance criteria as an executable Node test suite
+   (no browser needed) and keep it green before shipping.
+2. Verify in a live preview: drive the real UI end-to-end, check computed
+   styles AND take screenshots; fix what looks off. Unit tests passing is
+   NOT enough.
+3. Cache-bust every asset (?v=N) and check the service worker, so a stale
+   build can never reach a user's device.
+4. Stress the edge cases: multi-page PDFs, worst-case orderings, timers
+   expiring mid-flow, duplicate names/avatars.
+5. Commit each finished feature with a message explaining the WHY.
+6. Update the README and a project report in the same change.
+
+KNOWN PITFALLS for this domain (from the catalog in section 5): [paste the
+bug list so the builder checks for them up front].
+```
+
+**The honest caveat:** a better prompt gets you maybe 50–70% faster. It does
+NOT eliminate the rest — several bugs only surface under real use, and the
+design taste came from iterative critique. Budget for that. The prompt's real
+value is that the *architecture* (dimension-agnostic engine, per-learner
+store, print/PDF layer, test suite) exists from the start instead of being
+retrofitted.
+
+---
+
+## 4. Process rules that made this work
+
+1. **Tests = executable acceptance criteria.** Every feature added its checks
+   to `tests/run-tests.js`. When someone asks "did it work?", the answer is a
+   command, not a memory.
+2. **Verify in the browser, not just in Node.** The suite catches logic bugs;
+   it cannot catch a 48-px avatar chip squashing a button into a cramped
+   circle. Drive the real UI, inspect computed styles, screenshot.
+3. **Deterministic generators.** Seeded RNG everywhere (questions, scales,
+   worksheets) so tests and regressions are reproducible.
+4. **Per-learner 
+   state is sacred.** Store APIs target a learner *id*
+   (`recordScaleFor(id, …)`), never the "active" learner, so teacher actions
+   can't corrupt the wrong child's progress.
+5. **Cache discipline.** Versioned assets (`?v=N`), network-first service
+   worker, SW cache name bumped when the pre-cache list changes. Stale
+   caches are how "we fixed it but the user still sees the old thing".
+6. **Print/PDF from the start.** `@media print` rules swap interactive inputs
+   for blank lines; the PDF writer is dependency-free and draws real vector
+   graphics so exports stay crisp and valid at any page count.
+7. **Small, why-message commits.** Each request = one commit = one readable
+   diff. The git log is the project's second memory.
+8. **Docs in the same change.** README (for users) and PROJECT_REPORT (for
+   builders) updated whenever behaviour changes.
+9. **Design passes are a standing step, not a reaction.** Instead of waiting
+   for "this is ugly", schedule the human-first critique per screen.
+
+---
+
+## 5. Bug & pitfall catalog (concrete, from this project)
+
+Check for these so you don't reinvent them:
+
+1. **The comma floated between digits** instead of sitting at the base of the
+   number blocks — a drag-target/visual-anchor mismatch. Anchor the badge to
+   the track cells.
+2. **Physically absurd word problems** (a door 48 m tall). Add plausibility
+   checks to every question generator.
+3. **PDF Kids-array length mismatch beyond 4 pages.** The page-tree patch
+   only worked when digit-count sums matched the page count. Build page/font
+   object ids **deterministically** for any page count.
+4. **Hardcoded font object refs (`/F1 6 0 R /F2 7 0 R`)** regardless of page
+   count — every multi-page export referenced wrong objects (lenient viewers
+   tolerated it; strict ones render garbage). Compute font ids from the real
+   object layout.
+5. **Final-item tally bug:** clearing state before counting meant a perfect
+   run read "10/9 · 111%". Count answered submissions before resetting.
+6. **Badge mapper knew 3 of 4 mastery labels** — "Needs practice" silently
+   inherited the blue "new" styling. Map ALL enum values.
+7. **Store wrote to the active learner** instead of the learner the sheet
+   belonged to. Target by id everywhere in teacher flows.
+8. **Class conflict:** the 48-px avatar chip class reused as a button class
+   → tiny cramped circles. Dedicated markup per component.
+9. **Identical avatars for different learners** → kids can't tell who is
+   them. Distinct avatar suggestion + name colours from the start.
+10. **Stale cached stylesheet on user devices** long after a fix. Network-
+    first SW + version bumps + SW cache bump. (Rule 5.)
+11. **Length-only assumptions** baked into the ladder/questions. Build the
+    engine dimension-agnostic (a ladder = a list of rungs; a gap = ×10/×100/
+    ×1000) from day one.
+12. **Chrome's default button rendering** when CSS fails to load — an
+    unstyled page can look "broken" to users who have a cached old CSS.
+    Cache discipline fixes this.
+
+---
+
+## 6. The "done" checklist (before you say done)
+
+- [ ] `node tests/run-tests.js` green (all sections, 0 failed)
+- [ ] Full flow driven in a live preview: setup → play → teacher PIN →
+      reports → worksheets → PDF export → challenge
+- [ ] Every screen screenshot-checked for cramped/overlapping layout
+- [ ] Print layout verified (`@media print`)
+- [ ] PDF exports open validly — including multi-page and worst-case ordering
+- [ ] Service worker pre-cache includes any new files; SW cache name bumped
+- [ ] Asset versions bumped (`?v=N`)
+- [ ] Offline reload works after first visit
+- [ ] README + PROJECT_REPORT updated
+- [ ] Committed with a why-message; pushed (Pages auto-deploys)
+
+---
+
+## 7. Adapting this playbook to a new app
+
+The reusable core is **sections 3–6** — they are app-agnostic. To repurpose:
+
+1. Copy this file beside the new app's repo.
+2. Replace the bracketed parts of the master prompt (section 3) with the new
+   app's domain, audience, and pitfalls (seed section 5 with your own known
+   traps after the first build).
+3. Keep the process contract and done-checklist verbatim — they transfer
+   unchanged.
+4. When the new app ships, append its bug catalog to section 5. The playbook
+   is meant to grow: every project you build makes the next one faster.
+
+*Made for Merrifield Prep & College — Jo⚡Go edition.* ⚡
