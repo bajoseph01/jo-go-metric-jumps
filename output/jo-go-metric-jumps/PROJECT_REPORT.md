@@ -189,7 +189,15 @@ sw.js                 offline service worker (network-first, cache fallback)
   score card, next-learner hand-off, and the leaderboard (🥇 Ben 100% · 10/10
   · 8s over 🥈 Asha 75% · 3/4) — this surfaced and fixed an answered-count
   bug where the final item's submission was dropped from the tally; history
-  persisted per learner (capped at 20 runs, sanitised, dated).
+  persisted per learner (capped at 20 runs, sanitised, dated);
+- design pass from a human-first lens: challenge learner buttons rebuilt as
+  big white pills with the app's ink-shadow press state (a class conflict
+  with the 48px avatar chip made them tiny cramped circles), the add-learner
+  form now auto-suggests an unused avatar so two kids never look identical
+  (verified: 🐼 offered once 🦊 is taken), the clock pulses red in the last
+  10 seconds, the score card shows a tier emoji (🌟/🎉/👍/💪), and the
+  subtitle reads like a teacher saying it aloud. Asset cache versions bumped
+  (css v21 + scripts v23 → v30) so stale stylesheets can never render again.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

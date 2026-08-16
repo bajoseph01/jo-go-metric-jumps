@@ -1545,23 +1545,25 @@ button {
 }
 
 .chal-learner {
-  min-height: 56px;
-  padding: 8px 18px;
+  min-height: 66px;
+  padding: 10px 24px;
   border: 3px solid var(--ink);
   border-radius: 999px;
   background: #fff;
+  box-shadow: var(--shadow-sm);
   font: inherit;
-  font-weight: 800;
-  font-size: 1.05rem;
   color: var(--ink);
   cursor: pointer;
   touch-action: manipulation;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.chal-learner:hover { background: var(--blue-soft); }
+.chal-learner-emoji { font-size: 2rem; line-height: 1; }
+.chal-learner-name { font-weight: 900; font-size: 1.2rem; }
+.chal-learner:hover { background: var(--yellow-soft); }
+.chal-learner:active { transform: translateY(3px); box-shadow: none; }
 
 .chal-board-actions {
   display: flex;
@@ -1594,6 +1596,16 @@ button {
   min-width: 120px;
 }
 
+.chal-clock--warn {
+  background: var(--red);
+  animation: chal-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes chal-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.07); }
+}
+
 .chal-progress { font-weight: 800; color: var(--ink-soft); }
 
 .chal-item {
@@ -1617,7 +1629,8 @@ button {
 .chal-fb--bad { color: var(--red); }
 
 .chal-score { font-weight: 800; font-size: 1.1rem; margin-bottom: 6px; }
-.chal-score-big { font-size: 3rem; font-weight: 900; line-height: 1; margin-bottom: 8px; }
+.chal-score-big { font-size: 3rem; font-weight: 900; line-height: 1; margin-bottom: 2px; }
+.chal-score-tier { font-size: 2.2rem; margin-bottom: 6px; }
 .chal-score-big span { color: var(--ink-soft); font-weight: 800; font-size: 2rem; }
 
 .chal-rows { margin: 6px 0 14px; }

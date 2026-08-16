@@ -644,6 +644,16 @@
   var editingLearnerId = null;
   var reportLearnerId = null;
 
+  /** First avatar not already taken by a learner (fallback: the fox). */
+  function firstFreeAvatar() {
+    var used = {};
+    Store.learners().forEach(function (l) { used[l.emoji] = true; });
+    for (var i = 0; i < Store.AVATARS.length; i++) {
+      if (!used[Store.AVATARS[i]]) return Store.AVATARS[i];
+    }
+    return Store.AVATARS[0];
+  }
+
   function renderLearners() {
     show('screen-learners');
     var body = $('learners-body');
@@ -678,7 +688,9 @@
     var formTitle = editing ? 'Edit ' + esc(editing.name) : 'Add a learner';
     var submitLabel = editing ? 'Save changes' : 'Add learner';
     var inputValue = editing ? esc(editing.name) : '';
-    var chosenEmoji = editing ? editing.emoji : Store.AVATARS[0];
+    // For a brand-new learner, suggest an avatar nobody else uses yet so two
+    // kids never look identical in the picker.
+    var chosenEmoji = editing ? editing.emoji : firstFreeAvatar();
     html += '<form class="learner-add" id="learner-add" novalidate>' +
       '<h3 class="learner-add-title">' + formTitle + '</h3>' +
       '<input type="text" class="answer-input learner-name-input" id="learner-name-input" maxlength="18" placeholder="First name" autocomplete="off" enterkeyhint="done" aria-label="Learner name" value="' + inputValue + '" />' +
@@ -1369,9 +1381,9 @@
     if (!remaining.length && chalState.results.length) { renderChallengeBoard(body); return; }
     var html = '<div class="chal-card chal-pick">' +
       '<h2 class="chal-h">⚡ Timed Challenge</h2>' +
-      '<p class="chal-sub">One shared sheet for everyone: ' + chalState.items.length +
-      ' scale readings, ' + chalState.duration + ' seconds on the clock, no second chances. ' +
-      'The leaderboard ranks first-try accuracy.</p>' +
+      '<p class="chal-sub">One shared sheet, ' + chalState.items.length +
+      ' scale readings, ' + chalState.duration + 's, one try each — ' +
+      'first-try accuracy builds the leaderboard.</p>' +
       '<div class="chal-duration"><span class="chal-dur-label">Time per learner</span>' +
       [60, 90, 120].map(function (d) {
         return '<button type="button" class="btn btn--small chal-dur' + (chalState.duration === d ? ' chal-dur--on' : '') +
@@ -1383,8 +1395,9 @@
       html += '<p class="chal-empty">Everyone has played — start a fresh challenge or see the board.</p>';
     } else {
       html += remaining.map(function (l) {
-        return '<button type="button" class="learner-emoji chal-learner" data-chal-learner="' + l.id + '">' +
-          l.emoji + ' ' + esc(l.name) + '</button>';
+        return '<button type="button" class="chal-learner" data-chal-learner="' + l.id + '">' +
+          '<span class="chal-learner-emoji">' + l.emoji + '</span>' +
+          '<span class="chal-learner-name">' + esc(l.name) + '</span></button>';
       }).join('');
     }
     html += '</div><div class="chal-board-actions">';
@@ -1447,7 +1460,11 @@
     if (check) check.addEventListener('click', function () { chalSubmit(); });
     chalState.timer = setInterval(function () {
       var clk = $('chal-clock');
-      if (clk) clk.textContent = chalClockLabel();
+      if (clk) {
+        var leftMs = chalState.deadline - Date.now();
+        clk.textContent = chalClockLabel();
+        clk.classList.toggle('chal-clock--warn', leftMs > 0 && leftMs <= 10000);
+      }
       if (Date.now() >= chalState.deadline) chalFinish();
     }, 200);
   }
@@ -1532,11 +1549,14 @@
     var roster = Store.learners();
     var remaining = roster.filter(function (l) { return !chalState.done[l.id]; });
     var allDone = !remaining.length;
+    var acc = chalAccuracy(result.correct, result.answered);
+    var tier = acc >= 100 ? '🌟' : (acc >= 80 ? '🎉' : (acc >= 50 ? '👍' : '💪'));
     body.innerHTML = '<div class="chal-card chal-done">' +
-      '<h2 class="chal-h">' + (allDone ? 'Everyone has played! 🎉' : 'Great run!') + '</h2>' +
+      '<h2 class="chal-h">' + (allDone ? 'Everyone has played!' : 'Great run!') + '</h2>' +
       '<div class="chal-score">' + result.emoji + ' ' + esc(result.name) + '</div>' +
       '<div class="chal-score-big">' + result.correct + ' <span>/</span> ' + result.total + '</div>' +
-      '<p class="chal-sub">' + result.answered + ' answered · ' + chalAccuracy(result.correct, result.answered) +
+      '<div class="chal-score-tier">' + tier + '</div>' +
+      '<p class="chal-sub">' + result.answered + ' answered · ' + acc +
       '% first-try · ' + result.seconds + 's</p>' +
       '<div class="chal-board-actions">' +
       (allDone

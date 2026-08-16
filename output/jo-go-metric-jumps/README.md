@@ -118,7 +118,10 @@ challenge** button opens a countdown challenge: one shared sheet, 60/90/120
 seconds on the clock, one attempt per reading (first-try counts), then the
 next learner takes the device. Runs are recorded per learner and the session
 closes with a **leaderboard ranked by first-try accuracy**, then items
-answered, then time. Everything is generated locally — no network, no data
-leaves the device.
+answered, then time. The clock pulses red in the final 10 seconds and each
+score card ends with a tier emoji (🌟 perfect, 🎉 great, 👍 solid, 💪 keep
+going). Adding a learner auto-suggests an animal avatar nobody else has yet,
+so no two kids ever look identical. Everything is generated locally — no
+network, no data leaves the device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡
