@@ -89,8 +89,24 @@
   // Handlers (called from UI)
   // ------------------------------------------------------------------
 
+  /** A stale activation (e.g. a tap racing the stage→done transition)
+   *  must never reach a handler after the stage completed (session = null). */
+  function guardSession() {
+    return !session || session.locked;
+  }
+
+  /** A genuinely wrong attempt breaks the streak RIGHT AWAY so the HUD
+   *  never shows a flame the child no longer has. Format slips (invalid
+   *  input) stay lenient — they are not comprehension misses. */
+  function breakStreakNow() {
+    if (session.streak !== 0) {
+      session.streak = 0;
+      UI.renderGameHUD(session);
+    }
+  }
+
   function handleOpChoice(label) {
-    if (session.locked) return;
+    if (guardSession()) return;
     var q = session.q;
     session.attempts++;
     if (label === q.conv.opLabel) {
@@ -105,13 +121,14 @@
     } else {
       session.firstTry = false;
       Audio.play('wrong');
+      breakStreakNow();
       UI.showFeedback(hintOp(q, label), false);
       renderCurrent();
     }
   }
 
   function handleJumpsChoice(n) {
-    if (session.locked) return;
+    if (guardSession()) return;
     var q = session.q;
     session.attempts++;
     if (n === q.conv.jumps) {
@@ -126,24 +143,26 @@
     } else {
       session.firstTry = false;
       Audio.play('wrong');
+      breakStreakNow();
       UI.showFeedback(hintJumps(q, n), false);
       renderCurrent();
     }
   }
 
   function handleDragSettle(gap, ok) {
-    if (session.locked) return;
+    if (guardSession()) return;
     if (ok) {
       questionDone(true);
     } else {
       session.firstTry = false;
       Audio.play('wrong');
+      breakStreakNow();
       UI.showFeedback(hintDrag(session.q, gap), false);
     }
   }
 
   function handleAnswer(text) {
-    if (session.locked) return;
+    if (guardSession()) return;
     var q = session.q;
     session.attempts++;
     var check = F.checkAnswer(q.expected, text);
@@ -158,6 +177,7 @@
     } else {
       session.firstTry = false;
       Audio.play('wrong');
+      breakStreakNow();
       UI.showFeedback(hintInput(q, check.parsed), false);
     }
   }

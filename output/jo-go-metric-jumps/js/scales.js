@@ -150,6 +150,7 @@
     question: question,
     parseInput: parseInput,
     rulerLevel: rulerLevel,
+    scaleDescription: scaleDescription,
     rulerSVG: rulerSVG,
     kitchenSVG: kitchenSVG,
     jugSVG: jugSVG
@@ -250,9 +251,39 @@
     return c;
   }
 
+  var POINTER_WORDS = { ruler: 'arrow', kitchen: 'needle', jug: 'liquid' };
+  var POINTER_VERBS = { ruler: 'points', kitchen: 'points', jug: 'sits' };
+  var UNIT_WORDS = { ruler: 'millimetres', kitchen: 'grams', jug: 'millilitres' };
+
+  /**
+   * An accessible, kid-language description of what a scale shows — without
+   * stating the numeric answer. It names the labelled mark and how many
+   * small marks past it the pointer sits, so a screen-reader user can work
+   * out the reading themselves, which is the same task as seeing the scale.
+   * (AC-003; used by worksheet/challenge SVGs, whose labels stay generic so
+   * the visible markup never shows the answer.)
+   */
+  function scaleDescription(item) {
+    var spec = SCALE_SPECS[item.instrument];
+    if (!spec) return '';
+    var base = Math.floor(item.answer / spec.major) * spec.major;
+    var marks = (item.answer - base) / spec.minor;
+    var where = marks === 0
+      ? 'at the ' + base + ' mark'
+      : marks + (marks === 1 ? ' small mark after the ' : ' small marks after the ') + base + ' mark';
+    var unit = UNIT_WORDS[item.instrument] || spec.ask;
+    var smallUnit = spec.minor === 1 ? unit.replace(/s$/, '') : unit;
+    var pointer = POINTER_WORDS[item.instrument] || 'pointer';
+    var verb = POINTER_VERBS[item.instrument] || 'points';
+    return 'Scale numbered in ' + unit + '. The big marks are every ' + spec.major +
+      ' ' + unit + ', and each small mark is ' + spec.minor + ' ' + smallUnit + '. The ' +
+      pointer + ' ' + verb + ' ' + where + '.';
+  }
+
   /** The SVG builder matching a PDF command set, for previews. */
-  function svgFromCommands(cmds, vbW, vbH, aria) {
+  function svgFromCommands(cmds, vbW, vbH, aria, desc) {
     var s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" class="scale-svg" role="img" aria-label="' + aria + '">';
+    if (desc) s += '<desc>' + String(desc).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') + '</desc>';
     for (var i = 0; i < cmds.length; i++) {
       var c = cmds[i];
       if (c.t === 'line') {

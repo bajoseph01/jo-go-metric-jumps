@@ -865,6 +865,37 @@ for (const x of si) {
 eq(siBad, 0, 'worksheet readings on ticks with right units');
 eq(JSON.stringify(Scales.worksheetItems(makeRng(21), null)), JSON.stringify(Scales.worksheetItems(makeRng(21), null)), 'worksheet items deterministic per rng');
 
+// ---- accessible scale descriptions (AC-003) -------------------------
+// The worksheet/challenge SVGs carry a screen-reader <desc> that names the
+// labelled mark and how many small marks past it the pointer sits — the
+// accessible equivalent of seeing the scale — while never stating the
+// numeric answer in the visible markup.
+{
+  const sd1 = Scales.scaleDescription({ instrument: 'ruler', answer: 137 });
+  ok(sd1.indexOf('7 small marks after the 130 mark') >= 0, 'ruler desc names marks past the big mark');
+  ok(sd1.indexOf('137') === -1 && sd1.indexOf('130') >= 0, 'ruler desc never states the answer');
+  ok(sd1.indexOf('1 millimetre') >= 0 && sd1.indexOf('millimetres') >= 0, 'ruler desc singular + plural units');
+  const sd2 = Scales.scaleDescription({ instrument: 'kitchen', answer: 360 });
+  ok(sd2.indexOf('3 small marks after the 300 mark') >= 0 && sd2.indexOf('360') === -1, 'kitchen desc derives but never states');
+  const sd3 = Scales.scaleDescription({ instrument: 'jug', answer: 525 });
+  ok(sd3.indexOf('1 small mark after the 500 mark') >= 0 && sd3.indexOf('525') === -1 && sd3.indexOf('sits') >= 0, 'jug desc sits at the level, no answer');
+  const sd4 = Scales.scaleDescription({ instrument: 'kitchen', answer: 300 });
+  ok(sd4.indexOf('at the 300 mark') >= 0, 'pointer exactly on a big mark says so');
+  ok(Scales.scaleDescription({ instrument: 'bogus' }) === '', 'unknown instrument -> empty description');
+}
+// every generated worksheet item's description derives exactly to its answer
+let sdBad = 0;
+for (const x of Scales.worksheetItems(Math.random, null)) {
+  const spec = Scales.SCALE_SPECS[x.instrument];
+  const base = Math.floor(x.answer / spec.major) * spec.major;
+  const marks = (x.answer - base) / spec.minor;
+  if (base + marks * spec.minor !== x.answer) sdBad++;
+}
+eq(sdBad, 0, 'every scale description derives exactly to its answer');
+// svgFromCommands embeds the desc (escaped) inside the SVG
+const descSvg = Scales.svgFromCommands([{ t: 'rect', x: 0, y: 0, w: 10, h: 10, fill: '#fff' }], 20, 20, 'Test', 'a <desc> & "quote"');
+ok(descSvg.indexOf('<desc>a &lt;desc&gt; &amp; &quot;quote&quot;</desc>') >= 0, 'svg embeds the description, escaped');
+
 // ---- PDF drawing commands (same geometry as the SVGs) --------------
 const rp = Scales.rulerPDF(137);
 const rpC = Scales.rulerPDF(137, 'cm');
@@ -1278,6 +1309,49 @@ ok(uiSrc2.indexOf('function showNextButton') > -1, 'ui.js exposes showNextButton
 }
 const stSrc2 = fs.readFileSync(path.join(__dirname, '..', 'js', 'storage.js'), 'utf8');
 ok(stSrc2.indexOf('scaleStats: scaleStats') > -1 && stSrc2.indexOf('markScaleAdvanced: markScaleAdvanced') > -1, 'storage exports the scale-level API');
+
+// ---- APP_CHECKER fixes (AC-001/2/4/5 guards) -------------------------
+// AC-001: one intro dialog and one run at a time; leftovers are healed.
+{
+  const cs = uiSrc2.slice(uiSrc2.indexOf('function chalStart'), uiSrc2.indexOf('function chalBegin'));
+  ok(cs.indexOf("querySelector('.chal-intro-overlay')") > -1, 'chalStart ignores repeat taps while an intro is open');
+  ok(cs.indexOf('chalState.learnerId') > -1, 'chalStart ignores starts while a run is active');
+  const cb = uiSrc2.slice(uiSrc2.indexOf('function chalBegin'), uiSrc2.indexOf('function showChallengeIntro'));
+  ok(cb.indexOf("querySelectorAll('.chal-intro-overlay')") > -1, 'chalBegin heals leftover intro overlays');
+  const sci = uiSrc2.slice(uiSrc2.indexOf('function showChallengeIntro'), uiSrc2.indexOf('function chalSubmit'));
+  ok(sci.indexOf("classList.add('overlay--show')") > -1, 'intro becomes visible synchronously');
+  ok(sci.indexOf('requestAnimationFrame') === -1, 'intro has no rAF-only visibility dependency');
+}
+// AC-004: colour swatches carry named aria-labels.
+ok(uiSrc2.indexOf('COLOR_NAMES[Store.LEARNER_COLORS[co]]') > -1, 'colour swatches use named aria-labels');
+ok(uiSrc2.indexOf('aria-label="Colour"') === -1, 'generic unnamed colour radio gone');
+// AC-003: worksheet SVG carries the accessible description.
+{
+  const wss2 = uiSrc2.slice(uiSrc2.indexOf('function wsScaleSVG'), uiSrc2.indexOf('function scalePDFToDoc'));
+  ok(wss2.indexOf('Scales.scaleDescription(item)') > -1, 'worksheet SVG carries the accessible description');
+}
+// AC-002: every answer handler is guarded against a null session.
+{
+  ok(gSrc.indexOf('function guardSession') > -1, 'game.js has a session guard helper');
+  const pairs = [['handleOpChoice', 'handleJumpsChoice'], ['handleJumpsChoice', 'handleDragSettle'], ['handleDragSettle', 'handleAnswer'], ['handleAnswer', 'questionDone']];
+  for (const [fn, nextFn] of pairs) {
+    const slice = gSrc.slice(gSrc.indexOf('function ' + fn), gSrc.indexOf('function ' + nextFn));
+    ok(slice.indexOf('guardSession()') > -1, fn + ' guards against a null session');
+  }
+}
+// AC-005: a genuinely wrong attempt breaks the streak immediately, while
+// format slips (invalid input) stay lenient — they are not comprehension.
+{
+  ok(gSrc.indexOf('function breakStreakNow') > -1, 'game.js has an immediate streak-break helper');
+  const pairs = [['handleOpChoice', 'handleJumpsChoice'], ['handleJumpsChoice', 'handleDragSettle'], ['handleDragSettle', 'handleAnswer'], ['handleAnswer', 'questionDone']];
+  for (const [fn, nextFn] of pairs) {
+    const slice = gSrc.slice(gSrc.indexOf('function ' + fn), gSrc.indexOf('function ' + nextFn));
+    ok(slice.indexOf('breakStreakNow()') > -1, fn + ' breaks the streak on a wrong attempt');
+  }
+  const hAns = gSrc.slice(gSrc.indexOf('function handleAnswer'), gSrc.indexOf('function questionDone'));
+  ok(hAns.indexOf('breakStreakNow') > -1 && hAns.indexOf('does not look like a number') > -1, 'invalid-format branch stays lenient (no streak break)');
+  ok(hAns.slice(0, hAns.indexOf('does not look like a number') + 80).indexOf('breakStreakNow') === -1, 'invalid-input branch itself never breaks the streak');
+}
 
 const htmlSrc2 = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 ok(htmlSrc2.indexOf('id="next-area"') > -1, 'game screen hosts the Next area');

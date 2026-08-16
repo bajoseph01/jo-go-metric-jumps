@@ -846,7 +846,10 @@
       '<div class="learner-colors" role="radiogroup" aria-label="Pick a colour">';
     for (var co = 0; co < Store.LEARNER_COLORS.length; co++) {
       var csel = Store.LEARNER_COLORS[co] === chosenColor;
-      html += '<button type="button" class="learner-color' + (csel ? ' learner-color--selected' : '') + '" data-color="' + Store.LEARNER_COLORS[co] + '" role="radio" aria-checked="' + csel + '" aria-label="Colour" style="background:' + Store.LEARNER_COLORS[co] + '">' + (csel ? '✓' : '') + '</button>';
+      // Named swatches so a screen reader announces which colour this is
+      // (AC-004). Same palette as storage.LEARNER_COLORS.
+      var cname = COLOR_NAMES[Store.LEARNER_COLORS[co]] || 'Colour';
+      html += '<button type="button" class="learner-color' + (csel ? ' learner-color--selected' : '') + '" data-color="' + Store.LEARNER_COLORS[co] + '" role="radio" aria-checked="' + csel + '" aria-label="' + cname + ' colour" style="background:' + Store.LEARNER_COLORS[co] + '">' + (csel ? '✓' : '') + '</button>';
     }
     html += '</div>' +
       '<div class="learner-add-actions">' +
@@ -1091,6 +1094,12 @@
 
   var SCALE_LABELS = { ruler: 'Ruler', kitchen: 'Kitchen scale', jug: 'Measuring jug' };
 
+  // Kid-friendly names for the learner name-colour palette (AC-004).
+  var COLOR_NAMES = {
+    '#2F6BFF': 'Blue', '#E64545': 'Red', '#18A957': 'Green', '#FF8A1E': 'Orange',
+    '#8B5CF6': 'Purple', '#E6459B': 'Pink', '#0E9CA3': 'Teal', '#C47A18': 'Brown'
+  };
+
   var scalesSession = { instrument: 'ruler', done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
 
   function renderScales() {
@@ -1275,7 +1284,10 @@
       '<span class="ws-blank ws-blank--wide"></span></span></div>';
   }
 
-  /** Instrument SVG preview for a worksheet item (no answer in the label). */
+  /** Instrument SVG preview for a worksheet item. The visible label stays
+   *  generic (no answer), but a screen-reader <desc> describes the pointer
+   *  position relative to a labelled mark so the reading can be worked out
+   *  — the accessible equivalent of seeing the scale (AC-003). */
   function wsScaleSVG(item) {
     var cmds, vb, aria;
     if (item.instrument === 'ruler') {
@@ -1285,7 +1297,7 @@
     } else {
       cmds = Scales.jugPDF(item.answer); vb = { w: 260, h: 360 }; aria = 'Measuring jug with liquid';
     }
-    return Scales.svgFromCommands(cmds, vb.w, vb.h, aria);
+    return Scales.svgFromCommands(cmds, vb.w, vb.h, aria, Scales.scaleDescription(item));
   }
 
   /** Draw a command set into a PDF at (x, y from top) with a scale factor. */
@@ -1677,6 +1689,11 @@
   }
 
   function chalStart(learnerId) {
+    // One dialog, one run at a time: ignore rapid repeat taps (double-tap
+    // on a shared classroom iPad) that would stack intro overlays or start
+    // two races. AC-001 guard.
+    if (document.querySelector('.chal-intro-overlay')) return;
+    if (chalState.learnerId || chalState.finished) return;
     if (!Store.challengeIntroSeen(learnerId)) {
       showChallengeIntro(learnerId);
       return;
@@ -1685,6 +1702,10 @@
   }
 
   function chalBegin(learnerId) {
+    // Heal any leftover intro dialogs (e.g. stacked before this guard
+    // existed) so their "let's go" buttons can never restart a run.
+    var stale = document.querySelectorAll('.chal-intro-overlay');
+    for (var i = 0; i < stale.length; i++) stale[i].remove();
     chalState.learnerId = learnerId;
     chalState.qIndex = 0;
     chalState.correct = 0;
@@ -1716,7 +1737,11 @@
         '<button type="button" class="btn btn--primary chal-intro-go">Got it — let\'s go!</button>' +
       '</div>';
     document.body.appendChild(overlay);
-    requestAnimationFrame(function () { overlay.classList.add('overlay--show'); });
+    // Show synchronously instead of waiting for the next animation frame:
+    // in throttled-frame environments (background tabs, some webviews,
+    // energy saver) the frame callback may never fire, leaving the dialog
+    // invisible and the learner tap looking dead. AC-001 hardening.
+    overlay.classList.add('overlay--show');
     var go = overlay.querySelector('.chal-intro-go');
     go.addEventListener('click', function () {
       Audio.play('click');
