@@ -43,11 +43,10 @@
   // ------------------------------------------------------------------
 
   /**
-   * Render the unit ladder for a dimension. If from/to given, highlight that
-   * conversion. Gap labels are derived from the math engine (×1000 etc.).
+   * Build the ladder markup for a dimension (top to bottom). If from/to are
+   * given, highlight that conversion. Gap labels come from the math engine.
    */
-  function renderLadder(container, from, to, dim) {
-    if (!container) return;
+  function ladderHtml(dim, from, to) {
     var rungs = M.ladderRungs(dim || 'length');
     var html = '<div class="ladder">';
     for (var i = 0; i < rungs.length; i++) {
@@ -65,7 +64,44 @@
       }
     }
     html += '</div>';
-    container.innerHTML = html;
+    return html;
+  }
+
+  /**
+   * Render the unit ladder for a dimension. If from/to given, highlight that
+   * conversion. Gap labels are derived from the math engine (×1000 etc.).
+   */
+  function renderLadder(container, from, to, dim) {
+    if (!container) return;
+    container.innerHTML = ladderHtml(dim, from, to);
+  }
+
+  // One-line "what does this measure" memory notes, shown under each ladder
+  // on the home screen in small print.
+  var DIM_NOTES = {
+    length: 'how long · far · tall something is',
+    mass: 'how heavy something is',
+    volume: 'how much space something holds'
+  };
+
+  /**
+   * Render the three dimension ladders side by side on the home screen, each
+   * with its small-print memory note. The ladder for the currently selected
+   * dimension is highlighted so the graphic mirrors the chosen category.
+   */
+  function renderHomeLadders() {
+    var box = $('home-ladders');
+    if (!box) return;
+    var dim = Store.getDimension();
+    var html = '';
+    for (var i = 0; i < M.DIMENSION_NAMES.length; i++) {
+      var d = M.DIMENSION_NAMES[i];
+      var on = d === dim;
+      html += '<div class="ladder-col' + (on ? ' ladder-col--on' : '') + '" data-dim="' + d + '">' +
+        ladderHtml(d, null, null) +
+        '<p class="ladder-note">' + esc(DIM_NOTES[d]) + '</p></div>';
+    }
+    box.innerHTML = html;
   }
 
   // ------------------------------------------------------------------
@@ -969,6 +1005,7 @@
         Store.setDimension(this.getAttribute('data-dim'));
         wsState.items = {};   // worksheets are dimension-specific
         renderDimensionPills();
+        renderHomeLadders(); // the top graphic mirrors the chosen dimension
       });
     }
   }
@@ -2027,6 +2064,8 @@
     exportReportPdf: exportReportPdf,
     exportWorksheetPdf: exportWorksheetPdf,
     renderDimensionPills: renderDimensionPills,
+    renderHomeLadders: renderHomeLadders,
+    ladderHtml: ladderHtml,
     renderScales: renderScales,
     setSoundIcons: setSoundIcons
   };

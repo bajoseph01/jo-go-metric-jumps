@@ -241,7 +241,7 @@
     wireBack();
     wireModal();
     wireTeacherTrigger();
-    UI.renderLadder($('home-ladder'));
+    UI.renderHomeLadders();
     UI.renderLadder($('how-ladder'));
     UI.renderDimensionPills();
     registerServiceWorker();

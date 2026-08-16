@@ -218,7 +218,17 @@ sw.js                 offline service worker (network-first, cache fallback)
   per-instrument scales table). The add-learner form now has an 8-swatch
   colour picker so each child picks their own name colour (defaulting to the
   first unused one); the PDF report shows the same prettified mastery labels
-  as the on-screen report.
+  as the on-screen report;
+- home-screen ladder cluster: all three conversion ladders now render side
+  by side at the top of the home screen (km→m→cm→mm ×1000/×100/×10,
+  kg→g→mg and kL→L→mL both ×1000/×1000), each with a small-print memory
+  note ("how long · far · tall", "how heavy", "how much space"). The
+  dimension pills drive a highlight — the selected dimension's ladder
+  brightens with a yellow outline, ink shadow and bold note while the other
+  two dim to 50% (verified live: Length→Mass→Volume clicks each move the
+  highlight; the sound button was repositioned to the top-right corner to
+  make room). `renderLadder` was refactored into a pure `ladderHtml(dim,
+  from, to)` helper so the markup is unit-testable headlessly.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

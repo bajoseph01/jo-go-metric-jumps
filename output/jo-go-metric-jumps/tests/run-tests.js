@@ -10,6 +10,10 @@
  */
 'use strict';
 
+// Headless-browser shim so ui.js (and its JOGO deps) can be loaded in Node
+// and its pure helpers tested. Must be set before any require().
+if (typeof global !== 'undefined') { global.self = global; }
+
 const M = require('../js/math.js');
 const F = require('../js/formatting.js');
 const Q = require('../js/questions.js');
@@ -1017,6 +1021,54 @@ st8.renameLearner(pick.id, 'Pick', '🦄', '#0E9CA3');
 eq(st8.learners()[0].color, '#0E9CA3', 'colour changeable via rename');
 st8.renameLearner(pick.id, 'Pick', '🦄', '#nope');
 eq(st8.learners()[0].color, '#0E9CA3', 'invalid rename colour ignored');
+
+// ------------------------------------------------------------------
+section('20. Home dimension ladders');
+// ------------------------------------------------------------------
+// ui.js needs its JOGO deps (Audio, Input) loaded first; they are Node-safe.
+require('../js/audio.js');
+require('../js/input.js');
+require('../js/ui.js');
+const UI = global.JOGO.UI;
+ok(!!UI, 'ui.js loads headlessly with JOGO deps');
+
+function rungsOf(html) {
+  const out = [];
+  let m;
+  const re = /class="rung[^"]*" data-unit="([^"]+)"/g;
+  while ((m = re.exec(html)) !== null) out.push(m[1]);
+  return out;
+}
+function gapsOf(html) {
+  const out = [];
+  let m;
+  const re = /class="ladder-gap[^"]*" data-gap="([^"]+)"><span class="ladder-gap-f">([^<]+)</g;
+  while ((m = re.exec(html)) !== null) out.push(m[1] + '=' + m[2]);
+  return out;
+}
+
+const lenHtml = UI.ladderHtml('length');
+const massHtml = UI.ladderHtml('mass');
+const volHtml = UI.ladderHtml('volume');
+
+ok(JSON.stringify(rungsOf(massHtml)) === JSON.stringify(['kg', 'g', 'mg']), 'mass ladder rungs kg→g→mg');
+ok(JSON.stringify(gapsOf(massHtml)) === JSON.stringify(['kg>g=×1000', 'g>mg=×1000']), 'mass gaps both ×1000');
+ok(JSON.stringify(rungsOf(volHtml)) === JSON.stringify(['kL', 'L', 'mL']), 'volume ladder rungs kL→L→mL');
+ok(JSON.stringify(gapsOf(volHtml)) === JSON.stringify(['kL>L=×1000', 'L>mL=×1000']), 'volume gaps both ×1000');
+ok(JSON.stringify(rungsOf(lenHtml)) === JSON.stringify(['km', 'm', 'cm', 'mm']), 'length ladder unchanged km→m→cm→mm');
+ok(JSON.stringify(gapsOf(lenHtml)) === JSON.stringify(['km>m=×1000', 'm>cm=×100', 'cm>mm=×10']), 'length gaps ×1000/×100/×10');
+
+const hl = UI.ladderHtml('length', 'm', 'cm');
+ok(hl.indexOf('rung--active') > -1 && hl.indexOf('data-unit="m"') > -1, 'from rung highlighted');
+ok(hl.indexOf('ladder-gap--active') > -1 && hl.indexOf('m>cm') > -1, 'active gap highlighted');
+ok(hl.indexOf('ladder-gap-arrow') > -1 && hl.indexOf('↓') > -1, 'down-arrow shown for multiply');
+
+const m2 = UI.ladderHtml('mass', 'g', 'kg');
+ok(m2.indexOf('↑') > -1 && m2.indexOf('ladder-gap--active') > -1, 'up-arrow shown for divide (g→kg)');
+
+// every rung/gap renders a real conversion label
+const allDims = UI.ladderHtml('length') + UI.ladderHtml('mass') + UI.ladderHtml('volume');
+ok(!/undefined/.test(allDims), 'no undefined labels anywhere in the ladders');
 
 // ------------------------------------------------------------------
 // Summary

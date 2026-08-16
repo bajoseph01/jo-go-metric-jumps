@@ -17,10 +17,16 @@ server, no install, no login. On an iPad, add it to the Home Screen for a
 full-screen experience; it works offline after the first visit.
 
 Pick a dimension with the **Length · Mass · Volume** pills on the home screen.
-Each dimension runs its own 8-stage campaign with its own ladder and its own
-unlock progression, and word problems are grounded in real objects (bags of
-sugar, rain tanks, pencils). **Read the Scales** opens the Scales Lab: read
-live-rendered rulers (mm), kitchen dials (g) and measuring jugs (mL).
+Above the pills, all three ladders are shown side by side — **km→m→cm→mm**
+(×1000/×100/×10), **kg→g→mg** (×1000/×1000) and **kL→L→mL** (×1000/×1000)
+— each with a small-print memory note (length is *how long · far · tall
+something is*, mass is *how heavy something is*, volume is *how much space
+something holds*). Tapping a pill highlights that dimension's ladder, so the
+graphic always mirrors the chosen category. Each dimension runs its own
+8-stage campaign with its own ladder and its own unlock progression, and
+word problems are grounded in real objects (bags of sugar, rain tanks,
+pencils). **Read the Scales** opens the Scales Lab: read live-rendered
+rulers (mm), kitchen dials (g) and measuring jugs (mL).
 
 ## How it teaches
 
