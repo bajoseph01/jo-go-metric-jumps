@@ -209,22 +209,60 @@
     };
   }
 
+  /**
+   * Transfer word problems. Every value range is grounded in reality so the
+   * sums make sense to a Grade 4 learner: doors are about 2 m tall, pencils
+   * about 17 cm long, a sports field about 350 m around. `step` keeps the
+   * numbers friendly (0, 1 or 2 decimals, exact integer math).
+   */
   var TRANSFER_TEMPLATES = {
-    'km>m':  ['Ben walked {v} km to school. How many metres is that?', 'Ben walked {v} km in the race. How many metres is that?'],
-    'm>km':  ['A road is {v} m long. How many kilometres is that?', 'The sports field is {v} m around. How many kilometres is that?'],
-    'm>cm':  ['The door is {v} m tall. How many centimetres is that?', 'The table is {v} m long. How many centimetres is that?'],
-    'cm>m':  ['A ribbon is {v} cm long. How many metres is that?', 'The bookshelf is {v} cm tall. How many metres is that?'],
-    'cm>mm': ['A beetle is {v} cm long. How many millimetres is that?', 'A key is {v} cm long. How many millimetres is that?'],
-    'mm>cm': ['A pencil is {v} mm long. How many centimetres is that?', 'An eraser is {v} mm long. How many centimetres is that?']
+    'km>m': [
+      { text: 'Ben walked {v} km to school. How many metres is that?', min: 0.5, max: 3, step: 0.25 },
+      { text: 'Ben walked {v} km in the race. How many metres is that?', min: 0.8, max: 5, step: 0.2 }
+    ],
+    'm>km': [
+      { text: 'A road is {v} m long. How many kilometres is that?', min: 200, max: 5000, step: 50 },
+      { text: 'The sports field is {v} m around. How many kilometres is that?', min: 250, max: 450, step: 10 }
+    ],
+    'm>cm': [
+      { text: 'The door is {v} m tall. How many centimetres is that?', min: 1.8, max: 2.2, step: 0.1 },
+      { text: 'The table is {v} m long. How many centimetres is that?', min: 1, max: 2.5, step: 0.1 }
+    ],
+    'cm>m': [
+      { text: 'A ribbon is {v} cm long. How many metres is that?', min: 100, max: 500, step: 25 },
+      { text: 'The bookshelf is {v} cm tall. How many metres is that?', min: 120, max: 240, step: 10 }
+    ],
+    'cm>mm': [
+      { text: 'A beetle is {v} cm long. How many millimetres is that?', min: 1, max: 8, step: 0.5 },
+      { text: 'A key is {v} cm long. How many millimetres is that?', min: 4, max: 8, step: 0.5 }
+    ],
+    'mm>cm': [
+      { text: 'A pencil is {v} mm long. How many centimetres is that?', min: 150, max: 190, step: 5 },
+      { text: 'An eraser is {v} mm long. How many centimetres is that?', min: 40, max: 70, step: 5 }
+    ]
   };
+
+  /**
+   * Pick a realistic source value inside [min, max] at `step` granularity,
+   * as an exact integer-scaled { scaled, scale } pair (scale = 10^decimals).
+   */
+  function genRealisticSource(min, max, step, rng) {
+    var stepStr = String(step);
+    var dec = stepStr.indexOf('.') >= 0 ? stepStr.length - 1 - stepStr.indexOf('.') : 0;
+    var den = Math.pow(10, dec);
+    var slots = Math.floor((max - min) / step + 0.000001);
+    var value = min + randInt(rng, 0, slots) * step;
+    var scaled = Math.round(value * den);
+    return { scaled: scaled, scale: den };
+  }
 
   function transferQuestion(rng, weights) {
     var pair = weightedPair(rng, weights);
     var conv = M.conversion(pair[0], pair[1]);
-    var source = genSource(conv, rng);
-    var base = baseQuestion(conv, source, rng);
     var templates = TRANSFER_TEMPLATES[pair[0] + '>' + pair[1]] || [];
     var tpl = pick(templates, rng);
+    var source = genRealisticSource(tpl.min, tpl.max, tpl.step, rng);
+    var base = baseQuestion(conv, source, rng);
     return {
       kind: 'transfer',
       from: conv.from,
@@ -235,7 +273,7 @@
       sourceSA: base.sourceSA,
       expected: base.expected,
       expectedSA: base.expectedSA,
-      text: tpl.replace('{v}', F.groupThousands(base.sourceSA.replace(',', ',')))
+      text: tpl.text.replace('{v}', base.sourceSA)
     };
   }
 
@@ -281,6 +319,8 @@
     baseQuestion: baseQuestion,
     sanityQuestion: sanityQuestion,
     transferQuestion: transferQuestion,
+    genRealisticSource: genRealisticSource,
+    TRANSFER_TEMPLATES: TRANSFER_TEMPLATES,
     shiftDecimal: shiftDecimal,
     randInt: randInt,
     pick: pick

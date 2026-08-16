@@ -272,12 +272,25 @@ for (let i = 0; i < 300; i++) {
   ok(q.correctJumps >= 1 && q.correctJumps <= 3, 'jumps in range');
 }
 
-// transfer questions carry text
-for (let i = 0; i < 300; i++) {
+// transfer questions carry text and are grounded in realistic measurements
+for (let i = 0; i < 600; i++) {
   const q = Q.generateQuestion(8, lcg(3000 + i), {});
   eq(q.kind, 'transfer', 'stage 8 kind transfer');
   ok(typeof q.text === 'string' && q.text.length > 10, 'transfer text present');
-  ok(q.text.indexOf(q.sourceSA) !== -1 || q.sourceSA.indexOf(' ') === -1 || true, 'transfer mentions source');
+  ok(q.text.indexOf(q.sourceSA) !== -1, 'transfer mentions its source value');
+
+  // the source value must fall inside the template's realistic range
+  const pairKey = q.from + '>' + q.to;
+  const tpls = Q.TRANSFER_TEMPLATES[pairKey] || [];
+  const matched = tpls.find(t => t.text.replace('{v}', q.sourceSA) === q.text);
+  ok(!!matched, 'transfer text matches a known template (' + pairKey + ')');
+  if (matched) {
+    const v = q.source.scaled / q.source.scale;
+    ok(v >= matched.min - 1e-9 && v <= matched.max + 1e-9, 'source within realistic range: ' + q.sourceSA + ' ' + q.from + ' [' + matched.min + '-' + matched.max + ']');
+    // value must be an exact multiple of the template step
+    const steps = v / matched.step;
+    ok(Math.abs(steps - Math.round(steps)) < 1e-9, 'source is a friendly step multiple');
+  }
 }
 
 // sanity fix flow: expected value is the true conversion
