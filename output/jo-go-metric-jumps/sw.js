@@ -9,7 +9,7 @@
  */
 'use strict';
 
-var CACHE = 'jogo-metric-jumps-v6';
+var CACHE = 'jogo-metric-jumps-v7';
 
 var CORE = [
   './',
