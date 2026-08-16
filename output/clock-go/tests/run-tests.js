@@ -96,13 +96,19 @@ const q305 = { h: 3, m: 5 };
 ok(C.isCorrect(q305, C.parseTime('3:05')), 'leading zero accepted');
 ok(C.isCorrect(q305, C.parseTime('3:5')), 'no leading zero accepted');
 
-// the colon is PART of the lesson: right time without ':' is 'format', not correct
+// presentation is PART of the lesson: right time without ':' or the zero
+// pad is so-close ('format-*'), never counted correct.
 eq(C.judge(q345, '3:45'), 'correct', '3:45 with colon is correct');
 eq(C.judge(q345, ' 3 : 45 '), 'correct', 'spaced colon input is correct');
-eq(C.judge(q345, '345'), 'format', '345 (no colon) is so-close format');
-eq(C.judge(q345, '3.45'), 'format', '3.45 (dot, no colon) is so-close format');
-eq(C.judge({ h: 12, m: 0 }, '12'), 'format', '12 for 12:00 is so-close format');
+eq(C.judge(q345, '03:45'), 'correct', '03:45 (leading hour zero) is correct');
+eq(C.judge(q345, '345'), 'format-colon', '345 (no colon) is so-close format');
+eq(C.judge(q345, '3.45'), 'format-colon', '3.45 (dot, no colon) is so-close format');
+eq(C.judge({ h: 12, m: 0 }, '12'), 'format-colon', '12 for 12:00 is so-close format');
 eq(C.judge({ h: 12, m: 0 }, '12:00'), 'correct', '12:00 with colon is correct');
+eq(C.judge({ h: 3, m: 5 }, '3:05'), 'correct', '3:05 with zero pad is correct');
+eq(C.judge({ h: 3, m: 5 }, '3:5'), 'format-pad', '3:5 for 3:05 is so-close pad format');
+eq(C.judge({ h: 12, m: 0 }, '12:0'), 'format-pad', '12:0 for 12:00 is so-close pad format');
+eq(C.judge(q345, '3:045'), 'format-pad', '3:045 for 3:45 is so-close pad format');
 eq(C.judge(q345, '3:30'), 'wrong', '3:30 is wrong');
 eq(C.judge(q345, 'abc'), 'invalid', 'garbage is invalid');
 eq(C.judge(q345, ''), 'invalid', 'empty is invalid');
@@ -328,16 +334,22 @@ ok(uiSrc.indexOf('0.902 0.271 0.271') > -1, 'pdf minute hand red, not grey');
 ok(uiSrc.indexOf('function nextQuestion') > -1, 'a nextQuestion() step exists');
 ok(uiSrc.indexOf('data-key="next"') > -1, 'the Next button is built in ui.js');
 ok(uiSrc.indexOf('So close! That is the right time') > -1, 'format feedback says so-close, not wrong');
+ok(uiSrc.indexOf('the minutes need two digits') > -1, 'zero-pad feedback names the missing digits');
 {
   const sub = uiSrc.slice(uiSrc.indexOf('function submitAnswer'), uiSrc.indexOf('function showFeedback'));
   ok(sub.indexOf('setTimeout') === -1, 'submitAnswer never auto-advances (no setTimeout)');
   ok(sub.indexOf('C.judge') > -1, 'submitAnswer judges via C.judge (colon rule)');
   ok(sub.indexOf('showNext()') > -1, 'correct answers hand control to a Next button');
 }
+{
+  const ak = uiSrc.slice(uiSrc.indexOf('function ask'), uiSrc.indexOf('function sample'));
+  ok(ak.indexOf('buildKeypad') > -1, 'ask() rebuilds the digit keypad after Next');
+}
 
 // The colon lesson is in the learner-facing copy (intro + guide + how-it-works).
 const htmlSrc = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 ok((htmlSrc.match(/little colon :/g) || []).length >= 3, 'colon taught in intro, guide and how-it-works copy');
+ok(htmlSrc.indexOf('3:05') > -1, 'zero-pad example (3:05) taught in the copy');
 
 // PDF: a 12:00 clock (BOTH hands vertical — the old degeneracy) must emit
 // two thick stroked lines with the red + near-black colors.

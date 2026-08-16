@@ -177,6 +177,7 @@
   function ask() {
     session.q = C.generate(C.levelByKey(session.level));
     session.firstTry = true;
+    buildKeypad(); // restore the digit keypad after the Next button
     var stage = $('clock-stage');
     if (stage) stage.innerHTML = clockSvg(session.q, 230);
     // The line under the clock TEACHES the reading rule for this level
@@ -259,7 +260,6 @@
 
   function beginRound() {
     show('screen-game');
-    buildKeypad();
     ask();
   }
 
@@ -285,13 +285,15 @@
       showFeedback('Hmm, that does not look like a time. Type it like 3:45.', false);
       return;
     }
-    if (res === 'format') {
-      // Right time, missing the colon — teach the presentation, don't count
-      // it as a wrong attempt and don't reveal a new question. The child
-      // retypes with the ':' key (firstTry is left untouched: formatting is
-      // not comprehension).
+    if (res === 'format-colon' || res === 'format-pad') {
+      // Right time, wrong presentation — teach it, don't count it as a
+      // wrong attempt and don't reveal a new question. The child retypes
+      // (firstTry is left untouched: formatting is not comprehension).
       Audio.play('wrong');
-      showFeedback('So close! That is the right time — but something is missing: the little colon : between the hours and the minutes, like ' + sample() + '. Type it again!', false);
+      var msg = res === 'format-colon'
+        ? 'So close! That is the right time — but something is missing: the little colon : between the hours and the minutes, like ' + sample() + '. Type it again!'
+        : 'So close! That is the right time — but the minutes need two digits, like ' + sample() + '. Type it again!';
+      showFeedback(msg, false);
       return;
     }
     if (res === 'wrong') {

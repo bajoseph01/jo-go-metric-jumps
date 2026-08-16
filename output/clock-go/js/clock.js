@@ -90,16 +90,22 @@
   }
 
   /**
-   * Judge an answer submission. The colon is PART of the lesson: a time
-   * that matches (h, m) but was typed without ":" is 'format' (so close —
-   * teach the presentation, don't count it), not 'correct'.
-   * Returns 'correct' | 'format' | 'wrong' | 'invalid'.
+   * Judge an answer submission. Presentation is PART of the lesson: a
+   * time that matches (h, m) but wasn't typed with a ':' separator is
+   * 'format-colon', and one missing the leading zero (3:5 for 3:05) is
+   * 'format-pad' — both "so close", never counted correct.
+   * Returns 'correct' | 'format-colon' | 'format-pad' | 'wrong' | 'invalid'.
    */
   function judge(q, raw) {
-    var parsed = parseTime(raw);
+    var s = String(raw).trim().replace(/\s+/g, '');
+    var parsed = parseTime(s);
     if (!parsed) return 'invalid';
     if (parsed.h !== q.h || parsed.m !== q.m) return 'wrong';
-    return String(raw).indexOf(':') >= 0 ? 'correct' : 'format';
+    var ci = s.indexOf(':');
+    if (ci < 0) return 'format-colon';
+    var minPart = s.slice(ci + 1).split(/[.:]/)[0];
+    if (minPart.length !== 2) return 'format-pad';
+    return 'correct';
   }
 
   /** The number the minute hand points at ("the minute hand is on the 9"). */
