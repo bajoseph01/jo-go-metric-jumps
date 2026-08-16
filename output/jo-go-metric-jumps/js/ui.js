@@ -71,7 +71,9 @@
   // ------------------------------------------------------------------
 
   function soundIcon() {
-    return Store.get().soundOn ? '🔊' : '🔇';
+    // settings() avoids lazily activating a learner on a fresh device
+    var s = (Store.settings ? Store.settings() : Store.get());
+    return s.soundOn ? '🔊' : '🔇';
   }
 
   function setSoundIcons() {
@@ -536,7 +538,9 @@
       html += '</tbody></table></div>';
     }
 
-    html += '<div class="teacher-section"><h3>Device</h3><ul class="teacher-stats">' +
+    var act = Store.activeLearner();
+    html += '<div class="teacher-section"><h3>Learner</h3><ul class="teacher-stats">' +
+      '<li>Active: ' + (act ? act.emoji + ' ' + esc(act.name) : 'none selected') + '</li>' +
       '<li>Questions answered: ' + st.totalAnswered + '</li>' +
       '<li>Sessions: ' + st.sessions + '</li>' +
       '<li>Best streak: ' + st.bestStreak + '</li>' +
@@ -544,8 +548,9 @@
       '</ul></div>' +
       '<div class="teacher-actions">' +
         '<button type="button" class="btn btn--primary" data-action="practice-all">Practice all levels</button>' +
+        '<button type="button" class="btn btn--ghost" data-action="learners">Manage learners</button>' +
         '<button type="button" class="btn btn--ghost" data-action="lock">Lock teacher mode</button>' +
-        '<button type="button" class="btn btn--danger" data-action="reset">Reset all progress</button>' +
+        '<button type="button" class="btn btn--danger" data-action="reset">Reset this learner</button>' +
       '</div>';
 
     panel.innerHTML = html;
@@ -568,10 +573,20 @@
         if (root.JOGO.Teacher) root.JOGO.Teacher.lock();
       });
     }
+    var mg = panel.querySelector('[data-action="learners"]');
+    if (mg) {
+      mg.addEventListener('click', function () {
+        Audio.play('click');
+        closeTeacher();
+        renderLearners();
+      });
+    }
     var r = panel.querySelector('[data-action="reset"]');
     if (r) {
       r.addEventListener('click', function () {
-        showModal('Reset all progress?', 'This clears mastery and unlocks on this device.', function () {
+        var act2 = Store.activeLearner();
+        var who = act2 ? act2.name + "'s" : 'the active learner';
+        showModal('Reset ' + (act2 ? act2.name + '?' : 'progress?'), 'This clears ' + who + ' mastery and unlocks on this device.', function () {
           Store.reset();
           renderTeacher();
         });
@@ -581,6 +596,127 @@
 
   function closeTeacher() {
     $('teacher-backdrop').classList.remove('overlay--show');
+  }
+
+  // ------------------------------------------------------------------
+  // Learner profiles
+  // ------------------------------------------------------------------
+
+  function updateLearnerChip() {
+    var a = Store.activeLearner();
+    var avatar = a ? a.emoji : '🎒';
+    var name = a ? a.name : 'Pick a learner';
+    var chip = $('btn-learner');
+    if (chip) {
+      var av = $('learner-chip-avatar');
+      var nm = $('learner-chip-name');
+      if (av) av.textContent = avatar;
+      if (nm) nm.textContent = name;
+      chip.setAttribute('aria-label', a ? 'Choose who is playing — currently ' + name : 'Choose who is playing');
+    }
+    var hud = $('btn-learner-hud');
+    if (hud) {
+      hud.textContent = avatar;
+      hud.setAttribute('aria-label', a ? 'Switch learner — ' + name : 'Switch learner');
+    }
+  }
+
+  function renderLearners() {
+    show('screen-learners');
+    var body = $('learners-body');
+    var active = Store.activeLearner();
+    var roster = Store.learners();
+    var html = '<div class="learners-list">';
+    if (!roster.length) {
+      html += '<p class="learners-empty">No learners yet — add the first one below.</p>';
+    }
+    for (var i = 0; i < roster.length; i++) {
+      var l = roster[i];
+      var isActive = active && l.id === active.id;
+      html += '<div class="learner-card' + (isActive ? ' learner-card--active' : '') + '">' +
+        '<span class="learner-avatar" aria-hidden="true">' + l.emoji + '</span>' +
+        '<div class="learner-info">' +
+          '<h3 class="learner-name">' + esc(l.name) + '</h3>' +
+          '<p class="learner-meta">Stage ' + l.unlocked + ' · ' + l.totalAnswered + ' questions</p>' +
+        '</div>' +
+        (isActive
+          ? '<span class="learner-badge">Playing</span>'
+          : '<button type="button" class="btn btn--small" data-learn="' + l.id + '">Play as</button>') +
+        '<button type="button" class="btn-icon learner-del" data-del="' + l.id + '" aria-label="Remove">✕</button>' +
+      '</div>';
+    }
+    html += '</div>';
+
+    html += '<form class="learner-add" id="learner-add" novalidate>' +
+      '<h3 class="learner-add-title">Add a learner</h3>' +
+      '<input type="text" class="answer-input learner-name-input" id="learner-name-input" maxlength="18" placeholder="First name" autocomplete="off" enterkeyhint="done" aria-label="Learner name" />' +
+      '<div class="learner-emojis" role="radiogroup" aria-label="Pick an avatar">';
+    for (var e = 0; e < Store.AVATARS.length; e++) {
+      html += '<button type="button" class="learner-emoji' + (e === 0 ? ' learner-emoji--selected' : '') + '" data-emoji="' + Store.AVATARS[e] + '" role="radio" aria-checked="' + (e === 0) + '" aria-label="Avatar">' + Store.AVATARS[e] + '</button>';
+    }
+    html += '</div>' +
+      '<button type="submit" class="btn btn--primary">Add learner</button>' +
+    '</form>';
+
+    body.innerHTML = html;
+
+    var plays = body.querySelectorAll('[data-learn]');
+    for (var p = 0; p < plays.length; p++) {
+      plays[p].addEventListener('click', function () {
+        Audio.play('click');
+        Store.setActiveLearner(this.getAttribute('data-learn'));
+        updateLearnerChip();
+        show('screen-home');
+      });
+    }
+
+    var dels = body.querySelectorAll('[data-del]');
+    for (var d = 0; d < dels.length; d++) {
+      dels[d].addEventListener('click', function () {
+        Audio.play('click');
+        var id = this.getAttribute('data-del');
+        var nm = (Store.learners().filter(function (x) { return x.id === id; })[0] || {}).name || 'this learner';
+        showModal('Remove ' + nm + '?', 'This deletes ' + nm + '\'s progress on this device.', function () {
+          Store.removeLearner(id);
+          updateLearnerChip();
+          renderLearners();
+        });
+      });
+    }
+
+    var chosenEmoji = Store.AVATARS[0];
+    var emojis = body.querySelectorAll('.learner-emoji');
+    for (var q = 0; q < emojis.length; q++) {
+      emojis[q].addEventListener('click', function () {
+        chosenEmoji = this.getAttribute('data-emoji');
+        var all = body.querySelectorAll('.learner-emoji');
+        for (var a = 0; a < all.length; a++) {
+          all[a].classList.toggle('learner-emoji--selected', all[a] === this);
+        }
+      });
+    }
+
+    var form = $('learner-add');
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      Audio.play('click');
+      var input = $('learner-name-input');
+      var name = input.value.trim();
+      if (!name) {
+        input.classList.remove('shake');
+        void input.offsetWidth;
+        input.classList.add('shake');
+        input.focus();
+        return;
+      }
+      Store.addLearner(name, chosenEmoji);
+      updateLearnerChip();
+      renderLearners();
+    });
+
+    if (!('ontouchstart' in root)) {
+      setTimeout(function () { var i = $('learner-name-input'); if (i) i.focus(); }, 50);
+    }
   }
 
   /**
@@ -685,6 +821,8 @@
     closeTeacher: closeTeacher,
     showPin: showPin,
     showModal: showModal,
+    renderLearners: renderLearners,
+    updateLearnerChip: updateLearnerChip,
     setSoundIcons: setSoundIcons
   };
 

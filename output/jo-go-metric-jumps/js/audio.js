@@ -79,7 +79,9 @@
   function unlock() { ensure(); }
 
   function init() {
-    var st = root.JOGO && root.JOGO.Store ? root.JOGO.Store.get() : null;
+    // settings() avoids lazily activating a learner on a fresh device
+    var store = root.JOGO && root.JOGO.Store;
+    var st = store ? (store.settings ? store.settings() : store.get()) : null;
     muted = !(st && st.soundOn);
   }
 

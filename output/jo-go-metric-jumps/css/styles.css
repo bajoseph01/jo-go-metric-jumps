@@ -966,6 +966,140 @@ button {
   text-align: center;
 }
 
+/* ---------------- learner profiles ---------------- */
+
+.learner-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px auto 6px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--ink);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink);
+  padding: 6px 14px 6px 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.learner-chip:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+.learner-chip-avatar {
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--yellow-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
+.learner-chip-caret { color: var(--ink-soft); font-size: 0.85rem; }
+
+.learners-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.learners-empty { color: var(--ink-soft); text-align: center; }
+
+.learner-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 14px;
+}
+
+.learner-card--active {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft), var(--shadow-sm);
+}
+
+.learner-avatar {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--yellow-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.learner-info { flex: 1; min-width: 0; }
+.learner-name { font-size: 1.15rem; margin: 0; }
+.learner-meta { color: var(--ink-soft); font-size: 0.85rem; margin: 2px 0 0; }
+
+.learner-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--blue);
+  border: 2px solid var(--blue);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.learner-del {
+  width: 38px;
+  height: 38px;
+  font-size: 0.95rem;
+}
+
+.learner-add {
+  background: #fff;
+  border: var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.learner-add-title { margin: 0; font-size: 1.1rem; }
+
+.learner-name-input {
+  font-size: 1.15rem;
+  padding: 12px 14px;
+}
+
+.learner-emojis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.learner-emoji {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  font-size: 1.35rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.learner-emoji--selected {
+  background: var(--yellow-soft);
+  box-shadow: 0 0 0 3px var(--yellow);
+}
+
 .teacher-head {
   display: flex;
   justify-content: space-between;

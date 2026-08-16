@@ -27,7 +27,8 @@
     $('btn-play').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
-      var st = Store.get();
+      var st = Store.get();   // may lazily activate the default learner
+      UI.updateLearnerChip();
       var stage = Math.min(st.unlocked, 8);
       Game.startStage(stage);
     });
@@ -35,12 +36,14 @@
     $('btn-practice').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
+      UI.updateLearnerChip();
       UI.renderPractice();
     });
 
     $('btn-progress').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
+      UI.updateLearnerChip();
       UI.renderProgress();
     });
 
@@ -54,6 +57,12 @@
       Audio.unlock();
       toggleSound();
     });
+
+    $('btn-learner').addEventListener('click', function () {
+      Audio.unlock();
+      Audio.play('click');
+      UI.renderLearners();
+    });
   }
 
   function wireHud() {
@@ -64,6 +73,12 @@
     $('btn-sound').addEventListener('click', function () {
       Audio.unlock();
       toggleSound();
+    });
+    $('btn-learner-hud').addEventListener('click', function () {
+      Audio.unlock();
+      Audio.play('click');
+      Game.quit();
+      UI.renderLearners();
     });
   }
 
@@ -164,6 +179,9 @@
     }
   }
   function boot() {
+    // Check BEFORE anything calls Store.get() (which lazily activates a
+    // default learner) so a fresh device routes to the learner picker.
+    var firstLaunch = !Store.activeLearner();
     Audio.init();
     UI.setSoundIcons();
     wireHome();
@@ -174,7 +192,12 @@
     UI.renderLadder($('home-ladder'));
     UI.renderLadder($('how-ladder'));
     registerServiceWorker();
-    UI.show('screen-home');
+    UI.updateLearnerChip();
+    if (firstLaunch) {
+      UI.renderLearners();  // first launch: pick who's playing
+    } else {
+      UI.show('screen-home');
+    }
   }
 
   if (document.readyState === 'loading') {

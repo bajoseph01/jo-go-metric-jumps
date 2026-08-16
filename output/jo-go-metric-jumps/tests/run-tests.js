@@ -359,11 +359,113 @@ function memAdapter() {
 {
   const adapter = memAdapter();
   const s = Store.createStore(adapter);
-  s.mutate(function (x) { x.lastStage = 5; x.soundOn = false; });
+  s.setLastStage(5);
+  s.setSoundOn(false);
   const s2 = Store.createStore(adapter);
   eq(s2.get().lastStage, 5, 'setLastStage persists');
   eq(s2.get().soundOn, false, 'setSoundOn persists');
 }
+
+// ------------------------------------------------------------------
+section('6b. Learner profiles: isolation, switching, roster, migration');
+// ------------------------------------------------------------------
+
+// a fresh store always has one default learner, unselected until used
+{
+  const s = Store.createStore(memAdapter());
+  eq(s.learners().length, 1, 'fresh store has one default learner');
+  eq(s.activeLearner(), null, 'default learner is not auto-selected');
+  eq(s.get().unlocked, 1, 'get() still returns usable progress');
+  s.recordAnswer('transfer', 'mm>cm', true);
+  eq(s.activeLearner().name, 'Learner 1', 'lazy activation picks the default learner');
+  eq(s.get().totalAnswered, 1, 'recorded on the lazy-activated learner');
+}
+
+// progress is fully isolated between learners; settings stay global
+{
+  const s = Store.createStore(memAdapter());
+  const asha = s.addLearner('Asha', '🦁');
+  const ben = s.addLearner('Ben', '🐸');
+  eq(s.learners().length, 3, 'roster grew to 3 (default + 2)');
+  eq(s.activeLearner().id, ben.id, 'addLearner activates the newest');
+
+  s.recordAnswer('conversion_direction', 'm>cm', true);
+  s.unlockUpTo(4);
+  s.setLastStage(3);
+  eq(s.get().totalAnswered, 1, 'Ben answered one question');
+  eq(s.get().unlocked, 4, 'Ben unlocked stage 4');
+
+  s.setActiveLearner(asha.id);
+  eq(s.get().totalAnswered, 0, 'Asha has her own (empty) progress');
+  eq(s.get().unlocked, 1, 'Asha has her own unlocks');
+  eq(s.get().lastStage, 1, 'Asha has her own last stage');
+  eq(s.get().soundOn, s.get().soundOn, 'settings read fine for Asha');
+
+  s.setSoundOn(false);
+  s.setActiveLearner(ben.id);
+  eq(s.get().soundOn, false, 'sound setting is global across learners');
+  eq(s.get().totalAnswered, 1, 'Ben keeps his progress after switching back');
+  eq(s.get().unlocked, 4, 'Ben keeps his unlocks after switching back');
+
+  // persistence across instances keeps every learner
+  const adapter2 = memAdapter();
+  const s1b = Store.createStore(adapter2);
+  const x = s1b.addLearner('Asha', '🦁');
+  const y = s1b.addLearner('Ben', '🐸');
+  s1b.recordAnswer('conversion_direction', 'm>cm', true);
+  s1b.unlockUpTo(4);
+  s1b.setActiveLearner(x.id);
+  s1b.setSoundOn(false);
+  const s2 = Store.createStore(adapter2);
+  eq(s2.learners().length, 3, 'roster persists across store instances');
+  eq(s2.activeLearner().id, x.id, 'active learner persists');
+  eq(s2.get().totalAnswered, 0, 'Asha progress persists');
+  eq(s2.get().unlocked, 1, 'Asha unlocks persist');
+  s2.setActiveLearner(y.id);
+  eq(s2.get().totalAnswered, 1, 'Ben progress persists');
+  eq(s2.get().unlocked, 4, 'Ben unlocks persist');
+  eq(s2.get().soundOn, false, 'global sound persists');
+}
+
+// removing a learner: active moves to another, or to null when last
+{
+  const s = Store.createStore(memAdapter());
+  const a = s.addLearner('A', '🦊');
+  const b = s.addLearner('B', '🐼');
+  s.removeLearner(a.id);
+  eq(s.learners().length, 2, 'removed one learner');
+  eq(s.activeLearner().id, b.id, 'active learner falls back to remaining');
+  const d = s.addLearner('D', '🐸');
+  s.removeLearner(d.id);
+  s.removeLearner(b.id);
+  s.removeLearner(s.learners()[0].id); // the default learner
+  eq(s.learners().length, 0, 'all learners removable');
+  eq(s.activeLearner(), null, 'no active learner after removing all');
+  eq(s.get().unlocked, 1, 'get() returns default progress with no learners');
+  s.recordAnswer('transfer', 'km>m', true); // must not crash
+  eq(s.get().totalAnswered, 0, 'no-op record with no learner');
+}
+
+// v1 flat payload migrates into one default learner, keeping progress
+{
+  const adapter = memAdapter();
+  const v1 = {
+    version: 1, soundOn: false, reducedMotion: true, unlocked: 5, lastStage: 4,
+    categories: { conversion_direction: { attempts: 7, firstTry: 6, recent: [1, 1, 0] } },
+    pairs: { 'm>cm': { attempts: 2, firstTry: 2, recent: [1, 1] } },
+    bestStreak: 3, sessions: 2, totalAnswered: 9, totalFirstTry: 7
+  };
+  adapter.setItem('jogo-metric-jumps.v1', JSON.stringify(v1));
+  const s = Store.createStore(adapter);
+  eq(s.learners().length, 1, 'v1 migrates to one learner');
+  eq(s.activeLearner().name, 'Learner 1', 'v1 learner named Learner 1');
+  eq(s.get().unlocked, 5, 'v1 unlocks kept');
+  eq(s.get().totalAnswered, 9, 'v1 totals kept');
+  eq(s.get().categories.conversion_direction.attempts, 7, 'v1 categories kept');
+  eq(s.get().soundOn, false, 'v1 sound kept');
+}
+
+
 
 // ------------------------------------------------------------------
 section('7. Deliberate stress: repeated + malformed inputs');

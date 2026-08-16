@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#2F6BFF">
   <meta name="description" content="Jo⚡Go Metric Jumps — a Grade 4 learning game for converting km, m, cm and mm by moving the decimal comma.">
   <title>Jo⚡Go Metric Jumps</title>
-  <link rel="icon" href="assets/favicon.svg?v=16" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/icon-180.png?v=16">
-  <link rel="manifest" href="manifest.webmanifest?v=16">
-  <link rel="stylesheet" href="css/styles.css?v=16">
+  <link rel="icon" href="assets/favicon.svg?v=20" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png?v=20">
+  <link rel="manifest" href="manifest.webmanifest?v=20">
+  <link rel="stylesheet" href="css/styles.css?v=20">
 </head>
 <body>
   <div id="app">
@@ -29,6 +29,11 @@
           <p class="brand-sub">Metric Jumps</p>
           <p class="brand-tagline">Master the comma. Master metric length.</p>
         </div>
+        <button type="button" class="learner-chip" id="btn-learner" aria-label="Choose who's playing">
+          <span class="learner-chip-avatar" id="learner-chip-avatar" aria-hidden="true">🦊</span>
+          <span class="learner-chip-name" id="learner-chip-name">Pick a learner</span>
+          <span class="learner-chip-caret" aria-hidden="true">▾</span>
+        </button>
         <button type="button" class="btn btn--play" id="btn-play">PLAY</button>
         <div class="home-actions">
           <button type="button" class="btn btn--ghost" id="btn-practice">Practice</button>
@@ -89,6 +94,16 @@
       <main class="page-body" id="practice-body"></main>
     </section>
 
+    <!-- ===================== LEARNERS ===================== -->
+    <section class="screen" id="screen-learners" aria-labelledby="learners-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="learners-title">Who's playing?</h1>
+        <span class="page-head-spacer"></span>
+      </header>
+      <main class="page-body" id="learners-body"></main>
+    </section>
+
     <!-- ===================== PROGRESS ===================== -->
     <section class="screen" id="screen-progress" aria-labelledby="progress-title">
       <header class="page-head">
@@ -109,6 +124,7 @@
         </div>
         <div class="hud-right">
           <span class="streak" id="hud-streak" aria-label="Current streak">🔥 0</span>
+          <button type="button" class="btn-icon" id="btn-learner-hud" aria-label="Switch learner">🦊</button>
           <button type="button" class="btn-icon" id="btn-sound" aria-label="Toggle sound">
             <span data-role="sound-icon" aria-hidden="true">🔊</span>
           </button>
@@ -169,14 +185,14 @@
 
   </div>
 
-  <script src="js/math.js?v=16"></script>
-  <script src="js/formatting.js?v=16"></script>
-  <script src="js/questions.js?v=16"></script>
-  <script src="js/storage.js?v=16"></script>
-  <script src="js/audio.js?v=16"></script>
-  <script src="js/input.js?v=16"></script>
-  <script src="js/ui.js?v=16"></script>
-  <script src="js/game.js?v=16"></script>
-  <script src="js/app.js?v=16"></script>
+  <script src="js/math.js?v=20"></script>
+  <script src="js/formatting.js?v=20"></script>
+  <script src="js/questions.js?v=20"></script>
+  <script src="js/storage.js?v=20"></script>
+  <script src="js/audio.js?v=20"></script>
+  <script src="js/input.js?v=20"></script>
+  <script src="js/ui.js?v=20"></script>
+  <script src="js/game.js?v=20"></script>
+  <script src="js/app.js?v=20"></script>
 </body>
 </html>

@@ -82,8 +82,11 @@ node tests/run-tests.js    # runs the automated suite (3150 checks)
 
 ## Progress & teacher panel
 
-Progress (mastery per category, attempts, streaks, unlocks) is saved in
-`localStorage` — no accounts, no data leaves the device. On the home screen,
+Each child gets their own profile: tap the learner chip on the home screen (or
+in the game HUD) to pick who is playing or add a new learner (name + avatar).
+Mastery, unlocks, streaks and totals are tracked per learner, while sound and
+motion settings stay device-wide. Everything is saved in `localStorage` — no
+accounts, no data leaves the device. On the home screen,
 long-press the Jo⚡Go logo (or press **T**) to open **teacher mode** (PIN: 5241):
 mastery percentages, weak conversion pairs, reset, and **Practice all levels** —
 every stage including locked ones, for teacher-led demonstration.

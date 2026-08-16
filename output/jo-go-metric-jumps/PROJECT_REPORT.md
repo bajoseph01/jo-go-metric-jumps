@@ -45,6 +45,10 @@ internalise "smaller unit → bigger number; the length never changes."
 - **Play** — the 8-stage campaign (see README). Unlocks progressively.
 - **Practice** — free practice on any unlocked stage (menu on the home screen).
 - **My Progress** — mastery per category, streaks, and session counts.
+- **Learner profiles** — each child gets a named profile (name + avatar) with
+  fully separate mastery, unlocks, streaks and totals on a shared device.
+  Pick or add a learner from the home-screen chip or the game HUD; the app
+  asks who is playing on first launch. Device settings stay global.
 - **How It Works** — in-app explanation of the ×/÷ ladder rule.
 - **Teacher mode (PIN 5241)** — discreet (long-press the logo, 5 taps, or press
   T): mastery percentages per category, attempts, weak conversion pairs, reset,
@@ -60,7 +64,7 @@ css/styles.css        single stylesheet, CSS variables, responsive breakpoints
 js/math.js            exact conversion engine + comma-track builder (unit-testable)
 js/formatting.js      SA formatting: decimal comma, 2 500 spacing, answer parsing
 js/questions.js       stages, generators, adaptive pair weighting
-js/storage.js         localStorage persistence + mastery model + mutators
+js/storage.js         per-learner profiles, localStorage persistence, mastery model
 js/input.js           keypad (pointer + keyboard) and comma track (pointer drag,
                       tap targets, keyboard arrows, focus ring)
 js/ui.js              render layer: questions, feedback, results, screens, modals
