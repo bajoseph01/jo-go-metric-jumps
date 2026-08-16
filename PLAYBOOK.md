@@ -285,6 +285,20 @@ Check for these so you don't reinvent them:
     that bans the faded-grey fill values. When the same graphic exists
     on screen AND in print, its colors must be decided once and asserted
     in both.
+19. **Polygon clock hands vanish at cardinal angles.** Tick⚡Tock drew
+    its hands as triangles whose "width" offset was perpendicular to the
+    hand direction. At 12/3/6/9 o'clock the triangle degenerates to zero
+    area and the renderer draws NOTHING. The Whole & Half level only
+    uses minutes 0/15/30/45 — so the minute hand was invisible for the
+    whole first level, and the hour hand vanished at exact o'clock
+    times. Users reported it as a "contrast" problem (one thin grey hand
+    on screen); it was actually half the hands missing. Draw hands as
+    thick round-capped STROKES (stroke width is applied perpendicular by
+    the renderer and can never degenerate) in both SVG and PDF, and test
+    EVERY generated angle for non-degenerate geometry. This one lived
+    since the app's first build and only surfaced through a user
+    complaint — the lesson: rasterize (pixel-count) the actual rendered
+    output, don't just assert DOM attributes.
 
 ---
 

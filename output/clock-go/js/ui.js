@@ -48,16 +48,17 @@
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   }
 
-  function handPoly(cx, cy, angleDeg, len, width) {
+  /**
+   * Endpoints for a hand drawn as a THICK STROKED line with round caps.
+   * Polygon hands degenerate to zero area at cardinal angles (12/3/6/9 —
+   * exactly the Whole & Half minutes 0/15/30/45), so the minute hand was
+   * invisible for the whole first level. Stroke width is applied
+   * perpendicular to the path by the renderer, so it can never vanish.
+   */
+  function handLine(cx, cy, angleDeg, len, width) {
     var tip = pt(cx, cy, len, angleDeg);
-    var base = pt(cx, cy, -0.14 * len, angleDeg);
-    var px = Math.sin(angleDeg * Math.PI / 180);
-    var py = -Math.cos(angleDeg * Math.PI / 180);
-    return [
-      [base.x + px * width, base.y + py * width],
-      [tip.x, tip.y],
-      [base.x - px * width, base.y - py * width]
-    ];
+    var tail = pt(cx, cy, -0.14 * len, angleDeg);
+    return { x1: tail.x, y1: tail.y, x2: tip.x, y2: tip.y };
   }
 
   /** SVG string for a clock face (q = {h, m}). */
@@ -80,11 +81,11 @@
     }
     var h = C.handsFor(q.h, q.m);
     // High-contrast hands: near-black hour, vivid RED minute (classroom
-    // convention — kids can never mix up which hand is which), dark hub.
-    var hp = handPoly(cx, cy, h.hour, r * 0.52, r * 0.10);
-    var mp = handPoly(cx, cy, h.minute, r * 0.72, r * 0.07);
-    s += '<polygon points="' + hp.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="#1A1A1F"/>';
-    s += '<polygon points="' + mp.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="#E64545"/>';
+    // convention), drawn as round-capped strokes so they paint at ANY angle.
+    var hh = handLine(cx, cy, h.hour, r * 0.52, r * 0.12);
+    var mh = handLine(cx, cy, h.minute, r * 0.72, r * 0.08);
+    s += '<line x1="' + hh.x1.toFixed(1) + '" y1="' + hh.y1.toFixed(1) + '" x2="' + hh.x2.toFixed(1) + '" y2="' + hh.y2.toFixed(1) + '" stroke="#1A1A1F" stroke-width="' + (r * 0.12).toFixed(1) + '" stroke-linecap="round"/>';
+    s += '<line x1="' + mh.x1.toFixed(1) + '" y1="' + mh.y1.toFixed(1) + '" x2="' + mh.x2.toFixed(1) + '" y2="' + mh.y2.toFixed(1) + '" stroke="#E64545" stroke-width="' + (r * 0.08).toFixed(1) + '" stroke-linecap="round"/>';
     s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.06).toFixed(1) + '" fill="#1A1A1F"/>';
     s += '</svg>';
     return s;
@@ -104,10 +105,12 @@
       doc.textAt(p.x, p.y, String(n), 8.5, true, '0.2', 'middle');
     }
     var h = C.handsFor(q.h, q.m);
-    // PDF hands match the screen: near-black hour, red minute (classroom
-    // convention), dark hub — never faded grey.
-    doc.poly(handPoly(cx, cy, h.hour, r * 0.52, r * 0.10), '0.04');
-    doc.poly(handPoly(cx, cy, h.minute, r * 0.72, r * 0.07), '0.902 0.271 0.271');
+    // PDF hands match the screen: thick stroked lines (never degenerate),
+    // near-black hour, red minute, dark hub.
+    var hh = handLine(cx, cy, h.hour, r * 0.52, r * 0.12);
+    var mh = handLine(cx, cy, h.minute, r * 0.72, r * 0.08);
+    doc.line(hh.x1, hh.y1, hh.x2, hh.y2, { color: '0.04', width: r * 0.12 });
+    doc.line(mh.x1, mh.y1, mh.x2, mh.y2, { color: '0.902 0.271 0.271', width: r * 0.08 });
     doc.circle(cx, cy, r * 0.06, { fill: '0.04' });
   }
 
@@ -788,7 +791,9 @@
     renderWorksheets: renderWorksheets,
     setSoundIcons: setSoundIcons,
     wire: wire,
-    tryPin: tryPin
+    tryPin: tryPin,
+    clockSvg: clockSvg,
+    clockPdf: clockPdf
   };
 
   root.JOGO = root.JOGO || {};

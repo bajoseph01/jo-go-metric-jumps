@@ -237,17 +237,69 @@ ok(html.indexOf('Worksheets') > -1 && html.indexOf('answer key') > -1, 'guide co
 ok(html.indexOf('5241') > -1, 'guide states the PIN for every device');
 
 // ------------------------------------------------------------------
-section('9. Hand contrast (never faded grey)');
+section('9. Clock hands render at every angle (no degenerate polygons)');
 // ------------------------------------------------------------------
-// The hands must read clearly against the white face in BOTH the on-screen
-// SVG and the PDF: near-black hour, vivid red minute (classroom convention).
+// The Whole & Half level only uses minutes 0/15/30/45 — cardinal angles
+// where perpendicular-offset POLYGON hands degenerate to zero area and
+// vanish. Hands must be thick round-capped strokes (SVG) and thick lines
+// (PDF) so they paint at ANY angle, near-black hour + red minute.
+require('../js/audio.js');
+require('../js/ui.js');
+const UI = global.JOGO.UI;
+ok(!!UI.clockSvg, 'clockSvg exported for geometry testing');
+
+function handLines(svg) {
+  const out = [];
+  let m;
+  const re = /<line ([^>]*stroke="#(?:1A1A1F|E64545)"[^>]*)\/>/g;
+  while ((m = re.exec(svg)) !== null) {
+    const attrs = m[1];
+    const get = (n) => Number(attrs.match(new RegExp(n + '="([-\\d.]+)"'))[1]);
+    out.push({ x1: get('x1'), y1: get('y1'), x2: get('x2'), y2: get('y2'), stroke: attrs.match(/stroke="(#[0-9A-F]+)"/)[1], width: get('stroke-width'), cap: /stroke-linecap="round"/.test(attrs) });
+  }
+  return out;
+}
+
+let allHandsRender = true;
+let allRoundCapped = true;
+for (let h = 1; h <= 12; h++) {
+  for (const m of [0, 15, 30, 45]) {
+    const svg = UI.clockSvg({ h, m }, 120);
+    const lines = handLines(svg);
+    if (lines.length !== 2) { allHandsRender = false; continue; }
+    const hh = lines.find((l) => l.stroke === '#1A1A1F');
+    const mh = lines.find((l) => l.stroke === '#E64545');
+    // The cardinal-angle bug: endpoints must differ (real length) and the
+    // stroke must be round-capped so the renderer paints real thickness.
+    const hLen = hh && (Math.abs(hh.x2 - hh.x1) > 0.5 || Math.abs(hh.y2 - hh.y1) > 0.5);
+    const mLen = mh && (Math.abs(mh.x2 - mh.x1) > 0.5 || Math.abs(mh.y2 - mh.y1) > 0.5);
+    if (!(hLen && mLen)) { allHandsRender = false; }
+    if (!(hh && hh.cap && mh && mh.cap)) { allRoundCapped = false; }
+    if (svg.indexOf('<polygon') > -1) { allHandsRender = false; }
+  }
+}
+ok(allHandsRender, 'both hands render for ALL 48 whole&half times (no degenerate polygons)');
+ok(allRoundCapped, 'both hands are round-capped strokes at every whole&half time');
+
 const uiSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
-ok(uiSrc.indexOf('fill="#1A1A1F"') > -1, 'svg hour hand is near-black');
-ok(uiSrc.indexOf('fill="#E64545"') > -1, 'svg minute hand is vivid red');
+ok(uiSrc.indexOf('stroke="#1A1A1F"') > -1, 'svg hour hand is near-black');
+ok(uiSrc.indexOf('stroke="#E64545"') > -1, 'svg minute hand is vivid red');
 eq(uiSrc.indexOf('fill="#1E4ED8"'), -1, 'old faded blue minute hand removed from svg');
-ok(uiSrc.indexOf('doc.poly(handPoly(cx, cy, h.hour') > -1 && uiSrc.indexOf("'0.04'") > -1, 'pdf hour hand near-black, not grey');
+ok(uiSrc.indexOf('handPoly') === -1, 'degenerate polygon hands removed entirely');
 ok(uiSrc.indexOf('0.902 0.271 0.271') > -1, 'pdf minute hand red, not grey');
-ok(uiSrc.indexOf("doc.poly(handPoly(cx, cy, h.minute, r * 0.72, r * 0.055), '0.24')") === -1, 'faded-grey pdf minute hand removed');
+
+// PDF: a 12:00 clock (BOTH hands vertical — the old degeneracy) must emit
+// two thick stroked lines with the red + near-black colors.
+{
+  const doc = PDF.createDoc({ margin: 40 });
+  UI.clockPdf(doc, 150, 150, 90, { h: 12, m: 0 });
+  const t = String.fromCharCode.apply(null, doc.buildBytes());
+  ok(t.indexOf('0.902 0.271 0.271 RG') > -1, 'pdf 12:00 minute hand is red stroked line');
+  ok(t.indexOf('0.04 RG') > -1, 'pdf 12:00 hour hand is near-black stroked line');
+  const wides = (t.match(/\d+\.\d+ w /g) || []).map((s) => Number(s.replace(' w ', '')));
+  ok(wides.some((w) => w >= 8), 'pdf hands have real stroke thickness (>=8pt)');
+  ok(t.indexOf('0.24 RG') === -1, 'faded-grey pdf minute hand removed');
+}
 
 // ------------------------------------------------------------------
 // Summary
