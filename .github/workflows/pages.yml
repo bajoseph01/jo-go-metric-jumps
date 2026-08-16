@@ -24,10 +24,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Stage both apps in one artifact: Jo⚡Go Metric Jumps stays at the
+      # site root (its existing URL is unchanged) and Tick⚡Tock is served
+      # alongside at /clock-go/. Both apps use only relative paths, so
+      # subpath hosting works as-is.
+      - name: Assemble site
+        run: |
+          mkdir -p _site/clock-go
+          cp -r output/jo-go-metric-jumps/. _site/
+          cp -r output/clock-go/. _site/clock-go/
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: output/jo-go-metric-jumps
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment

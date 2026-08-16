@@ -123,7 +123,7 @@ PROCESS CONTRACT — follow on every feature, without being asked:
 5. Commit each finished feature with a message explaining the WHY.
 6. Update the README and a project report in the same change.
 
-KNOWN PITFALLS for this domain (from the catalog in section 5): [paste the
+KNOWN PITFALLS for this domain (from the catalog in section 6): [paste the
 bug list so the builder checks for them up front].
 ```
 
@@ -136,7 +136,42 @@ retrofitted.
 
 ---
 
-## 4. Process rules that made this work
+## 4. Experiment results: the master prompt, tested
+
+The prompt above was validated in a controlled experiment: **Tick⚡Tock**
+(`output/clock-go/`), a Grade 2–3 analogue-clock-reading game with the same
+platform, audience and architecture but a different domain — so nothing was
+copied from this app, only the genuinely generic inherited wheels (PDF
+writer, audio synth, local server, design tokens).
+
+**Numbers from the run:**
+
+- **1,575 executable checks, 0 failed.** Three test-side assertion fixes;
+  no app-logic fixes before the suite went green.
+- **Zero retrofits.** The architectural surface — multi-learner profiles,
+  teacher mode, worksheet generator, vector PDF export, multi-category
+  engine, offline service worker, design system — was built in one pass.
+  The original journey reached the same surface in 8 feature commits driven
+  by 7 separate late requests, plus three real retrofits (dimension-aware
+  ladder, per-learner store, real vector PDFs).
+- **10 of the 12 original catalog pitfalls pre-empted by construction** —
+  deterministic PDF ids, record-by-id store, level-agnostic engine, cache
+  discipline, distinct identity, complete badge mapping, and the rest.
+- **Two NEW pitfalls found** and added to the catalog (items 13–14): an
+  undismissable picker sheet (a live-preview-only bug) and `build()`
+  returning a Blob in modern Node.
+
+**Honest caveats:** Tick⚡Tock carries less content depth (3 levels vs 8
+stages + scales lab + challenge + leaderboard), and it inherited generic
+wheels the original had to invent. The speed-up is on the *architectural*
+portion — the part the prompt is designed to compress. Real-use bugs and
+design taste still cost turns no prompt removes; the two new bugs are proof.
+The app runs at `node tests/run-tests.js` in `output/clock-go/` and is
+served on GitHub Pages alongside this game at `/jo-go-metric-jumps/clock-go/`.
+
+---
+
+## 5. Process rules that made this work
 
 1. **Tests = executable acceptance criteria.** Every feature added its checks
    to `tests/run-tests.js`. When someone asks "did it work?", the answer is a
@@ -165,7 +200,7 @@ retrofitted.
 
 ---
 
-## 5. Bug & pitfall catalog (concrete, from this project)
+## 6. Bug & pitfall catalog (concrete, from this project)
 
 Check for these so you don't reinvent them:
 
@@ -210,7 +245,7 @@ Check for these so you don't reinvent them:
 
 ---
 
-## 6. The "done" checklist (before you say done)
+## 7. The "done" checklist (before you say done)
 
 - [ ] `node tests/run-tests.js` green (all sections, 0 failed)
 - [ ] Full flow driven in a live preview: setup → play → teacher PIN →
@@ -226,13 +261,13 @@ Check for these so you don't reinvent them:
 
 ---
 
-## 7. Adapting this playbook to a new app
+## 8. Adapting this playbook to a new app
 
-The reusable core is **sections 3–6** — they are app-agnostic. To repurpose:
+The reusable core is **sections 3–7** — they are app-agnostic. To repurpose:
 
 1. Copy this file beside the new app's repo.
 2. Replace the bracketed parts of the master prompt (section 3) with the new
-   app's domain, audience, and pitfalls (seed section 5 with your own known
+   app's domain, audience, and pitfalls (seed section 6 with your own known
    traps after the first build).
 3. Keep the process contract and done-checklist verbatim — they transfer
    unchanged.
