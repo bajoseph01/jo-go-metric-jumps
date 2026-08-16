@@ -56,10 +56,13 @@ internalise "smaller unit → bigger number; the length never changes."
 - **Teacher mode (PIN 5241)** — discreet (long-press the logo, 5 taps, or press
   T): mastery percentages per category, attempts, weak conversion pairs, reset,
   and **Practice all levels** — every stage including locked ones, for teacher-
-  led demonstration. Also prints a **per-learner report** (mastery by category
-  and by conversion pair, learner switcher, print-optimised layout) for
-  handouts and parent updates. Stays unlocked for the session; "Lock" re-arms
-  the PIN.
+  led demonstration. Also prints or downloads a **per-learner report** (mastery
+  by category and by conversion pair, learner switcher, print-optimised
+  layout) and generates a **Worksheet pack**: one sheet per selected learner
+  drilling their weakest conversion pairs plus word problems, with an answer
+  key — printable or exported as a single PDF. Reports and PDFs are produced
+  entirely in-browser by a bundled dependency-free PDF writer (no network,
+  works offline). Stays unlocked for the session; "Lock" re-arms the PIN.
 - **Sound toggle** — persistent preference; app is fully usable silent.
 
 ## Architecture
@@ -71,6 +74,8 @@ js/math.js            exact conversion engine + comma-track builder (unit-testab
 js/formatting.js      SA formatting: decimal comma, 2 500 spacing, answer parsing
 js/questions.js       stages, generators, adaptive pair weighting
 js/storage.js         per-learner profiles, localStorage persistence, mastery model
+js/worksheets.js      per-learner worksheet generation (weakest-pair weighting)
+js/pdf.js             tiny dependency-free PDF writer (reports + worksheet pack)
 js/input.js           keypad (pointer + keyboard) and comma track (pointer drag,
                       tap targets, keyboard arrows, focus ring)
 js/ui.js              render layer: questions, feedback, results, screens, modals
@@ -125,7 +130,12 @@ sw.js                 offline service worker (network-first, cache fallback)
 - double-tap regression: three rapid submits count exactly once (re-entry lock);
 - learner rename via ✎ (name + avatar, progress preserved), pick-before-PLAY
   (no silent default learner), per-learner printable report with learner
-  switcher and working Print button (verified end-to-end in the browser).
+  switcher and working Print button (verified end-to-end in the browser);
+- worksheet pack (per-learner weakest-pair drilling + word problems + answer
+  key, learner checkboxes, regenerate) rendered and exercised in the browser;
+- both PDF exports (report + worksheet pack) validated structurally in the
+  browser (header, xref offsets, trailer, page counts) and rendered by the
+  webview's built-in PDF viewer.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

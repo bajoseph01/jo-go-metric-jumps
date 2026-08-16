@@ -9,6 +9,8 @@
   var M = root.JOGO.Math;
   var F = root.JOGO.Fmt;
   var Q = root.JOGO.Q;
+  var WS = root.JOGO.WS;
+  var PDF = root.JOGO.PDF;
   var Store = root.JOGO.Store;
   var Audio = root.JOGO.Audio;
   var Input = root.JOGO.Input;
@@ -548,6 +550,7 @@
       '</ul></div>' +
       '<div class="teacher-actions">' +
         '<button type="button" class="btn btn--primary" data-action="practice-all">Practice all levels</button>' +
+        '<button type="button" class="btn btn--primary" data-action="worksheets">Worksheet pack</button>' +
         '<button type="button" class="btn btn--ghost" data-action="report">Print report</button>' +
         '<button type="button" class="btn btn--ghost" data-action="learners">Manage learners</button>' +
         '<button type="button" class="btn btn--ghost" data-action="lock">Lock teacher mode</button>' +
@@ -564,6 +567,14 @@
         Audio.play('click');
         closeTeacher();
         renderPractice(true);
+      });
+    }
+    var wb = panel.querySelector('[data-action="worksheets"]');
+    if (wb) {
+      wb.addEventListener('click', function () {
+        Audio.play('click');
+        closeTeacher();
+        renderWorksheets();
       });
     }
     var lk = panel.querySelector('[data-action="lock"]');
@@ -855,6 +866,217 @@
     }
   }
 
+  // ------------------------------------------------------------------
+  // Worksheet pack (teacher mode) + PDF export
+  // ------------------------------------------------------------------
+
+  var wsState = { ids: null, withKey: true, items: {} };
+
+  function safeFilename(s) {
+    var out = String(s).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+    return out || 'learner';
+  }
+
+  function wsLine(item, n) {
+    if (item.type === 'conv') {
+      return '<div class="ws-q"><span class="ws-num">' + n + '.</span> ' + esc(item.text) +
+        ' <span class="ws-from">' + esc(item.from) + '</span> = <span class="ws-blank"></span> ' +
+        '<span class="ws-to">' + esc(item.to) + '</span></div>';
+    }
+    return '<div class="ws-q ws-q--word"><span class="ws-num">' + n + '.</span> <span class="ws-word-text">' +
+      esc(item.text) + '</span><span class="ws-word-answer"><span>Answer:</span>' +
+      '<span class="ws-blank ws-blank--wide"></span></span></div>';
+  }
+
+  /** Teacher worksheet pack: one sheet per selected learner, plus key. */
+  function renderWorksheets() {
+    show('screen-worksheets');
+    var body = $('worksheets-body');
+    var roster = Store.learners();
+    if (!roster.length) {
+      body.innerHTML = '<p class="learners-empty">No learners yet — add a learner first.</p>';
+      return;
+    }
+    if (!wsState.ids) wsState.ids = roster.map(function (l) { return l.id; });
+
+    var html = '<div class="ws-options">';
+    for (var i = 0; i < roster.length; i++) {
+      var on = wsState.ids.indexOf(roster[i].id) >= 0;
+      html += '<label class="ws-opt"><input type="checkbox" data-ws-learner="' + roster[i].id + '"' +
+        (on ? ' checked' : '') + '> ' + roster[i].emoji + ' ' + esc(roster[i].name) + '</label>';
+    }
+    html += '<label class="ws-opt ws-opt--key"><input type="checkbox" id="ws-key-on"' +
+      (wsState.withKey ? ' checked' : '') + '> Include answer key</label>' +
+      '<button type="button" class="btn btn--small" id="btn-ws-regenerate">New questions</button></div>' +
+      '<p class="ws-note">Each worksheet drills the learner\u2019s weakest conversion pairs, plus 2 word problems. ' +
+      'Answers come from the same engine the game uses.</p>';
+
+    var sel = roster.filter(function (l) { return wsState.ids.indexOf(l.id) >= 0; });
+    var date = new Date().toLocaleDateString();
+    for (var s = 0; s < sel.length; s++) {
+      var l = sel[s];
+      if (!wsState.items[l.id]) wsState.items[l.id] = WS.buildItems(Store.progressOf(l.id));
+      var items = wsState.items[l.id];
+      var convs = items.filter(function (it) { return it.type === 'conv'; });
+      var words = items.filter(function (it) { return it.type === 'word'; });
+      html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
+        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — Worksheet</div>' +
+        '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
+        '<p class="ws-instruct">Convert these. Write your answer in the box.</p><div class="ws-qs">';
+      for (var c = 0; c < convs.length; c++) {
+        html += wsLine(convs[c], c + 1);
+      }
+      html += '</div><p class="ws-instruct ws-instruct--words">Word problems.</p><div class="ws-qs">';
+      for (var w = 0; w < words.length; w++) {
+        html += wsLine(words[w], convs.length + w + 1);
+      }
+      html += '</div></div>';
+    }
+
+    if (wsState.withKey && sel.length) {
+      html += '<div class="ws-answers print-area"><h2 class="report-sec">Answer Key</h2>';
+      for (var k = 0; k < sel.length; k++) {
+        var items2 = wsState.items[sel[k].id];
+        html += '<div class="ws-key-learner"><h3>' + sel[k].emoji + ' ' + esc(sel[k].name) + '</h3>' +
+          '<ol class="ws-key-list">';
+        for (var a = 0; a < items2.length; a++) {
+          html += '<li>' + esc(items2[a].answer) +
+            (items2[a].type === 'word' ? ' <span class="ws-key-unit">(' + esc(items2[a].from) + ' → ' + esc(items2[a].to) + ')</span>' : '') +
+            '</li>';
+        }
+        html += '</ol></div>';
+      }
+      html += '</div>';
+    }
+
+    body.innerHTML = html;
+
+    var boxes = body.querySelectorAll('[data-ws-learner]');
+    for (var b = 0; b < boxes.length; b++) {
+      boxes[b].addEventListener('change', function () {
+        var id = this.getAttribute('data-ws-learner');
+        var idx = wsState.ids.indexOf(id);
+        if (this.checked && idx < 0) wsState.ids.push(id);
+        if (!this.checked && idx >= 0) wsState.ids.splice(idx, 1);
+        renderWorksheets();
+      });
+    }
+    var keyBox = $('ws-key-on');
+    if (keyBox) {
+      keyBox.addEventListener('change', function () {
+        wsState.withKey = this.checked;
+        renderWorksheets();
+      });
+    }
+    var regen = $('btn-ws-regenerate');
+    if (regen) {
+      regen.addEventListener('click', function () {
+        Audio.play('click');
+        wsState.items = {};
+        renderWorksheets();
+      });
+    }
+  }
+
+  /** Compose the per-learner report as a PDF (mirrors the print layout). */
+  function reportPdf(l, prog) {
+    var doc = PDF.createDoc({});
+    doc.title(l.name + ' — Metric Jumps Report');
+    var firstTryPct = prog.totalAnswered ? Math.round((prog.totalFirstTry / prog.totalAnswered) * 100) : 0;
+    doc.subtitle('Stage ' + prog.unlocked + ' unlocked · ' + prog.totalAnswered + ' questions · ' +
+      firstTryPct + '% first-try · best streak ' + prog.bestStreak);
+    doc.section('Mastery by category');
+    var rows = [];
+    for (var c = 0; c < Store.CATEGORIES.length; c++) {
+      var key = Store.CATEGORIES[c];
+      var rec = prog.categories[key];
+      rows.push([Store.CATEGORY_LABELS[key], String(rec.attempts), pct(rec), recentPct(rec), masteryFor(rec)]);
+    }
+    doc.table([
+      { label: 'Category', w: 190 },
+      { label: 'Tries', w: 55 },
+      { label: 'First-try', w: 75 },
+      { label: 'Recent', w: 75 },
+      { label: 'Status', w: 100 }
+    ], rows);
+    doc.section('Conversion pairs');
+    var pairKeys = Object.keys(prog.pairs).sort();
+    if (!pairKeys.length) {
+      doc.para('No conversions answered yet.', { color: '0.42' });
+    } else {
+      var prs = [];
+      for (var p = 0; p < pairKeys.length; p++) {
+        var pr = prog.pairs[pairKeys[p]];
+        var parts = pairKeys[p].split('>');
+        prs.push([parts[0] + ' -> ' + parts[1], String(pr.attempts), pct(pr), recentPct(pr)]);
+      }
+      doc.table([
+        { label: 'Conversion', w: 200 },
+        { label: 'Tries', w: 70 },
+        { label: 'First-try', w: 80 },
+        { label: 'Recent', w: 80 }
+      ], prs);
+    }
+    return doc;
+  }
+
+  /** Download the current report as a PDF. */
+  function exportReportPdf() {
+    var roster = Store.learners();
+    if (!roster.length) return;
+    var current = reportLearnerId && Store.progressOf(reportLearnerId)
+      ? reportLearnerId
+      : (Store.activeLearner() || roster[0]).id;
+    var l = roster.filter(function (x) { return x.id === current; })[0];
+    var doc = reportPdf(l, Store.progressOf(current));
+    PDF.download(doc.build(), 'Metric-Jumps-Report-' + safeFilename(l.name) + '.pdf');
+  }
+
+  /** Download the whole selected worksheet pack as one PDF. */
+  function exportWorksheetPdf() {
+    var roster = Store.learners();
+    var sel = roster.filter(function (l) { return wsState.ids && wsState.ids.indexOf(l.id) >= 0; });
+    if (!sel.length) return;
+    var date = new Date().toLocaleDateString();
+    var doc = PDF.createDoc({});
+    var first = true;
+    for (var i = 0; i < sel.length; i++) {
+      var l = sel[i];
+      if (!first) doc.pageBreak();
+      first = false;
+      var items = wsState.items[l.id] || WS.buildItems(Store.progressOf(l.id));
+      var convs = items.filter(function (it) { return it.type === 'conv'; });
+      var words = items.filter(function (it) { return it.type === 'word'; });
+      doc.title('Metric Jumps — Worksheet');
+      doc.subtitle('For: ' + l.name + '  ·  ' + date);
+      doc.para('Convert these. Write your answer in the box.', { bold: true });
+      doc.blankLine(2);
+      for (var c = 0; c < convs.length; c++) {
+        doc.para((c + 1) + '.  ' + convs[c].text + ' ' + convs[c].from + ' = ________ ' + convs[c].to, { gap: 10 });
+      }
+      doc.blankLine(4);
+      doc.para('Word problems.', { bold: true });
+      doc.blankLine(2);
+      for (var w = 0; w < words.length; w++) {
+        doc.para((convs.length + w + 1) + '.  ' + words[w].text, { gap: 2 });
+        doc.para('Answer: ____________________', { indent: 22, gap: 12, color: '0.35' });
+      }
+    }
+    if (wsState.withKey) {
+      doc.pageBreak();
+      doc.title('Answer Key');
+      for (var k = 0; k < sel.length; k++) {
+        var items2 = wsState.items[sel[k].id] || WS.buildItems(Store.progressOf(sel[k].id));
+        doc.section(sel[k].name);
+        var ans = items2.map(function (it) { return it.answer; });
+        for (var a = 0; a < ans.length; a += 5) {
+          doc.para(ans.slice(a, a + 5).map(function (x, j) { return (a + j + 1) + '. ' + x; }).join('    '), { gap: 8 });
+        }
+      }
+    }
+    PDF.download(doc.build(), 'Metric-Jumps-Worksheet-Pack.pdf');
+  }
+
   /**
    * Teacher PIN prompt. On a correct entry closes itself and calls onSuccess.
    * Wrong entries shake the panel, clear the dots and show a hint.
@@ -960,6 +1182,9 @@
     renderLearners: renderLearners,
     updateLearnerChip: updateLearnerChip,
     renderReport: renderReport,
+    renderWorksheets: renderWorksheets,
+    exportReportPdf: exportReportPdf,
+    exportWorksheetPdf: exportWorksheetPdf,
     setSoundIcons: setSoundIcons
   };
 

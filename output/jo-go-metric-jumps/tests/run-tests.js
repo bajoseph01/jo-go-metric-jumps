@@ -511,6 +511,112 @@ for (const junk of JUNK) {
 }
 
 // ------------------------------------------------------------------
+section('11. Worksheet pack generation');
+// ------------------------------------------------------------------
+const WS = require('../js/worksheets.js');
+const PDF = require('../js/pdf.js');
+
+function lcg2(seed) {
+  let s = seed;
+  return function () {
+    s = (s * 1103515245 + 12345) % 2147483648;
+    return s / 2147483648;
+  };
+}
+
+// pair weights: known-weak > untried (neutral) > mastered (floor)
+const weakProg = { pairs: { 'km>m': { attempts: 10, firstTry: 2 }, 'm>cm': { attempts: 8, firstTry: 8 } } };
+const w1 = WS.pairWeights(weakProg);
+eq(w1['km>m'] > w1['m>km'], true, 'weak pair outweighs untried pair');
+eq(w1['km>m'] > w1['m>cm'], true, 'weak pair outweighs mastered pair');
+eq(w1['m>cm'], 0.15, 'mastered pair floored at 0.15');
+eq(w1['m>km'], 0.5, 'untried pair is neutral');
+
+// item counts and structure
+const items = WS.buildItems(weakProg, lcg2(7), 8, 2);
+eq(items.length, 10, 'worksheet has 10 questions');
+eq(items.filter(i => i.type === 'conv').length, 8, '8 conversion questions');
+eq(items.filter(i => i.type === 'word').length, 2, '2 word problems');
+
+// every conversion answer is exactly right per the math engine
+let wsBad = 0;
+for (const it of items) {
+  if (it.type !== 'conv') continue;
+  const conv = M.conversion(it.from, it.to);
+  const rat = F.saToRational(it.text.replace(/\s/g, ''));
+  if (!rat) { wsBad++; continue; }
+  const exp = M.convertValue(rat.num, rat.den, conv);
+  if (F.rationalToSA(exp.num, exp.den) !== it.answer) wsBad++;
+}
+eq(wsBad, 0, 'all worksheet conversion answers exact');
+
+// word problems use the realistic (grounded) templates
+for (const w of items.filter(i => i.type === 'word')) {
+  const tpls = Q.TRANSFER_TEMPLATES[w.from + '>' + w.to] || [];
+  ok(tpls.length > 0, 'word problem pair has realistic templates: ' + w.from + '>' + w.to);
+  ok(/\d/.test(w.text), 'word problem contains a value');
+}
+
+// deterministic for a fixed rng
+const a1 = WS.buildItems(weakProg, lcg2(99), 8, 2);
+const a2 = WS.buildItems(weakProg, lcg2(99), 8, 2);
+eq(JSON.stringify(a1), JSON.stringify(a2), 'worksheet generation is deterministic per rng');
+
+// ------------------------------------------------------------------
+section('12. PDF writer');
+// ------------------------------------------------------------------
+
+// text sanitising: arrows mapped, emoji dropped, WinAnsi kept
+const pdfText = PDF.toPdfText('m → cm · × ÷ — 🦊 3,5');
+eq(pdfText.indexOf('->') >= 0, true, 'arrow mapped to ->');
+eq(pdfText.indexOf('🦊') < 0, true, 'emoji dropped');
+eq(pdfText.indexOf('·') >= 0, true, 'middle dot kept');
+eq(pdfText.indexOf('×') >= 0 && pdfText.indexOf('÷') >= 0, true, 'multiply/divide signs kept');
+
+function pdfBytes(doc) {
+  return Buffer.from(doc.buildBytes()).toString('latin1');
+}
+
+// structural validity: header, xref offsets, trailer
+const doc = PDF.createDoc({});
+doc.title('Report — Test');
+doc.section('Section');
+doc.table([{ label: 'A', w: 200 }, { label: 'B', w: 200 }], [['x', 'y'], ['hello world', 'z']]);
+doc.pageBreak();
+doc.para('Page two');
+const s = pdfBytes(doc);
+ok(s.startsWith('%PDF-1.4'), 'pdf header present');
+ok(s.endsWith('%%EOF\n'), 'pdf eof marker present');
+const sm = s.match(/startxref\n(\d+)\n%%EOF/);
+ok(!!sm, 'startxref present');
+if (sm) eq(Number(sm[1]), s.indexOf('xref'), 'startxref points at the xref table');
+
+// every xref entry must point at "N 0 obj"
+const xrefStart = Number(sm[1]);
+const xlines = s.slice(xrefStart).split('\n');
+const nObjs = Number(xlines[1].split(' ')[1]);
+let badOff = 0;
+for (let oi = 1; oi < nObjs; oi++) {
+  const off = Number(xlines[2 + oi].slice(0, 10));
+  if (s.slice(off, off + String(oi).length + 6) !== oi + ' 0 obj') badOff++;
+}
+eq(badOff, 0, 'all ' + (nObjs - 1) + ' xref object offsets resolve');
+
+// stream lengths match the real content length
+const lenM = s.match(/\/Length (\d+) >>\nstream\n([\s\S]*?)endstream/g);
+let lenBad = 0;
+for (const lm of (lenM || [])) {
+  const declared = Number(lm.match(/\/Length (\d+)/)[1]);
+  const body = lm.match(/stream\n([\s\S]*?)endstream/)[1];
+  if (body.length !== declared) lenBad++;
+}
+eq(lenBad, 0, 'content stream lengths match declared');
+
+// page count matches the Kids array
+const kidsArr = (s.match(/\/Kids \[([^\]]+)\]/) || [])[1] || '';
+eq(kidsArr.split('0 R').length - 1, 2, 'two pages in Kids array');
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

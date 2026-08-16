@@ -77,7 +77,7 @@ sw.js                 offline service worker
 
 ```bash
 node tools/serve.js        # starts a local static server on http://localhost:4173
-node tests/run-tests.js    # runs the automated suite (5893 checks)
+node tests/run-tests.js    # runs the automated suite (5917 checks)
 ```
 
 ## Progress & teacher panel
@@ -92,8 +92,11 @@ sound and motion settings stay device-wide. Everything is saved in
 `localStorage` — no accounts, no data leaves the device. On the home screen,
 long-press the Jo⚡Go logo (or press **T**) to open **teacher mode** (PIN: 5241):
 mastery percentages, weak conversion pairs, reset, **Practice all levels** —
-every stage including locked ones — and a **per-learner printable report**
-(mastery by category and conversion pair, with a learner switcher and a Print
-button) for teacher-led demonstration and parent/guardian handouts.
+every stage including locked ones — a **per-learner printable report**
+(mastery by category and conversion pair, with a learner switcher, Print and
+**Download PDF** buttons), and a **Worksheet pack**: one printable or
+PDF-exportable worksheet per selected learner that drills their weakest
+conversion pairs plus two word problems, with an answer key. Everything is
+generated locally — no network, no data leaves the device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡

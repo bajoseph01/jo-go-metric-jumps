@@ -1156,19 +1156,120 @@ button {
 .report-foot { color: var(--ink-soft); font-size: 0.8rem; margin-top: 16px; text-align: right; }
 .report-tbl { font-size: 0.9rem; }
 
+.page-head-actions { display: flex; gap: 8px; }
+
+/* ---------------- teacher worksheet pack ---------------- */
+
+.ws-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.ws-opt {
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+  padding: 6px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  touch-action: manipulation;
+}
+
+.ws-opt input { width: 18px; height: 18px; accent-color: var(--blue); cursor: pointer; }
+.ws-opt--key { background: var(--yellow-soft); }
+.ws-note { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 14px; }
+
+.ws-sheet {
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 16px 20px;
+  max-width: 680px;
+  margin: 0 auto 18px;
+}
+
+.ws-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.ws-brand { font-weight: 900; font-size: 1.05rem; }
+.ws-who { color: var(--ink-soft); font-size: 0.9rem; white-space: nowrap; }
+.ws-instruct { font-weight: 800; margin: 10px 0 4px; }
+.ws-instruct--words { margin-top: 18px; }
+
+.ws-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0;
+  font-size: 1.05rem;
+}
+
+.ws-num { font-weight: 800; min-width: 26px; }
+.ws-blank {
+  display: inline-block;
+  min-width: 110px;
+  border-bottom: 2px solid var(--ink);
+  height: 1.15em;
+  margin: 0 4px;
+}
+
+.ws-q--word { flex-direction: column; gap: 4px; }
+.ws-word-answer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 34px;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.ws-blank--wide { min-width: 260px; }
+
+.ws-answers {
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 16px 20px;
+  max-width: 680px;
+  margin: 0 auto 18px;
+}
+
+.ws-key-learner { margin: 12px 0; }
+.ws-key-learner h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.ws-key-list { columns: 2; column-gap: 24px; margin: 0; padding-left: 24px; font-size: 0.95rem; }
+.ws-key-unit { color: var(--ink-soft); font-size: 0.8rem; }
+
 @media print {
-  body * { visibility: hidden; }
-  .print-area, .print-area * { visibility: visible; }
-  .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  .screen { display: none !important; }
+  .screen--active { display: block !important; }
+  .page-head, .report-picker, .ws-options, .ws-note { display: none !important; }
+  .report, .ws-sheet, .ws-answers {
     border: none;
     box-shadow: none;
     max-width: none;
+    border-radius: 0;
+    margin: 0 0 0;
+    padding: 0;
   }
-  .page-head, .report-picker { display: none; }
+  .ws-sheet { page-break-after: always; }
+  .ws-answers { page-break-before: always; }
+  .ws-key-list { columns: 2; }
 }
 
 .teacher-head {

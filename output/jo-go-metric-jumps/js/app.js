@@ -81,6 +81,30 @@
         root.print();
       });
     }
+
+    var reportPdfBtn = $('btn-report-pdf');
+    if (reportPdfBtn) {
+      reportPdfBtn.addEventListener('click', function () {
+        Audio.play('click');
+        UI.exportReportPdf();
+      });
+    }
+
+    var wsPrintBtn = $('btn-ws-print');
+    if (wsPrintBtn) {
+      wsPrintBtn.addEventListener('click', function () {
+        Audio.play('click');
+        root.print();
+      });
+    }
+
+    var wsPdfBtn = $('btn-ws-pdf');
+    if (wsPdfBtn) {
+      wsPdfBtn.addEventListener('click', function () {
+        Audio.play('click');
+        UI.exportWorksheetPdf();
+      });
+    }
   }
 
   function wireHud() {

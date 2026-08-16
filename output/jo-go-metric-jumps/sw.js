@@ -18,6 +18,8 @@ var CORE = [
   './js/math.js',
   './js/formatting.js',
   './js/questions.js',
+  './js/worksheets.js',
+  './js/pdf.js',
   './js/storage.js',
   './js/audio.js',
   './js/input.js',

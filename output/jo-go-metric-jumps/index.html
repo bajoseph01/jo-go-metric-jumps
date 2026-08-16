@@ -109,9 +109,25 @@
       <header class="page-head">
         <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
         <h1 class="page-title" id="report-title">Reports</h1>
-        <button type="button" class="btn btn--small" id="btn-report-print">Print</button>
+        <div class="page-head-actions">
+          <button type="button" class="btn btn--small" id="btn-report-pdf">Download PDF</button>
+          <button type="button" class="btn btn--small" id="btn-report-print">Print</button>
+        </div>
       </header>
       <main class="page-body" id="report-body"></main>
+    </section>
+
+    <!-- ===================== WORKSHEET PACK ===================== -->
+    <section class="screen" id="screen-worksheets" aria-labelledby="worksheets-title">
+      <header class="page-head">
+        <button type="button" class="btn-icon" data-back="screen-home" aria-label="Back to home">←</button>
+        <h1 class="page-title" id="worksheets-title">Worksheet Pack</h1>
+        <div class="page-head-actions">
+          <button type="button" class="btn btn--small" id="btn-ws-pdf">Download PDF</button>
+          <button type="button" class="btn btn--small" id="btn-ws-print">Print</button>
+        </div>
+      </header>
+      <main class="page-body" id="worksheets-body"></main>
     </section>
 
     <!-- ===================== PROGRESS ===================== -->
@@ -195,14 +211,16 @@
 
   </div>
 
-  <script src="js/math.js?v=21"></script>
-  <script src="js/formatting.js?v=21"></script>
-  <script src="js/questions.js?v=21"></script>
-  <script src="js/storage.js?v=21"></script>
-  <script src="js/audio.js?v=21"></script>
-  <script src="js/input.js?v=21"></script>
-  <script src="js/ui.js?v=21"></script>
-  <script src="js/game.js?v=21"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/math.js?v=22"></script>
+  <script src="js/formatting.js?v=22"></script>
+  <script src="js/questions.js?v=22"></script>
+  <script src="js/worksheets.js?v=22"></script>
+  <script src="js/pdf.js?v=22"></script>
+  <script src="js/storage.js?v=22"></script>
+  <script src="js/audio.js?v=22"></script>
+  <script src="js/input.js?v=22"></script>
+  <script src="js/ui.js?v=22"></script>
+  <script src="js/game.js?v=22"></script>
+  <script src="js/app.js?v=22"></script>
 </body>
 </html>
