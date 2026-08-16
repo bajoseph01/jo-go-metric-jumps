@@ -255,6 +255,12 @@ async function run() {
       check(false, 'scales: arrow/ruler both present for geometry check');
     }
     check(ss.dark > 200, 'scales: tick marks paint inside the ruler (' + ss.dark + ' px)');
+    // The ruler must reflect the scale the child can actually read: a
+    // fresh learner gets the mm-numbered ruler where the arrow IS the
+    // answer (corner label mm, big numbers 10, 20, …), never the
+    // cm-numbered one that needs a conversion it has not learned yet.
+    const rulerTxt = await evalJs(cdp, "(() => { const svg = document.querySelector('svg[aria-label*=\"Ruler\"]'); if (!svg) return 'no-svg'; return svg.textContent; })()");
+    check(rulerTxt.indexOf('mm') > -1 && rulerTxt.indexOf('cm') === -1, 'scales: question one shows the beginner mm ruler (not cm)');
 
     // ---- Screen 3: GAME — the ladder must not hand the answer away ----
     // Factor pills and the direction arrow stay hidden until Show hint.

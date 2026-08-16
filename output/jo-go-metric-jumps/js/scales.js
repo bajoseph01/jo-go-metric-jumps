@@ -11,13 +11,33 @@
   'use strict';
 
   var SCALE_SPECS = {
+    // The ruler has two reading levels: a beginner ruler numbered straight
+    // in mm (read the arrow directly) and an advanced ruler numbered in cm
+    // (each cm = 10 mm — the child converts). Which level shows is decided
+    // by rulerLevel() from the learner's mastery, never the other way
+    // around: question one must always be the mm ruler.
     ruler:   { label: 'Ruler',         unit: 'mm',  ask: 'millimetres', min: 30, max: 250, major: 10, minor: 1,
-               howTo: 'Find the nearest big number, then count the small lines on from there. Each small line is 1 mm.' },
+               howTo: {
+                 mm: 'Find the nearest big number (10, 20, 30 …), then count the small lines on from there. Each small line is 1 mm.',
+                 cm: 'The big numbers are cm, but we want mm. Each cm is 10 mm and each small line is 1 mm. Count the cm, count on the small lines, then multiply by 10 — that is your answer in mm.'
+               } },
     kitchen: { label: 'Kitchen scale', unit: 'g',   ask: 'grams',       min: 80, max: 980, major: 100, minor: 20,
                howTo: 'The big lines are 100 g apart. Each small line is 20 g. Count up from the nearest big line.' },
     jug:     { label: 'Measuring jug', unit: 'mL',  ask: 'millilitres', min: 100, max: 900, major: 100, minor: 25,
                howTo: 'The big lines are 100 mL apart. Each small line is 25 mL. Count up from the nearest big line.' }
   };
+
+  /**
+   * Which ruler level a learner is ready for, from their ruler stats
+   * ({ attempts, firstTry } or undefined). Mastered readers (at least 8
+   * attempts with 80%+ first-try accuracy) earn the harder cm-numbered
+   * ruler; everyone else reads the mm ruler, where the arrow IS the answer.
+   */
+  function rulerLevel(stats) {
+    if (!stats || !stats.attempts) return 'mm';
+    if (stats.attempts >= 8 && stats.firstTry / stats.attempts >= 0.8) return 'cm';
+    return 'mm';
+  }
 
   /** Random reading that always lands exactly on a minor tick. */
   function question(instrument, rng) {
@@ -35,11 +55,19 @@
     return Math.round(parseFloat(clean));
   }
 
-  /** A 250 mm ruler numbered in cm, with a red pointer at `mm`. */
-  function rulerSVG(mm) {
+  /**
+   * A 250 mm ruler with a red pointer at `mm`. `level` decides the scale
+   * the ruler is numbered in: 'mm' (beginner — big numbers 10, 20, 30 …
+   * and the arrow IS the answer) or 'cm' (advanced — big numbers 0–25,
+   * child converts cm → mm). Same ticks, same pointer geometry; only the
+   * labels and the corner unit change.
+   */
+  function rulerSVG(mm, level) {
+    level = level || 'mm';
     var px = 1.7;
     var x0 = 30;
     var w = x0 + 250 * px + 10;
+    var unit = level === 'cm' ? 'cm' : 'mm';
     var html = '<svg viewBox="0 0 ' + w + ' 96" class="scale-svg" role="img" aria-label="Ruler with arrow at ' + mm + ' millimetres">' +
       '<rect x="' + x0 + '" y="30" width="' + (250 * px) + '" height="36" rx="4" fill="#f7c948" stroke="#2d2d2d" stroke-width="2"/>';
     for (var m = 0; m <= 250; m++) {
@@ -49,7 +77,8 @@
       var th = isMajor ? 16 : (isHalf ? 11 : 7);
       html += '<line x1="' + x.toFixed(1) + '" y1="30" x2="' + x.toFixed(1) + '" y2="' + (30 + th) + '" stroke="#2d2d2d" stroke-width="' + (isMajor ? 1.6 : 0.8) + '"/>';
       if (isMajor) {
-        html += '<text x="' + x.toFixed(1) + '" y="80" text-anchor="middle" font-size="9" font-weight="700">' + (m / 10) + '</text>';
+        var label = level === 'cm' ? (m / 10) : m;
+        html += '<text x="' + x.toFixed(1) + '" y="80" text-anchor="middle" font-size="9" font-weight="700">' + label + '</text>';
       }
     }
     var px2 = x0 + mm * px;
@@ -59,7 +88,7 @@
       '<line x1="' + px2.toFixed(1) + '" y1="4" x2="' + px2.toFixed(1) + '" y2="16" stroke-width="3"/>' +
       '<polygon points="' + (px2 - 7).toFixed(1) + ',16 ' + (px2 + 7).toFixed(1) + ',16 ' + px2.toFixed(1) + ',29"/>' +
       '</g>' +
-      '<text x="' + (w - 8) + '" y="26" text-anchor="end" font-size="10" font-weight="700">cm</text>' +
+      '<text x="' + (w - 8) + '" y="26" text-anchor="end" font-size="10" font-weight="700">' + unit + '</text>' +
       '</svg>';
     return html;
   }
@@ -120,6 +149,7 @@
     SCALE_SPECS: SCALE_SPECS,
     question: question,
     parseInput: parseInput,
+    rulerLevel: rulerLevel,
     rulerSVG: rulerSVG,
     kitchenSVG: kitchenSVG,
     jugSVG: jugSVG
@@ -154,8 +184,10 @@
   //   { t:'text', x,y, str, size, bold, color, anchor }
   // ------------------------------------------------------------------
 
-  function rulerPDF(mm) {
+  function rulerPDF(mm, level) {
+    level = level || 'mm';
     var px = 1.7, x0 = 30, w = x0 + 250 * px + 10;
+    var unit = level === 'cm' ? 'cm' : 'mm';
     var c = [];
     c.push({ t: 'rect', x: x0, y: 30, w: 250 * px, h: 36, fill: '#f7c948', stroke: '#2d2d2d', sw: 2 });
     for (var m = 0; m <= 250; m++) {
@@ -163,13 +195,13 @@
       var isMajor = m % 10 === 0, isHalf = m % 5 === 0;
       var th = isMajor ? 16 : (isHalf ? 11 : 7);
       c.push({ t: 'line', x1: x, y1: 30, x2: x, y2: 30 + th, w: isMajor ? 1.6 : 0.8, color: '#2d2d2d' });
-      if (isMajor) c.push({ t: 'text', x: x, y: 80, str: String(m / 10), size: 9, bold: true, color: '#2d2d2d', anchor: 'middle' });
+      if (isMajor) c.push({ t: 'text', x: x, y: 80, str: String(level === 'cm' ? m / 10 : m), size: 9, bold: true, color: '#2d2d2d', anchor: 'middle' });
     }
     var px2 = x0 + mm * px;
     // Mirrors rulerSVG: arrow tip stops above the ruler's top edge.
     c.push({ t: 'line', x1: px2, y1: 4, x2: px2, y2: 16, w: 3, color: '#e63946' });
     c.push({ t: 'poly', pts: [[px2 - 7, 16], [px2 + 7, 16], [px2, 29]], fill: '#e63946' });
-    c.push({ t: 'text', x: w - 8, y: 26, str: 'cm', size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
+    c.push({ t: 'text', x: w - 8, y: 26, str: unit, size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
     return c;
   }
 

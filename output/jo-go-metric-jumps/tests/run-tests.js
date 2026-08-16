@@ -816,6 +816,28 @@ eq(ps('12.5'), 13, 'point decimal rounded');
 eq(ps('abc'), null, 'junk rejected');
 eq(ps(''), null, 'empty rejected');
 
+// ---- ruler levels: beginner mm ruler vs mastered cm ruler -----------
+// A learner reads the ruler in the unit they can actually read: the mm
+// ruler's big numbers ARE the answer; only a mastered reader gets the
+// cm-numbered ruler (each cm = 10 mm). Question one must be the mm ruler.
+eq(Scales.rulerLevel(null), 'mm', 'no stats -> mm ruler');
+eq(Scales.rulerLevel({}), 'mm', 'empty stats -> mm ruler');
+eq(Scales.rulerLevel({ attempts: 7, firstTry: 7 }), 'mm', '7/7 still mm (needs 8 attempts)');
+eq(Scales.rulerLevel({ attempts: 8, firstTry: 6 }), 'mm', '8 attempts at 75% still mm');
+eq(Scales.rulerLevel({ attempts: 10, firstTry: 8 }), 'cm', '10 attempts at 80% earns the cm ruler');
+eq(Scales.rulerLevel({ attempts: 8, firstTry: 8 }), 'cm', 'perfect 8/8 earns the cm ruler');
+const rh = Scales.SCALE_SPECS.ruler.howTo;
+ok(rh && typeof rh === 'object' && rh.mm && rh.cm && rh.mm !== rh.cm, 'ruler howTo has separate mm/cm kid hints');
+ok(typeof Scales.SCALE_SPECS.kitchen.howTo === 'string', 'kitchen howTo stays a plain string');
+// default ruler is the beginner mm scale; 'cm' opts into the conversion
+const rsMm = Scales.rulerSVG(137);
+ok(rsMm.indexOf('>10<') > -1 && rsMm.indexOf('>250<') > -1, 'mm ruler numbers 10, 20, … 250');
+ok(rsMm.indexOf('>mm<') > -1, 'mm ruler corner label is mm');
+ok(rsMm.indexOf('>1<') === -1, 'mm ruler never shows a lone cm label');
+const rsCm = Scales.rulerSVG(137, 'cm');
+ok(rsCm.indexOf('>1<') > -1 && rsCm.indexOf('>25<') > -1, 'cm ruler numbers 0-25');
+ok(rsCm.indexOf('>cm<') > -1, 'cm ruler corner label is cm');
+
 // SVG builders are well-formed and carry the answer
 const rs = Scales.rulerSVG(137);
 ok(rs.indexOf('aria-label="Ruler with arrow at 137') >= 0, 'ruler svg declares its reading');
@@ -845,11 +867,18 @@ eq(JSON.stringify(Scales.worksheetItems(makeRng(21), null)), JSON.stringify(Scal
 
 // ---- PDF drawing commands (same geometry as the SVGs) --------------
 const rp = Scales.rulerPDF(137);
+const rpC = Scales.rulerPDF(137, 'cm');
 const rNeedle = rp.filter(c => c.t === 'line' && c.color === '#e63946')[0];
 eq(Math.round(rNeedle.x1 * 10) / 10, 30 + 137 * 1.7, 'ruler pointer sits at 137 mm');
 eq(rNeedle.x1, rNeedle.x2, 'ruler pointer vertical');
 eq(rp.filter(c => c.t === 'line').length, 251 + 1, 'ruler: 250 ticks + pointer');
-eq(rp.filter(c => c.t === 'text').length, 27, 'ruler: 26 cm labels (0-25) + cm label');
+eq(rp.filter(c => c.t === 'text').length, 27, 'mm ruler: 26 labels (0-250 @10) + mm label');
+eq(rpC.filter(c => c.t === 'text').length, 27, 'cm ruler: 26 labels (0-25) + cm label');
+ok(rp.some(c => c.t === 'text' && c.str === '10') && rp.some(c => c.t === 'text' && c.str === '250'), 'mm pdf labels major ticks in mm');
+ok(rp.some(c => c.t === 'text' && c.str === 'mm'), 'mm pdf carries the mm unit');
+ok(!rp.some(c => c.t === 'text' && c.str === '1'), 'mm pdf never labels a lone cm');
+ok(rpC.some(c => c.t === 'text' && c.str === '1') && rpC.some(c => c.t === 'text' && c.str === '25'), 'cm pdf labels 0-25 cm');
+ok(rpC.some(c => c.t === 'text' && c.str === 'cm'), 'cm pdf carries the cm unit');
 // The pointer arrow must point AT the ruler from ABOVE: its tip stops
 // short of the ruler body (top edge y=30) so it never covers a tick.
 {
@@ -933,6 +962,25 @@ eq(st2.progressOf(ben.id).totalAnswered, 0, 'Ben untouched while active');
 st2.recordScaleFor('nope', 'ruler', true);
 st2.recordScaleFor(ada.id, 'bogus', true);
 eq(st2.progressOf(ada.id).totalAnswered, 3, 'unknown learner/instrument ignored');
+
+// scale level API: read stats + mark the advanced (cm) ruler as offered
+eq(st2.scaleStats(ada.id, 'ruler').attempts, 2, 'scaleStats reads Ada ruler stats');
+eq(st2.scaleStats(ada.id, 'kitchen').attempts, 0, 'scaleStats returns empty record for untouched instrument');
+eq(st2.scaleStats(ada.id, 'bogus'), null, 'scaleStats null for bogus instrument');
+eq(st2.scaleStats('nope', 'ruler'), null, 'scaleStats null for unknown learner');
+eq(Scales.rulerLevel(st2.scaleStats(ada.id, 'ruler')), 'mm', 'Ada 2 attempts -> still the mm ruler');
+st2.markScaleAdvanced(ada.id, 'ruler');
+eq(st2.scaleStats(ada.id, 'ruler').advanced, true, 'markScaleAdvanced flags the learner');
+st2.markScaleAdvanced(ada.id, 'bogus');
+st2.markScaleAdvanced('nope', 'ruler');
+eq(st2.scaleStats(ada.id, 'ruler').advanced, true, 'bogus advanced marks ignored');
+// the advanced flag must survive a reload (sanitize keeps it)
+const memAd = {};
+const stAd = Store.createStore({ getItem: () => null, setItem: (k, v) => memAd[k] = v });
+const carl = stAd.addLearner('Carl', '🦊');
+stAd.markScaleAdvanced(carl.id, 'ruler');
+const stAd2 = Store.createStore({ getItem: k => memAd[k] || null, setItem: () => {} });
+eq(stAd2.scaleStats(carl.id, 'ruler').advanced, true, 'advanced flag survives persistence');
 
 // blank answers parse to null (the "left blank" marking path)
 eq(Scales.parseInput(''), null, 'empty input parses to null (blank)');
@@ -1123,7 +1171,9 @@ ok(html.indexOf('power of ten') === -1, 'teacher-speak "power of ten" gone from 
 ok(html.indexOf('Find the operation') === -1, 'assumptive "Find the operation" gone');
 
 // Every scale instrument teaches how to READ it, kid language, method only.
-ok(Scales.SCALE_SPECS.ruler.howTo && Scales.SCALE_SPECS.ruler.howTo.indexOf('1 mm') >= 0, 'ruler how-to mentions the 1 mm tick');
+// The ruler has one hint per level (mm ruler: read the arrow; cm ruler: ×10).
+ok(Scales.SCALE_SPECS.ruler.howTo && Scales.SCALE_SPECS.ruler.howTo.mm && Scales.SCALE_SPECS.ruler.howTo.mm.indexOf('1 mm') >= 0, 'ruler how-to (mm) mentions the 1 mm tick');
+ok(Scales.SCALE_SPECS.ruler.howTo.cm && Scales.SCALE_SPECS.ruler.howTo.cm.indexOf('1 mm') >= 0 && Scales.SCALE_SPECS.ruler.howTo.cm.indexOf('10 mm') >= 0, 'ruler how-to (cm) teaches the ×10 conversion');
 ok(Scales.SCALE_SPECS.kitchen.howTo && Scales.SCALE_SPECS.kitchen.howTo.indexOf('20 g') >= 0, 'kitchen how-to mentions the 20 g tick');
 ok(Scales.SCALE_SPECS.jug.howTo && Scales.SCALE_SPECS.jug.howTo.indexOf('25 mL') >= 0, 'jug how-to mentions the 25 mL tick');
 
@@ -1207,6 +1257,27 @@ ok(uiSrc2.indexOf('function showNextButton') > -1, 'ui.js exposes showNextButton
   ok(srl.indexOf("q.kind === 'jumps'") > -1, 'jumps questions get a real result line');
   ok(srl.indexOf('undefined') === -1, 'result line never emits undefined');
 }
+
+// ---- ruler level plumbing: Scales Lab + per-learner worksheet sheets --
+{
+  const nsq = uiSrc2.slice(uiSrc2.indexOf('function nextScaleQuestion'), uiSrc2.indexOf('function submitScale'));
+  ok(nsq.indexOf('Scales.rulerLevel') > -1, 'Scales Lab picks the ruler level from mastery');
+  ok(nsq.indexOf('howTo[level]') > -1, 'Scales Lab uses the per-level kid hint');
+  ok(nsq.indexOf('markScaleAdvanced') > -1, 'level-up banner marks the learner once');
+  ok(nsq.indexOf('Scales.rulerSVG(s.q.answer, level)') > -1, 'ruler renders with the level');
+  ok(nsq.indexOf('scales-level-up') > -1, 'level-up banner markup present');
+}
+{
+  const sif = uiSrc2.slice(uiSrc2.indexOf('function scaleItemsFor'), uiSrc2.indexOf('function safeFilename'));
+  ok(sif.indexOf('it.level = lvl') > -1, 'per-learner sheets stamp the ruler level');
+  ok(sif.indexOf('!wsState.classSet') > -1, 'class-set sheets keep the default level');
+}
+{
+  const wss = uiSrc2.slice(uiSrc2.indexOf('function wsScaleSVG'), uiSrc2.indexOf('function scalePDFToDoc'));
+  ok(wss.indexOf("item.level || 'mm'") > -1, 'worksheet SVG passes the item level');
+}
+const stSrc2 = fs.readFileSync(path.join(__dirname, '..', 'js', 'storage.js'), 'utf8');
+ok(stSrc2.indexOf('scaleStats: scaleStats') > -1 && stSrc2.indexOf('markScaleAdvanced: markScaleAdvanced') > -1, 'storage exports the scale-level API');
 
 const htmlSrc2 = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 ok(htmlSrc2.indexOf('id="next-area"') > -1, 'game screen hosts the Next area');

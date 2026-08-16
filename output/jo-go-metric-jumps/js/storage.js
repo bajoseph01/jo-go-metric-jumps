@@ -163,7 +163,9 @@
             s[ins] = {
               attempts: rec.attempts,
               firstTry: typeof rec.firstTry === 'number' ? rec.firstTry : 0,
-              recent: Array.isArray(rec.recent) ? rec.recent.slice(-10) : []
+              recent: Array.isArray(rec.recent) ? rec.recent.slice(-10) : [],
+              // whether the advanced (cm-numbered) ruler was already offered
+              advanced: !!rec.advanced
             };
           }
         }
@@ -476,6 +478,24 @@
       recordScaleFor(l.id, instrument, ok);
     }
 
+    /** Per-learner reading stats for one instrument ({attempts, firstTry, recent}) or null. */
+    function scaleStats(id, instrument) {
+      if (SCALE_INSTRUMENTS.indexOf(instrument) < 0) return null;
+      var l = learnerById(id);
+      if (!l) return null;
+      return l.scales[instrument] || null;
+    }
+
+    /** Remember that a learner has already been offered the advanced (cm) ruler. */
+    function markScaleAdvanced(id, instrument) {
+      if (SCALE_INSTRUMENTS.indexOf(instrument) < 0) return;
+      var l = learnerById(id);
+      if (!l) return;
+      var rec = l.scales[instrument] || (l.scales[instrument] = { attempts: 0, firstTry: 0, recent: [] });
+      rec.advanced = true;
+      save();
+    }
+
     function getDimension() { return device.dimension || 'length'; }
 
     function setDimension(d) {
@@ -620,6 +640,8 @@
       recordAnswer: recordAnswer,
       recordScale: recordScale,
       recordScaleFor: recordScaleFor,
+      scaleStats: scaleStats,
+      markScaleAdvanced: markScaleAdvanced,
       recordChallenge: recordChallenge,
       challengesOf: challengesOf,
       challengeRank: challengeRank,
@@ -696,6 +718,8 @@
     recordAnswer: singleton.recordAnswer,
     recordScale: singleton.recordScale,
     recordScaleFor: singleton.recordScaleFor,
+    scaleStats: singleton.scaleStats,
+    markScaleAdvanced: singleton.markScaleAdvanced,
     recordChallenge: singleton.recordChallenge,
     challengesOf: singleton.challengesOf,
     challengeRank: singleton.challengeRank,

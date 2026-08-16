@@ -1563,6 +1563,19 @@ button {
   border-radius: 12px;
   text-align: left;
 }
+/* one-time celebration when a learner earns the harder cm-numbered ruler */
+.scales-level-up {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  background: var(--yellow-soft, #fff3cd);
+  border: 2px solid var(--yellow, #ffc41f);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  text-align: left;
+  animation: ladder-pop 0.35s ease-out;
+}
 .scale-svg {
   max-width: 100%;
   height: auto;

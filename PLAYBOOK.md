@@ -320,8 +320,21 @@ Check for these so you don't reinvent them:
     so the feedback moment belongs to the child. General lessons: in a
     teaching app, every input convention the teacher cares about must be
     enforced AND taught (in the intro, the guide, and the how-it-works
-    copy, not just in the validator), and the "done" moment must never
-    race the learner — reading feedback is part of the practice.
+    copy, not just in the validator), and the "done" moment must    never race the learner — reading feedback is part of the practice.
+21. **The instrument must show the scale the child can actually read.** The
+    Scales Lab's ruler was numbered in cm while asking the answer in mm —
+    a child on question one had to convert before they'd ever been taught
+    to. Fix: the ruler level is chosen by mastery, never by chance. A
+    beginner reads a mm-numbered ruler where the arrow IS the answer; a
+    mastered reader (pure `Scales.rulerLevel`: 8+ attempts at 80%+ first-try)
+    earns the harder cm-numbered ruler, with a one-time "you mastered the
+    mm ruler" celebration and a per-level hint that teaches the ×10.
+    Per-learner worksheet packs inherit each child's level; class-set
+    sheets stay on the beginner ruler. General lesson: in a scaffolded
+    teaching tool, every graphic must be readable with the knowledge the
+    learner actually has — if a display unit differs from the answer unit,
+    that difference IS the skill being taught, so gate it behind mastery
+    and teach it when it appears.
 
 ---
 
@@ -337,6 +350,12 @@ Check for these so you don't reinvent them:
       answer
 - [ ] No result auto-advances: every correct answer awaits the learner's
       own tap (Next button + gentle streak celebration, no timers)
+- [ ] **The instrument shows the scale the child can actually read:** the
+      ruler a beginner sees is numbered in the answer unit (mm — the arrow
+      IS the answer); only a mastered reader (8+ attempts at 80%+ first-try)
+      earns the cm-numbered ruler and its ×10 conversion, with a one-time
+      celebration. Never show a labelled unit the answer doesn't match
+      until the conversion is the thing being taught.
 - [ ] **Real-pixel visual check:** `node tests/visual-check.js` drives the
       app in headless Edge/Chrome, screenshots the actual rendered page,
       decodes the PNG, and asserts on the pixels (7 checks incl. the

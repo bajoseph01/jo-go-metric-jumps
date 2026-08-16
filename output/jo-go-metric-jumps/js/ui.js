@@ -1121,12 +1121,29 @@
     s.q = Scales.question(s.instrument);
     s.firstTry = true;
     var spec = Scales.SCALE_SPECS[s.instrument];
-    var svg = s.instrument === 'ruler' ? Scales.rulerSVG(s.q.answer)
+    // The ruler always shows the scale the child can actually read: a
+    // beginner gets a mm-numbered ruler where the arrow IS the answer;
+    // only a mastered reader (see Scales.rulerLevel) earns the harder
+    // cm-numbered ruler with its ×10 conversion. Question one is always mm.
+    var level = 'mm';
+    var levelUp = '';
+    if (s.instrument === 'ruler') {
+      var lr = Store.activeLearner();
+      var lst = lr ? Store.scaleStats(lr.id, 'ruler') : null;
+      level = Scales.rulerLevel(lst);
+      if (level === 'cm' && lr && !(lst && lst.advanced)) {
+        Store.markScaleAdvanced(lr.id, 'ruler');
+        levelUp = '<p class="scales-level-up" role="status">🎉 You mastered the mm ruler! Now the big numbers are cm — every cm is 10 mm. Read the arrow, then ×10 for your answer in mm.</p>';
+      }
+    }
+    var howTo = s.instrument === 'ruler' ? spec.howTo[level] : spec.howTo;
+    var svg = s.instrument === 'ruler' ? Scales.rulerSVG(s.q.answer, level)
       : (s.instrument === 'kitchen' ? Scales.kitchenSVG(s.q.answer) : Scales.jugSVG(s.q.answer));
     var stage = $('scales-stage');
     stage.innerHTML = '<div class="scales-q">' +
       '<p class="scales-prompt">Question ' + (s.done + 1) + ' of ' + s.target + '. Read the scale. How many <strong>' + spec.ask + '</strong>?</p>' +
-      '<p class="scales-how" role="note">💡 ' + esc(spec.howTo) + '</p>' +
+      '<p class="scales-how" role="note">💡 ' + esc(howTo) + '</p>' +
+      levelUp +
       svg +
       '<form class="scales-answer" id="scales-form" novalidate>' +
         '<label for="scales-input" class="scales-label">Answer:</label>' +
@@ -1226,7 +1243,19 @@
   /** Item-store key for one learner's scale sheet (shared when class-set). */
   function scaleItemsFor(l) {
     var key = wsState.classSet ? '__class__' : l.id;
-    if (!wsState.scaleItems[key]) wsState.scaleItems[key] = Scales.worksheetItems(null, null);
+    if (!wsState.scaleItems[key]) {
+      wsState.scaleItems[key] = Scales.worksheetItems(null, null);
+      if (!wsState.classSet) {
+        // Each child's sheet matches their reading level: mastered readers
+        // get the cm-numbered ruler (×10 conversion), everyone else the mm
+        // ruler where the arrow is the answer. Class-set stays on mm so the
+        // whole class reads the same, beginner-friendly ruler.
+        var lvl = Scales.rulerLevel(Store.scaleStats(l.id, 'ruler'));
+        wsState.scaleItems[key].forEach(function (it) {
+          if (it.instrument === 'ruler') it.level = lvl;
+        });
+      }
+    }
     return wsState.scaleItems[key];
   }
 
@@ -1250,7 +1279,7 @@
   function wsScaleSVG(item) {
     var cmds, vb, aria;
     if (item.instrument === 'ruler') {
-      cmds = Scales.rulerPDF(item.answer); vb = { w: 465, h: 96 }; aria = 'Ruler with arrow';
+      cmds = Scales.rulerPDF(item.answer, item.level || 'mm'); vb = { w: 465, h: 96 }; aria = 'Ruler with arrow';
     } else if (item.instrument === 'kitchen') {
       cmds = Scales.kitchenPDF(item.answer); vb = { w: 380, h: 380 }; aria = 'Kitchen scale with needle';
     } else {
@@ -1932,7 +1961,7 @@
           var it = sitems[q];
           var cmds, vbw, vbh, sc;
           if (it.instrument === 'ruler') {
-            cmds = Scales.rulerPDF(it.answer); vbw = 465; vbh = 96; sc = 0.58;
+            cmds = Scales.rulerPDF(it.answer, it.level || 'mm'); vbw = 465; vbh = 96; sc = 0.58;
           } else if (it.instrument === 'kitchen') {
             cmds = Scales.kitchenPDF(it.answer); vbw = 380; vbh = 380; sc = 0.42;
           } else {
