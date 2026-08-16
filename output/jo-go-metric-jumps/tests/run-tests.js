@@ -1006,6 +1006,18 @@ eq(st7.challengeIntroSeen(iBen.id), false, 'other learner unaffected');
 st7.markChallengeIntro('nope');
 eq(st7.challengeIntroSeen(iBen.id), false, 'unknown learner ignored');
 
+// learners can pick their own colour (add + rename)
+const st8 = Store.createStore({ getItem: () => null, setItem: () => {} });
+for (const l of st8.learners()) st8.removeLearner(l.id);
+const pick = st8.addLearner('Pick', '🦄', '#E6459B');
+eq(st8.learners()[0].color, '#E6459B', 'chosen colour respected at creation');
+const bad = st8.addLearner('Bad', '🦄', 'not-a-colour');
+eq(Store.LEARNER_COLORS.indexOf(bad.color) >= 0, true, 'invalid colour falls back to the palette');
+st8.renameLearner(pick.id, 'Pick', '🦄', '#0E9CA3');
+eq(st8.learners()[0].color, '#0E9CA3', 'colour changeable via rename');
+st8.renameLearner(pick.id, 'Pick', '🦄', '#nope');
+eq(st8.learners()[0].color, '#0E9CA3', 'invalid rename colour ignored');
+
 // ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------

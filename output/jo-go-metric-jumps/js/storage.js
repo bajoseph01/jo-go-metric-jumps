@@ -544,9 +544,9 @@
       }
     }
 
-    function addLearner(name, emoji) {
+    function addLearner(name, emoji, color) {
       var learner = sanitizeLearner({ id: genId(), name: name, emoji: emoji });
-      learner.color = firstFreeColor(null);
+      learner.color = LEARNER_COLORS.indexOf(color) >= 0 ? color : firstFreeColor(null);
       device.learners.push(learner);
       device.activeLearnerId = learner.id;
       save();
@@ -580,12 +580,13 @@
       return true;
     }
 
-    /** Rename / re-avatar a learner; progress is untouched. */
-    function renameLearner(id, name, emoji) {
+    /** Rename / re-avatar / recolour a learner; progress is untouched. */
+    function renameLearner(id, name, emoji, color) {
       var l = learnerById(id);
       if (!l) return false;
       if (typeof name === 'string' && name.trim()) l.name = name.trim().slice(0, 18);
       if (AVATARS.indexOf(emoji) >= 0) l.emoji = emoji;
+      if (LEARNER_COLORS.indexOf(color) >= 0) l.color = color;
       save();
       return true;
     }

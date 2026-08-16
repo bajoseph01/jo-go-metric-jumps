@@ -405,13 +405,20 @@
       var locked = !all && stage.id > st.unlocked;
       var cat = st.categories[stage.category];
       var acc = cat && cat.attempts ? Math.round((cat.firstTry / cat.attempts) * 100) : null;
-      var status = locked ? 'Locked'
-        : (acc === null ? 'New' : (acc >= 80 ? 'Mastered' : 'In progress'));
+      var badge = locked
+        ? '<span class="stage-badge stage-badge--locked">🔒 Locked</span>'
+        : (acc === null
+            ? '<span class="stage-badge stage-badge--new">New</span>'
+            : (acc >= 80
+                ? '<span class="stage-badge stage-badge--mastered">✓ Mastered</span>'
+                : '<span class="stage-badge stage-badge--progress">In progress · ' + acc + '%</span>'));
       html += '<div class="stage-card' + (locked ? ' stage-card--locked' : '') + '">' +
-        '<div class="stage-num">' + stage.id + '</div>' +
+        '<div class="stage-num' + (acc !== null && acc >= 80 ? ' stage-num--mastered' : '') + '">' +
+          (acc !== null && acc >= 80 ? '✓' : stage.id) + '</div>' +
         '<div class="stage-info">' +
           '<h3 class="stage-name">' + esc(stage.name) + '</h3>' +
-          '<p class="stage-status">' + status + (acc !== null ? ' · ' + acc + '%' : '') + '</p>' +
+          badge +
+          (acc !== null && !locked ? '<div class="stage-bar"><div class="stage-bar-fill" style="width:' + acc + '%"></div></div>' : '') +
         '</div>' +
         (locked
           ? '<span class="stage-lock" aria-hidden="true">🔒</span>'
@@ -432,6 +439,19 @@
   // ------------------------------------------------------------------
   // Progress screen
   // ------------------------------------------------------------------
+
+  /** Human-readable mastery label (from masteryFor). */
+  function masteryPretty(label) {
+    return { new: 'New', mastered: 'Mastered', 'getting-there': 'Getting there', 'needs-practice': 'Needs practice' }[label] || label;
+  }
+
+  /** Coloured status pill for a mastery label (from masteryFor). */
+  function masteryBadge(label) {
+    var cls = label === 'mastered' ? ' m-badge--mastered'
+      : (label === 'getting-there' ? ' m-badge--progress'
+      : (label === 'needs-practice' ? ' m-badge--warn' : ' m-badge--new'));
+    return '<span class="m-badge' + cls + '">' + esc(masteryPretty(label)) + '</span>';
+  }
 
   function masteryBar(attempts, firstTry) {
     var pct = attempts ? Math.round((firstTry / attempts) * 100) : 0;
@@ -654,6 +674,16 @@
     return Store.AVATARS[0];
   }
 
+  /** First colour not already claimed (fallback: the blue). */
+  function firstFreeColor() {
+    var used = {};
+    Store.learners().forEach(function (l) { used[l.color] = true; });
+    for (var i = 0; i < Store.LEARNER_COLORS.length; i++) {
+      if (!used[Store.LEARNER_COLORS[i]]) return Store.LEARNER_COLORS[i];
+    }
+    return Store.LEARNER_COLORS[0];
+  }
+
   function renderLearners() {
     show('screen-learners');
     var body = $('learners-body');
@@ -691,6 +721,7 @@
     // For a brand-new learner, suggest an avatar nobody else uses yet so two
     // kids never look identical in the picker.
     var chosenEmoji = editing ? editing.emoji : firstFreeAvatar();
+    var chosenColor = editing ? editing.color : firstFreeColor();
     html += '<form class="learner-add" id="learner-add" novalidate>' +
       '<h3 class="learner-add-title">' + formTitle + '</h3>' +
       '<input type="text" class="answer-input learner-name-input" id="learner-name-input" maxlength="18" placeholder="First name" autocomplete="off" enterkeyhint="done" aria-label="Learner name" value="' + inputValue + '" />' +
@@ -698,6 +729,13 @@
     for (var e = 0; e < Store.AVATARS.length; e++) {
       var selected = Store.AVATARS[e] === chosenEmoji;
       html += '<button type="button" class="learner-emoji' + (selected ? ' learner-emoji--selected' : '') + '" data-emoji="' + Store.AVATARS[e] + '" role="radio" aria-checked="' + selected + '" aria-label="Avatar">' + Store.AVATARS[e] + '</button>';
+    }
+    html += '</div>' +
+      '<div class="learner-color-label">Pick a colour for your name</div>' +
+      '<div class="learner-colors" role="radiogroup" aria-label="Pick a colour">';
+    for (var co = 0; co < Store.LEARNER_COLORS.length; co++) {
+      var csel = Store.LEARNER_COLORS[co] === chosenColor;
+      html += '<button type="button" class="learner-color' + (csel ? ' learner-color--selected' : '') + '" data-color="' + Store.LEARNER_COLORS[co] + '" role="radio" aria-checked="' + csel + '" aria-label="Colour" style="background:' + Store.LEARNER_COLORS[co] + '">' + (csel ? '✓' : '') + '</button>';
     }
     html += '</div>' +
       '<div class="learner-add-actions">' +
@@ -763,6 +801,19 @@
       });
     }
 
+    var colors = body.querySelectorAll('.learner-color');
+    for (var cw = 0; cw < colors.length; cw++) {
+      colors[cw].addEventListener('click', function () {
+        chosenColor = this.getAttribute('data-color');
+        var all = body.querySelectorAll('.learner-color');
+        for (var ca = 0; ca < all.length; ca++) {
+          all[ca].classList.toggle('learner-color--selected', all[ca] === this);
+          all[ca].textContent = all[ca] === this ? '✓' : '';
+          all[ca].setAttribute('aria-checked', all[ca] === this);
+        }
+      });
+    }
+
     var form = $('learner-add');
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
@@ -777,10 +828,10 @@
         return;
       }
       if (editing) {
-        Store.renameLearner(editing.id, name, chosenEmoji);
+        Store.renameLearner(editing.id, name, chosenEmoji, chosenColor);
         editingLearnerId = null;
       } else {
-        Store.addLearner(name, chosenEmoji);
+        Store.addLearner(name, chosenEmoji, chosenColor);
       }
       updateLearnerChip();
       renderLearners();
@@ -829,15 +880,20 @@
     var html = '<div class="report-picker" role="group" aria-label="Choose a learner">';
     for (var i = 0; i < roster.length; i++) {
       var on = roster[i].id === current;
-      html += '<button type="button" class="report-chip' + (on ? ' report-chip--on' : '') + '" data-report-learner="' + roster[i].id + '">' + roster[i].emoji + ' ' + esc(roster[i].name) + '</button>';
+      html += '<button type="button" class="report-chip' + (on ? ' report-chip--on' : '') + '" style="color:' + roster[i].color + '" data-report-learner="' + roster[i].id + '">' + roster[i].emoji + ' ' + esc(roster[i].name) + '</button>';
     }
     html += '</div>';
 
     var firstTryPct = prog.totalAnswered ? Math.round((prog.totalFirstTry / prog.totalAnswered) * 100) : 0;
+    var stageDots = '';
+    for (var sd = 1; sd <= Q.STAGES.length; sd++) {
+      stageDots += '<span class="report-dot' + (sd <= prog.unlocked ? ' report-dot--on' : '') + '"></span>';
+    }
     html += '<div class="report print-area">' +
-      '<h2 class="report-head">' + l.emoji + ' ' + esc(l.name) + ' — Metric Jumps Report</h2>' +
-      '<p class="report-sub">Stage ' + prog.unlocked + ' unlocked · ' + prog.totalAnswered + ' questions · ' +
+      '<h2 class="report-head">' + l.emoji + ' <span style="color:' + l.color + '">' + esc(l.name) + '</span> — Metric Jumps Report</h2>' +
+      '<p class="report-sub">' + prog.totalAnswered + ' questions · ' +
         firstTryPct + '% first-try · best streak 🔥 ' + prog.bestStreak + '</p>' +
+      '<div class="report-stages" aria-label="Stage ' + prog.unlocked + ' of ' + Q.STAGES.length + ' unlocked">' + stageDots + '</div>' +
       '<h3 class="report-sec">Mastery by category</h3>' +
       '<table class="tbl report-tbl"><thead><tr><th>Category</th><th>Tries</th><th>First-try</th><th>Recent</th><th>Status</th></tr></thead><tbody>';
     for (var c = 0; c < Store.CATEGORIES.length; c++) {
@@ -845,7 +901,7 @@
       var rec = prog.categories[key];
       html += '<tr><td>' + esc(Store.CATEGORY_LABELS[key]) + '</td><td>' + rec.attempts + '</td>' +
         '<td>' + pct(rec) + '</td><td>' + recentPct(rec) + '</td>' +
-        '<td>' + esc(masteryFor(rec)) + '</td></tr>';
+        '<td>' + masteryBadge(masteryFor(rec)) + '</td></tr>';
     }
     html += '</tbody></table>';
 
@@ -1679,7 +1735,7 @@
     for (var c = 0; c < Store.CATEGORIES.length; c++) {
       var key = Store.CATEGORIES[c];
       var rec = prog.categories[key];
-      rows.push([Store.CATEGORY_LABELS[key], String(rec.attempts), pct(rec), recentPct(rec), masteryFor(rec)]);
+      rows.push([Store.CATEGORY_LABELS[key], String(rec.attempts), pct(rec), recentPct(rec), masteryPretty(masteryFor(rec))]);
     }
     doc.table([
       { label: 'Category', w: 190 },

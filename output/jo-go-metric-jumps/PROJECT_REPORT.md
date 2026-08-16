@@ -208,7 +208,17 @@ sw.js                 offline service worker (network-first, cache fallback)
   picker and leaderboard — verified live with two fox learners distinguished
   as orange vs blue. A per-learner, kid-language intro overlay ("Ready, set,
   GO!") explains the challenge on first open and never repeats for that
-  learner.
+  learner;
+- third design pass (Practice + Report) and self-chosen colours: the
+  Practice screen shows a status badge per stage (Mastered / Getting there /
+  Needs practice / New) with mastery bars and dashed locked cards, and the
+  Report screen carries the learner's colour through the header, switcher
+  chips and stage dots with colour-coded mastery badges (verified live:
+  Asha's orange header, 1/8 stage dots, "Needs practice" warn badge, and her
+  per-instrument scales table). The add-learner form now has an 8-swatch
+  colour picker so each child picks their own name colour (defaulting to the
+  first unused one); the PDF report shows the same prettified mastery labels
+  as the on-screen report.
 
 **Viewport checks** — the live preview viewport was 439×867 (phone/tablet
 portrait), exercising the small-screen media query end-to-end. Desktop

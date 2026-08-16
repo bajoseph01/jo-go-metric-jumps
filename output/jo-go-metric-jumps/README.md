@@ -123,9 +123,18 @@ score card ends with a tier emoji (🌟 perfect, 🎉 great, 👍 solid, 💪 ke
 going). Adding a learner auto-suggests an animal avatar nobody else has yet,
 and every learner gets their own name colour from a palette — so even two
 kids who pick the same animal are told apart instantly, everywhere their
-name appears (home chip, learner cards, challenge picker, leaderboard). The
+name appears (home chip, learner cards, challenge picker, leaderboard). In
+the add-learner form each child can **pick their own name colour** from the
+palette; if they don't choose one, the first unused colour is suggested. The
 first time each learner opens the challenge, a short overlay explains the
 rules in kid language ("Read, type, one try each, climb the board!").
+
+The **Practice** screen now shows a status badge per stage (Mastered /
+Getting there / Needs practice / New) with a mastery bar, and locked stages
+render as dashed cards so "not unlocked yet" is instantly visible. The
+**Report** screen uses the learner's colour in the header, the switcher
+chips and the progress dots, and colour-codes every stage's status badge so
+a scan down the table tells you at a glance who needs help where.
 Everything is generated locally — no network, no data leaves the device.
 
 Made for Merrifield Prep & College — Jo⚡Go edition. ⚡
