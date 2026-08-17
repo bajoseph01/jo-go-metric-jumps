@@ -428,6 +428,14 @@ async function run() {
       const expr = "(() => { const act = document.querySelector('.screen--active'); if (!act) return { label: '" + label + "', err: 'no active screen' }; const page = document.scrollingElement || document.documentElement; let innerExcess = 0, innerSel = null; for (const el of act.querySelectorAll('*')) { const cs = getComputedStyle(el); if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 1) { const ex = el.scrollHeight - el.clientHeight; if (ex > innerExcess) { innerExcess = ex; innerSel = el.id || el.className || el.tagName; } } } return { label: '" + label + "', activeId: act.id, pageExcess: page.scrollHeight - page.clientHeight, innerExcess: innerExcess, innerSel: innerSel ? String(innerSel).slice(0, 30) : null }; })()";
       return evalJs(cdp, expr);
     }
+    // Whole-app fingertip audit: every interactive target in the visible
+    // overlay (if any) or the active screen must clear the 44px floor.
+    // Effective hit rects include ::before/::after expansions; checkboxes
+    // measure their wrapping label (that is what actually gets tapped).
+    async function auditTargets(cdp, label) {
+      const expr = "(() => { const root = document.querySelector('.overlay--show') || document.querySelector('.screen--active'); if (!root) return { label: '" + label + "', err: 'no root' }; const hit = function (el) { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); let L = r.left, T = r.top, R = r.right, B = r.bottom; const bl = parseFloat(cs.borderLeftWidth) || 0, bt = parseFloat(cs.borderTopWidth) || 0, br = parseFloat(cs.borderRightWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0; ['::before', '::after'].forEach(function (p) { const ps = getComputedStyle(el, p); if (!ps || ps.content === 'none' || ps.position !== 'absolute') return; const ins = ps.inset.split(' ').map(function (x) { return parseFloat(x); }); const t = ins[0], rgt = ins.length >= 2 ? ins[1] : ins[0], bot = ins.length >= 3 ? ins[2] : ins[0], lft = ins.length === 4 ? ins[3] : rgt; const pw = r.width - bl - br, ph = r.height - bt - bb; L = Math.min(L, r.left + bl + lft); T = Math.min(T, r.top + bt + t); R = Math.max(R, r.left + bl + pw - rgt); B = Math.max(B, r.top + bt + ph - bot); }); return Math.min(R - L, B - T); }; let min = Infinity, offender = null, n = 0; const els = root.querySelectorAll('button, input:not([type=\"hidden\"]), [role=\"button\"], .learner-chip'); for (let i = 0; i < els.length; i++) { const el = els[i]; const r = el.getBoundingClientRect(); if (r.width === 0 || r.height === 0) continue; const target = (el.type === 'checkbox' || el.type === 'radio') && el.closest('label') ? el.closest('label') : el; const m = hit(target); n++; if (m < min) { min = m; offender = String(target.className || target.id || target.tagName).slice(0, 32); } } return { label: '" + label + "', rootId: root.id || root.className || 'screen', min: min === Infinity ? null : min, offender: offender, n: n }; })()";
+      return evalJs(cdp, expr);
+    }
     async function goHomeForFit(cdp) {
       await evalJs(cdp, "(() => { const b = document.querySelector('#btn-home') || document.querySelector('[data-back]'); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "!!document.getElementById('screen-home') && document.getElementById('screen-home').classList.contains('screen--active')", 8000);
@@ -455,6 +463,16 @@ async function run() {
       await goHomeForFit(cdp);
       let fit = await measureFit(cdp, 'home');
       check(fit.pageExcess === 0, 'ipad-fit: home never scrolls the page (' + vp.label + ')');
+      let aud = await auditTargets(cdp, 'home');
+      check(!!aud && aud.min >= 44, 'touch: home targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      // learner picker overlay
+      await evalJs(cdp, "document.getElementById('btn-learner').click(); true");
+      await waitForJs(cdp, "document.getElementById('screen-learners').classList.contains('screen--active')", 6000);
+      await sleep(300);
+      aud = await auditTargets(cdp, 'learners');
+      check(!!aud && aud.min >= 44, 'touch: learner picker targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => x.getAttribute('data-back') === 'screen-home'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "!!document.getElementById('screen-home') && document.getElementById('screen-home').classList.contains('screen--active')", 6000);
       // how it works
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-how').click(); true");
@@ -462,6 +480,8 @@ async function run() {
       await sleep(300);
       fit = await measureFit(cdp, 'how');
       check(fit.pageExcess === 0, 'ipad-fit: How It Works never scrolls the page (' + vp.label + ')');
+      aud = await auditTargets(cdp, 'how');
+      check(!!aud && aud.min >= 44, 'touch: How It Works targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       // my progress
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-progress').click(); true");
@@ -469,6 +489,8 @@ async function run() {
       await sleep(300);
       fit = await measureFit(cdp, 'progress');
       check(fit.pageExcess === 0, 'ipad-fit: My Progress never scrolls the page (' + vp.label + ')');
+      aud = await auditTargets(cdp, 'progress');
+      check(!!aud && aud.min >= 44, 'touch: My Progress targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       // practice
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-practice').click(); true");
@@ -476,6 +498,8 @@ async function run() {
       await sleep(300);
       fit = await measureFit(cdp, 'practice');
       check(fit.pageExcess === 0, 'ipad-fit: Practice never scrolls the page (' + vp.label + ')');
+      aud = await auditTargets(cdp, 'practice');
+      check(!!aud && aud.min >= 44, 'touch: Practice targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       // game (question one)
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-play').click(); true");
@@ -483,6 +507,8 @@ async function run() {
       await sleep(300);
       fit = await measureFit(cdp, 'game');
       check(fit.pageExcess === 0, 'ipad-fit: the game never scrolls the page (' + vp.label + ')');
+      aud = await auditTargets(cdp, 'game');
+      check(!!aud && aud.min >= 44, 'touch: game targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       // scales lab
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-scales').click(); true");
@@ -490,14 +516,27 @@ async function run() {
       await sleep(300);
       fit = await measureFit(cdp, 'scales');
       check(fit.pageExcess === 0, 'ipad-fit: Read the Scales never scrolls the page (' + vp.label + ')');
+      aud = await auditTargets(cdp, 'scales');
+      check(!!aud && aud.min >= 44, 'touch: Read the Scales targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       // worksheets (through teacher mode)
       await goHomeForFit(cdp);
       await openTeacherForFit(cdp);
+      aud = await auditTargets(cdp, 'teacher-panel');
+      check(!!aud && aud.min >= 44, 'touch: teacher panel targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => /Worksheet/i.test(x.textContent)); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "document.getElementById('screen-worksheets').classList.contains('screen--active') && !!document.querySelector('.ws-sheet')", 8000);
       await sleep(300);
       fit = await measureFit(cdp, 'worksheets');
       check(fit.pageExcess === 0, 'ipad-fit: worksheets never scroll the page (' + vp.label + ')');
+      aud = await auditTargets(cdp, 'worksheets');
+      check(!!aud && aud.min >= 44, 'touch: worksheet pack targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      // timed challenge (reached from the worksheet pack)
+      await evalJs(cdp, "(() => { const b = document.getElementById('btn-ws-challenge'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "document.getElementById('screen-challenge').classList.contains('screen--active') && !!document.querySelector('[data-chal-learner]')", 8000);
+      await sleep(300);
+      aud = await auditTargets(cdp, 'challenge');
+      check(!!aud && aud.min >= 44, 'touch: timed challenge targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      await goHomeForFit(cdp);
 
       // comma badge: the slim aura must stay under half a cell width, or it
       // regrows into a card that obscures the track digits (it used to be
@@ -532,6 +571,13 @@ async function run() {
       // step 2/3: click the correct jump count
       const jumpSizes = await evalJs(cdp, "(() => Array.from(document.querySelectorAll('.btn--jump')).map(b => { const r = b.getBoundingClientRect(); return Math.min(r.width, r.height); }))()");
       check(jumpSizes.length >= 3 && jumpSizes.every(s => s >= 44), 'comma: jump-count buttons meet the 44px floor (' + vp.label + ' — min ' + Math.round(Math.min.apply(null, jumpSizes)) + 'px)');
+      // ladder rungs are tappable practice aids: buttons at 44px+, and
+      // tapping the start/answer unit explains its link to the question
+      const rungCheck = await evalJs(cdp, "(() => { const lc = document.querySelector('[data-role=\"ladder\"]'); const pr = document.querySelector('.question-prompt'); if (!lc || !pr) return null; const m = pr.textContent.match(/(km|cm|mm|kg|mg|kL|mL|m|g|L)\\s*\\u2192\\s*(km|cm|mm|kg|mg|kL|mL|m|g|L)/); if (!m) return 'no-pair'; const rungs = Array.from(lc.querySelectorAll('.rung')); const isBtn = rungs.every(r => r.tagName === 'BUTTON'); const min = Math.min.apply(null, rungs.map(r => { const x = r.getBoundingClientRect(); return Math.min(x.width, x.height); })); const noteEl = lc.querySelector('[data-role=\"rung-note\"]'); const toRung = rungs.find(r => r.getAttribute('data-unit') === m[2]); toRung.click(); const noteTo = noteEl.textContent; const toActive = toRung.classList.contains('rung--active'); const fromRung = rungs.find(r => r.getAttribute('data-unit') === m[1]); fromRung.click(); const noteFrom = noteEl.textContent; const fromActive = fromRung.classList.contains('rung--active'); return { isBtn: isBtn, min: Math.round(min * 10) / 10, noteTo: noteTo, noteFrom: noteFrom, toActive: toActive, fromActive: fromActive }; })()");
+      console.log('  comma: rungs — ' + JSON.stringify(rungCheck));
+      check(!!rungCheck && rungCheck.isBtn && rungCheck.min >= 44, 'comma: ladder rungs are 44px+ tappable buttons (' + vp.label + ' — ' + (rungCheck && rungCheck.min ? rungCheck.min + 'px' : 'n/a') + ')');
+      check(!!rungCheck && rungCheck.toActive && rungCheck.noteTo.indexOf('Answer unit') > -1, 'comma: tapping the answer unit explains its link (' + vp.label + ')');
+      check(!!rungCheck && rungCheck.fromActive && rungCheck.noteFrom.indexOf('Start unit') > -1, 'comma: tapping the start unit explains its link (' + vp.label + ')');
       const jumpDone = await evalJs(cdp, "(() => { const pr = document.querySelector('.question-prompt'); const m = pr.textContent.match(/(km|cm|mm|kg|mg|kL|mL|m|g|L)\\s*\\u2192\\s*(km|cm|mm|kg|mg|kL|mL|m|g|L)/); if (!m) return 'no-units'; const EXP = { km: 3, m: 0, cm: -2, mm: -3, kg: 3, g: 0, mg: -3, kL: 3, L: 0, mL: -3 }; const jumps = Math.abs(EXP[m[1]] - EXP[m[2]]); const b = document.querySelector('.btn--jump[data-value=\"' + jumps + '\"]'); if (!b) return 'no-jump-btn:' + jumps; b.click(); return 'jumps ' + jumps; })()");
       await waitForJs(cdp, "!!document.querySelector('.comma-handle')", 8000);
       await sleep(300);

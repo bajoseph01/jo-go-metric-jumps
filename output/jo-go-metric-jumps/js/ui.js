@@ -45,13 +45,21 @@
   /**
    * Build the ladder markup for a dimension (top to bottom). If from/to are
    * given, highlight that conversion. Gap labels come from the math engine.
+   * When interactive (the in-game ladder), rungs become real buttons and a
+   * relationship note appears beneath: tapping a unit shows how it connects
+   * to the live question — a passive visual becomes a practice aid.
    */
-  function ladderHtml(dim, from, to) {
+  function ladderHtml(dim, from, to, interactive) {
     var rungs = M.ladderRungs(dim || 'length');
     var html = '<div class="ladder">';
     for (var i = 0; i < rungs.length; i++) {
       var unit = rungs[i];
-      html += '<div class="rung' + (unit === from ? ' rung--active' : '') + '" data-unit="' + unit + '">' + unit + '</div>';
+      var cls = 'rung' + (unit === from ? ' rung--active' : '');
+      if (interactive) {
+        html += '<button type="button" class="' + cls + '" data-unit="' + unit + '">' + unit + '</button>';
+      } else {
+        html += '<div class="' + cls + '" data-unit="' + unit + '">' + unit + '</div>';
+      }
       if (i < rungs.length - 1) {
         var gapKey = rungs[i] + '>' + rungs[i + 1];
         var active = (from === rungs[i] && to === rungs[i + 1]) ||
@@ -63,6 +71,9 @@
           '</span></div>';
       }
     }
+    if (interactive) {
+      html += '<p class="rung-note" data-role="rung-note" aria-live="polite">Tap a unit to see how it connects to this question.</p>';
+    }
     html += '</div>';
     return html;
   }
@@ -71,9 +82,30 @@
    * Render the unit ladder for a dimension. If from/to given, highlight that
    * conversion. Gap labels are derived from the math engine (×1000 etc.).
    */
-  function renderLadder(container, from, to, dim) {
+  function renderLadder(container, from, to, dim, interactive) {
     if (!container) return;
-    container.innerHTML = ladderHtml(dim, from, to);
+    container.innerHTML = ladderHtml(dim, from, to, interactive);
+  }
+
+  /** Kid-language relationship between a tapped rung and the live question. */
+  function rungRelationship(unit, q) {
+    if (!q || !q.from || !q.to || !q.conv) return '';
+    var plural = q.conv.jumps > 1 ? 's' : '';
+    if (unit === q.from) {
+      return 'Start unit! To turn ' + q.from + ' into ' + q.to +
+        ', the comma moves ' + (q.conv.op === '×' ? 'RIGHT' : 'LEFT') + ' ' +
+        q.conv.jumps + ' place' + plural + '.';
+    }
+    if (unit === q.to) {
+      return 'Answer unit! From ' + q.from + ', the comma moves ' +
+        (q.conv.op === '×' ? 'RIGHT' : 'LEFT') + ' ' + q.conv.jumps +
+        ' place' + plural + ' to land here.';
+    }
+    var eFrom = M.UNITS[q.from] && M.UNITS[q.from].exp;
+    var eUnit = M.UNITS[unit] && M.UNITS[unit].exp;
+    if (typeof eFrom !== 'number' || typeof eUnit !== 'number') return '';
+    if (eUnit > eFrom) return '1 ' + unit + ' = ' + Math.pow(10, eUnit - eFrom) + ' ' + q.from + '.';
+    return '1 ' + q.from + ' = ' + Math.pow(10, eFrom - eUnit) + ' ' + unit + '.';
   }
 
   // One-line "what does this measure" memory notes, shown under each ladder
@@ -203,7 +235,20 @@
     $('gameBody').innerHTML = html;
     if (session.stage.ladder && session.q && session.q.from) {
       var lc = $('gameBody').querySelector('[data-role="ladder"]');
-      renderLadder(lc, session.q.from, session.q.to, session.dimension);
+      renderLadder(lc, session.q.from, session.q.to, session.dimension, true);
+      // tapping a rung highlights it and explains its link to the question
+      var rungs = lc.querySelectorAll('.rung');
+      for (var ri = 0; ri < rungs.length; ri++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            Audio.play('click');
+            for (var j = 0; j < rungs.length; j++) rungs[j].classList.remove('rung--active');
+            btn.classList.add('rung--active');
+            var note = lc.querySelector('[data-role="rung-note"]');
+            if (note) note.textContent = rungRelationship(btn.getAttribute('data-unit'), session.q);
+          });
+        })(rungs[ri]);
+      }
       var hintBtn = $('btn-show-hint');
       if (hintBtn) {
         hintBtn.addEventListener('click', function () {
