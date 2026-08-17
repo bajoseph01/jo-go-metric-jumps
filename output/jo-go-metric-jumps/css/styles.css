@@ -697,6 +697,20 @@ button {
 
 .comma-handle--drag { background: var(--orange); }
 
+/* Invisible grab area: the visible badge is a slim aura around the comma,
+   far too small for a child's fingertip. This hit-area padding stays
+   unpainted but makes the whole handle comfortably grabbable (pointer
+   capture then keeps the drag alive even after the finger leaves it).
+   Note: inset is relative to the padding box, so the 3px ink border is
+   added back to deliver the visible expansion below (~44x54px zone). */
+.comma-handle::after {
+  content: '';
+  position: absolute;
+  inset: -14px -14px -10px -14px;
+  border-radius: 14px;
+  pointer-events: auto;
+}
+
 .track-gaps { position: absolute; inset: 0; pointer-events: none; }
 
 .gap-spot {
