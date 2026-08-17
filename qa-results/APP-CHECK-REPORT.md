@@ -227,3 +227,14 @@ A static + live-DOM audit of every screen (home, learner picker, How It Works, p
 **Look:** the SVG builders (and their mirrored PDF builders, so worksheets/PDFs match) got kid-friendly detail — a chunkier round-capped red ruler pointer with a wider head, a silver bezel ring around the kitchen dial with bolder numbers, and a glass highlight band plus a chunky round-capped handle on the jug. Pixel-verified in the captured iPad renders (14,140 silver bezel px; 129,858 handle-stroke px).
 
 **Guards:** 12 new unit checks assert the instrument classes, element counts, bezel, handle and highlight; the arrow-tip-above-ruler rule, tick counts, needle and meniscus geometry all still pass unchanged. Totals: 14,436 unit / 133 visual. Evidence: `qa-results/scales-size-probe.js`, `qa-results/scales-px-check.js`, `qa-results/evidence/scales-*.png`.
+
+---
+
+## Follow-up: permanent dial/jug pixel + size guards (test-only, no app change)
+
+The real-pixel harness now drives the kitchen dial and measuring jug (previously only the ruler had a pixel leg) at both iPad sizes inside the fit loop — **24 new checks** (157 total):
+
+- **Pixel rules per instrument:** dial red needle (>200 px), silver bezel (>500 px), ticks + outline (>800 px); jug water (>1500 px), red meniscus (>200 px), handle strokes (>300 px in the right 18% of the jug box).
+- **Permanent size guard:** the rendered dial/jug height must stay **≤ 400px on iPad portrait, ≤ 330px on landscape** (hardcoded expectations, not read from the stylesheet — so loosening or removing the cap trips it), and the answer row's bottom must stay within the viewport.
+
+**Negative control proven:** raising the CSS cap to 900px trips the height guard on all four viewport/instrument pairs (594px and 822px rendered), and on landscape the answer row genuinely goes off-screen (form bottom 979 > 820) — caught by the on-screen check too. Restored and re-verified 157/157 + 14,436/0.

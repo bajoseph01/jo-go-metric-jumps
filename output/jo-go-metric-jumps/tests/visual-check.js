@@ -542,6 +542,70 @@ async function run() {
       check(!!aud && aud.min >= 44, 'touch: Read the Scales targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
       con = await auditContrast(cdp, 'scales');
       check(!!con && con.n === 0, 'contrast: Read the Scales clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
+      // REAL-PIXEL leg for the kitchen dial + measuring jug (the ruler has
+      // its own leg in Screen 2). Captures each instrument, asserts its
+      // pixel rules, and — the size guard — that the rendered height stays
+      // under its CSS cap and the answer row stays on screen, so a future
+      // change can never regrow the dial/jug off the iPad again.
+      const scaleCaps = { kitchen: null, jug: null };
+      for (const ins of ['kitchen', 'jug']) {
+        // the kitchen instrument's SVG class is scale-svg--dial
+        const svgCls = ins === 'kitchen' ? 'dial' : ins;
+        await evalJs(cdp, "(() => { const t = document.querySelector('.scales-tab[data-scale=\"" + ins + "\"]'); if (t) { t.click(); return true; } return false; })()");
+        await waitForJs(cdp, "!!document.querySelector('.scale-svg--" + svgCls + "')", 6000);
+        await sleep(350);
+        const geo = await evalJs(cdp, "(() => { const svg = document.querySelector('.scale-svg--" + svgCls + "'); const form = document.querySelector('.scales-answer'); if (!svg || !form) return null; const s = svg.getBoundingClientRect(); const f = form.getBoundingClientRect(); return { x: s.x, y: s.y, w: s.width, h: s.height, cap: parseFloat(getComputedStyle(svg).maxHeight) || 0, formBottom: Math.round(f.bottom), vh: window.innerHeight }; })()");
+        check(!!geo, 'scales-px: the ' + ins + ' renders (' + vp.label + ' — ' + (geo ? Math.round(geo.w) + 'x' + Math.round(geo.h) : 'no svg') + ')');
+        // the guard is a HARD expectation (400px portrait / 330px landscape),
+        // not whatever the stylesheet currently says — so loosening or
+        // removing the cap trips it, not just a total regression
+        const expectCap = vp.h >= 1080 ? 400 : 330;
+        check(!!geo && geo.h <= expectCap + 1, 'scales-px: ' + ins + ' height stays under ' + expectCap + 'px (' + vp.label + ' — ' + (geo ? Math.round(geo.h) + 'px, css cap ' + geo.cap + 'px' : 'n/a') + ')');
+        check(!!geo && geo.formBottom <= geo.vh + 1, 'scales-px: ' + ins + ' answer row stays on screen (' + vp.label + ' — form bottom ' + (geo ? geo.formBottom : 'n/a') + ' ≤ ' + (geo ? geo.vh : 'n/a') + ')');
+        scaleCaps[ins] = geo;
+        if (geo) {
+          const pxFile = await capture(cdp, 'scales-' + ins + '-' + vp.label.replace(/[^a-z0-9]/gi, ''));
+          const pxImg = decodePng(fs.readFileSync(pxFile));
+          const S = pxImg.width / vp.w;
+          const x0 = Math.max(0, Math.floor(geo.x * S));
+          const y0 = Math.max(0, Math.floor(geo.y * S));
+          const x1 = Math.min(pxImg.width, Math.ceil((geo.x + geo.w) * S));
+          const y1 = Math.min(pxImg.height, Math.ceil((geo.y + geo.h) * S));
+          let redPx = 0, silverPx = 0, darkPx = 0, bluePx = 0, handlePx = 0;
+          for (let y = y0; y < y1; y++) {
+            for (let x = x0; x < x1; x++) {
+              const i = (y * pxImg.width + x) * 4;
+              const r = pxImg.data[i], g = pxImg.data[i + 1], b = pxImg.data[i + 2];
+              if (matches([r, g, b], 230, 57, 70, 40)) redPx++;
+              else if (matches([r, g, b], 232, 234, 239, 12)) silverPx++;
+              if (matches([r, g, b], 45, 45, 45, 24)) darkPx++;
+              if (matches([r, g, b], 125, 185, 255, 30)) bluePx++;
+            }
+          }
+          // jug handle: dark strokes in the right 18% of the jug's box
+          if (ins === 'jug') {
+            const hx0 = x0 + Math.floor((x1 - x0) * 0.82);
+            for (let y = y0; y < y1; y++) {
+              for (let x = hx0; x < x1; x++) {
+                const i = (y * pxImg.width + x) * 4;
+                if (matches([pxImg.data[i], pxImg.data[i + 1], pxImg.data[i + 2]], 45, 45, 45, 30)) handlePx++;
+              }
+            }
+          }
+          if (ins === 'kitchen') {
+            check(redPx > 200, 'scales-px: dial red needle paints (' + vp.label + ' — ' + redPx + ' px)');
+            check(silverPx > 500, 'scales-px: dial silver bezel paints (' + vp.label + ' — ' + silverPx + ' px)');
+            check(darkPx > 800, 'scales-px: dial ticks + face outline paint (' + vp.label + ' — ' + darkPx + ' px)');
+          } else {
+            check(bluePx > 1500, 'scales-px: jug water paints (' + vp.label + ' — ' + bluePx + ' px)');
+            check(redPx > 200, 'scales-px: jug red meniscus paints (' + vp.label + ' — ' + redPx + ' px)');
+            check(handlePx > 300, 'scales-px: jug handle strokes paint (' + vp.label + ' — ' + handlePx + ' px)');
+          }
+        }
+      }
+      // back to the ruler so the next screens start from the default tab
+      await evalJs(cdp, "(() => { const t = document.querySelector('.scales-tab[data-scale=\"ruler\"]'); if (t) t.click(); return true; })()");
+      await sleep(250);
       // worksheets (through teacher mode)
       await goHomeForFit(cdp);
       await openTeacherForFit(cdp);
