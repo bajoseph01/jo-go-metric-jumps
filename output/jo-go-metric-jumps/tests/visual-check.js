@@ -498,6 +498,42 @@ async function run() {
       await sleep(300);
       fit = await measureFit(cdp, 'worksheets');
       check(fit.pageExcess === 0, 'ipad-fit: worksheets never scroll the page (' + vp.label + ')');
+
+      // comma badge: the slim aura must stay under half a cell width, or it
+      // regrows into a card that obscures the track digits (it used to be
+      // 80% of a cell). Driven through the real game: teacher practice
+      // unlocks every stage, then stage 3 (Guided Comma Move) is played
+      // through its op -> jumps -> drag steps until the track renders.
+      await goHomeForFit(cdp);
+      await openTeacherForFit(cdp);
+      await evalJs(cdp, "(() => { const b = document.querySelector('[data-action=\"practice-all\"]'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "document.getElementById('screen-practice').classList.contains('screen--active')", 6000);
+      await evalJs(cdp, "(() => { const b = document.querySelector('[data-stage=\"3\"]'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "document.getElementById('screen-game').classList.contains('screen--active') && !!document.querySelector('.btn--op')", 8000);
+      // step 1/3: pick the operation with the exact factor (6 buttons, so
+      // startsWith is not enough — match the full label built from exponents)
+      // unit regex: two-char units MUST come before single-char prefixes or
+      // 'cm → mm' mis-parses the second unit as 'm' (alternation order)
+      const OP_EVAL = "(() => { const pr = document.querySelector('.question-prompt'); if (!pr) return 'no-prompt'; const m = pr.textContent.match(/(km|cm|mm|kg|mg|kL|mL|m|g|L)\\s*\\u2192\\s*(km|cm|mm|kg|mg|kL|mL|m|g|L)/); if (!m) return 'no-units'; const EXP = { km: 3, m: 0, cm: -2, mm: -3, kg: 3, g: 0, mg: -3, kL: 3, L: 0, mL: -3 }; const jumps = Math.abs(EXP[m[1]] - EXP[m[2]]); const label = (EXP[m[1]] > EXP[m[2]] ? '\\u00d7' : '\\u00f7') + Math.pow(10, jumps); const b = Array.from(document.querySelectorAll('.btn--op')).find(x => x.getAttribute('data-value') === label); if (!b) return 'no-op-btn:' + label; b.click(); const fb = document.getElementById('feedback'); return { clicked: label, hasJumps: !!document.querySelector('.btn--jump'), fb: fb ? fb.textContent : null }; })()";
+      const opDone = await evalJs(cdp, OP_EVAL);
+      console.log('  comma: op step — ' + JSON.stringify(opDone));
+      // one-shot self-heal: a rare first click can race the render; re-click
+      // the correct operation once (idempotent) before declaring a failure
+      let jumpSeen = true;
+      try { await waitForJs(cdp, "!!document.querySelector('.btn--jump')", 5000); } catch (e) { jumpSeen = false; }
+      if (!jumpSeen) {
+        const opRetry = await evalJs(cdp, OP_EVAL);
+        console.log('  comma: op step retried — ' + JSON.stringify(opRetry));
+        await waitForJs(cdp, "!!document.querySelector('.btn--jump')", 8000);
+      }
+      // step 2/3: click the correct jump count
+      const jumpDone = await evalJs(cdp, "(() => { const pr = document.querySelector('.question-prompt'); const m = pr.textContent.match(/(km|cm|mm|kg|mg|kL|mL|m|g|L)\\s*\\u2192\\s*(km|cm|mm|kg|mg|kL|mL|m|g|L)/); if (!m) return 'no-units'; const EXP = { km: 3, m: 0, cm: -2, mm: -3, kg: 3, g: 0, mg: -3, kL: 3, L: 0, mL: -3 }; const jumps = Math.abs(EXP[m[1]] - EXP[m[2]]); const b = document.querySelector('.btn--jump[data-value=\"' + jumps + '\"]'); if (!b) return 'no-jump-btn:' + jumps; b.click(); return 'jumps ' + jumps; })()");
+      await waitForJs(cdp, "!!document.querySelector('.comma-handle')", 8000);
+      await sleep(300);
+      const badge = await evalJs(cdp, "(() => { const h = document.querySelector('.comma-handle'); const c = document.querySelector('.track-row .cell'); if (!h || !c) return null; const hb = h.getBoundingClientRect(); const cb = c.getBoundingClientRect(); return { badgeW: Math.round(hb.width * 10) / 10, cellW: Math.round(cb.width * 10) / 10, ratio: hb.width / cb.width }; })()");
+      console.log('  comma badge @ ' + vp.label + ' — ' + JSON.stringify(badge) + ' [' + JSON.stringify(opDone) + ' / ' + JSON.stringify(jumpDone) + ']');
+      check(!!badge, 'comma: the guided track renders its badge (' + vp.label + ')');
+      check(!!badge && badge.ratio < 0.5, 'comma: badge stays under half the cell width (' + vp.label + ' — ' + (badge ? Math.round(badge.ratio * 1000) / 10 + '%' : 'n/a') + ')');
     }
     // restore the default viewport for the clock session below
     await cdp.send('Emulation.clearDeviceMetricsOverride');
