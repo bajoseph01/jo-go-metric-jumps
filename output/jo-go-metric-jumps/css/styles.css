@@ -1670,6 +1670,15 @@ button.rung {
   margin: 0 auto 12px;
   display: block;
 }
+/* The kitchen dial and measuring jug are TALL objects — unscaled they fill
+   the whole card and push the answer row off screen. Cap their rendered
+   height (kept proportional) so all three instruments fit comfortably with
+   the input visible; the ruler is a wide strip and stays full-width. */
+.scale-svg--dial,
+.scale-svg--jug {
+  max-height: 400px;
+  width: auto;
+}
 
 .scales-answer {
   display: flex;
@@ -1975,6 +1984,9 @@ button.rung {
   .ws-q { margin: 8px 0; }
   .ws-scale-item { margin: 8px 0; padding-bottom: 8px; }
   .ws-q--scale .scale-svg { max-width: 230px; }
+  /* landscape iPad: dial and jug shrink further so the whole question
+     (scale + answer row) stays on one screen */
+  .scale-svg--dial, .scale-svg--jug { max-height: 330px; }
   /* game: trim so the keypad stays on screen */
   .equation { font-size: clamp(1.6rem, 6vw, 2.4rem); margin: 8px 0 12px; }
   .key { min-height: 52px; font-size: 1.3rem; }

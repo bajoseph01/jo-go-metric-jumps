@@ -68,8 +68,9 @@
     var x0 = 30;
     var w = x0 + 250 * px + 10;
     var unit = level === 'cm' ? 'cm' : 'mm';
-    var html = '<svg viewBox="0 0 ' + w + ' 96" class="scale-svg" role="img" aria-label="Ruler with arrow at ' + mm + ' millimetres">' +
-      '<rect x="' + x0 + '" y="30" width="' + (250 * px) + '" height="36" rx="4" fill="#f7c948" stroke="#2d2d2d" stroke-width="2"/>';
+    var html = '<svg viewBox="0 0 ' + w + ' 96" class="scale-svg scale-svg--ruler" role="img" aria-label="Ruler with arrow at ' + mm + ' millimetres">' +
+      '<rect x="' + x0 + '" y="30" width="' + (250 * px) + '" height="36" rx="4" fill="#f7c948" stroke="#2d2d2d" stroke-width="2"/>' +
+      '<rect x="' + x0 + '" y="62" width="' + (250 * px) + '" height="4" rx="2" fill="#e6b83e"/>';
     for (var m = 0; m <= 250; m++) {
       var x = x0 + m * px;
       var isMajor = m % 10 === 0;
@@ -78,17 +79,19 @@
       html += '<line x1="' + x.toFixed(1) + '" y1="30" x2="' + x.toFixed(1) + '" y2="' + (30 + th) + '" stroke="#2d2d2d" stroke-width="' + (isMajor ? 1.6 : 0.8) + '"/>';
       if (isMajor) {
         var label = level === 'cm' ? (m / 10) : m;
-        html += '<text x="' + x.toFixed(1) + '" y="80" text-anchor="middle" font-size="9" font-weight="700">' + label + '</text>';
+        html += '<text x="' + x.toFixed(1) + '" y="82" text-anchor="middle" font-size="10" font-weight="700">' + label + '</text>';
       }
     }
     var px2 = x0 + mm * px;
     // The arrow points AT the ruler from ABOVE — its tip stops 1px short
     // of the ruler's top edge (y=30) so it never covers the tick below.
+    // Chunkier than a plain needle so the reading is the first thing a
+    // child sees: a 4px stem and a wide, decisive head.
     html += '<g stroke="#e63946" fill="#e63946">' +
-      '<line x1="' + px2.toFixed(1) + '" y1="4" x2="' + px2.toFixed(1) + '" y2="16" stroke-width="3"/>' +
-      '<polygon points="' + (px2 - 7).toFixed(1) + ',16 ' + (px2 + 7).toFixed(1) + ',16 ' + px2.toFixed(1) + ',29"/>' +
+      '<line x1="' + px2.toFixed(1) + '" y1="4" x2="' + px2.toFixed(1) + '" y2="15" stroke-width="4" stroke-linecap="round"/>' +
+      '<polygon points="' + (px2 - 8.5).toFixed(1) + ',15 ' + (px2 + 8.5).toFixed(1) + ',15 ' + px2.toFixed(1) + ',29"/>' +
       '</g>' +
-      '<text x="' + (w - 8) + '" y="26" text-anchor="end" font-size="10" font-weight="700">' + unit + '</text>' +
+      '<text x="' + (w - 8) + '" y="26" text-anchor="end" font-size="11" font-weight="700">' + unit + '</text>' +
       '</svg>';
     return html;
   }
@@ -96,7 +99,8 @@
   /** A 0-1 kg kitchen dial (270°) with the needle at `grams`. */
   function kitchenSVG(grams) {
     var cx = 190, cy = 190, r = 150;
-    var html = '<svg viewBox="0 0 380 380" class="scale-svg" role="img" aria-label="Kitchen scale with needle at ' + grams + ' grams">' +
+    var html = '<svg viewBox="0 0 380 380" class="scale-svg scale-svg--dial" role="img" aria-label="Kitchen scale with needle at ' + grams + ' grams">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 4) + '" fill="#e8eaef" stroke="#2d2d2d" stroke-width="3"/>' +
       '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fff" stroke="#2d2d2d" stroke-width="3"/>' +
       '<circle cx="' + cx + '" cy="' + cy + '" r="10" fill="#2d2d2d"/>';
     function pt(v, rad) {
@@ -109,8 +113,8 @@
       var p2 = pt(g, r - 3);
       html += '<line x1="' + p1[0].toFixed(1) + '" y1="' + p1[1].toFixed(1) + '" x2="' + p2[0].toFixed(1) + '" y2="' + p2[1].toFixed(1) + '" stroke="#2d2d2d" stroke-width="' + (isMajor ? 2.2 : 1) + '"/>';
       if (isMajor) {
-        var pl = pt(g, r - 34);
-        html += '<text x="' + pl[0].toFixed(1) + '" y="' + (pl[1] + 3.5).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700">' + (g === 1000 ? '1 kg' : g) + '</text>';
+        var pl = pt(g, r - 38);
+        html += '<text x="' + pl[0].toFixed(1) + '" y="' + (pl[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="700">' + (g === 1000 ? '1 kg' : g) + '</text>';
       }
     }
     var n1 = pt(grams, r - 42);
@@ -124,9 +128,17 @@
   function jugSVG(mL) {
     var bx = 110, bw = 92;
     var topY = 60, botY = 332;
-    var html = '<svg viewBox="0 0 260 360" class="scale-svg" role="img" aria-label="Measuring jug with liquid at ' + mL + ' millilitres">' +
+    var html = '<svg viewBox="0 0 260 360" class="scale-svg scale-svg--jug" role="img" aria-label="Measuring jug with liquid at ' + mL + ' millilitres">' +
       '<path d="M ' + bx + ' ' + topY + ' l -16 -14 l 34 0" fill="none" stroke="#2d2d2d" stroke-width="3"/>' +
-      '<rect x="' + bx + '" y="' + topY + '" width="' + bw + '" height="' + (botY - topY) + '" rx="6" fill="#cfe8ff" stroke="#2d2d2d" stroke-width="3"/>';
+      '<rect x="' + bx + '" y="' + topY + '" width="' + bw + '" height="' + (botY - topY) + '" rx="6" fill="#cfe8ff" stroke="#2d2d2d" stroke-width="3"/>' +
+      // a soft glass highlight so the jug reads as a real container
+      '<polygon points="' + (bx + 12) + ',' + (topY + 16) + ' ' + (bx + 26) + ',' + (topY + 16) + ' ' + (bx + 8) + ',' + (botY - 22) + ' ' + (bx - 6) + ',' + (botY - 22) + '" fill="#ffffff" opacity="0.45"/>' +
+      // a chunky handle on the right, round-capped like a real jug
+      '<g stroke="#2d2d2d" stroke-width="6" stroke-linecap="round" fill="none">' +
+        '<line x1="' + (bx + bw) + '" y1="' + (topY + 64) + '" x2="' + (bx + bw + 26) + '" y2="' + (topY + 64) + '"/>' +
+        '<line x1="' + (bx + bw + 26) + '" y1="' + (topY + 64) + '" x2="' + (bx + bw + 26) + '" y2="' + (botY - 70) + '"/>' +
+        '<line x1="' + (bx + bw + 26) + '" y1="' + (botY - 70) + '" x2="' + (bx + bw) + '" y2="' + (botY - 70) + '"/>' +
+      '</g>';
     function yFor(v) { return botY - (v / 1000) * (botY - topY); }
     for (var v = 0; v <= 1000; v += 25) {
       var isMajor = v % 100 === 0;
@@ -138,7 +150,7 @@
       }
     }
     var my = yFor(mL);
-    html += '<rect x="' + (bx + 2) + '" y="' + my.toFixed(1) + '" width="' + (bw - 4) + '" height="' + (botY - my - 2).toFixed(1) + '" fill="#8ec5ff"/>' +
+    html += '<rect x="' + (bx + 2) + '" y="' + my.toFixed(1) + '" width="' + (bw - 4) + '" height="' + (botY - my - 2).toFixed(1) + '" fill="#7db9ff"/>' +
       '<line x1="' + (bx - 20) + '" y1="' + my.toFixed(1) + '" x2="' + (bx + bw + 20) + '" y2="' + my.toFixed(1) + '" stroke="#e63946" stroke-width="3"/>' +
       '<text x="' + (bx + bw / 2) + '" y="' + (topY - 24) + '" text-anchor="middle" font-size="11" font-weight="700">mL</text>' +
       '</svg>';
@@ -191,24 +203,26 @@
     var unit = level === 'cm' ? 'cm' : 'mm';
     var c = [];
     c.push({ t: 'rect', x: x0, y: 30, w: 250 * px, h: 36, fill: '#f7c948', stroke: '#2d2d2d', sw: 2 });
+    c.push({ t: 'rect', x: x0, y: 62, w: 250 * px, h: 4, fill: '#e6b83e' });
     for (var m = 0; m <= 250; m++) {
       var x = x0 + m * px;
       var isMajor = m % 10 === 0, isHalf = m % 5 === 0;
       var th = isMajor ? 16 : (isHalf ? 11 : 7);
       c.push({ t: 'line', x1: x, y1: 30, x2: x, y2: 30 + th, w: isMajor ? 1.6 : 0.8, color: '#2d2d2d' });
-      if (isMajor) c.push({ t: 'text', x: x, y: 80, str: String(level === 'cm' ? m / 10 : m), size: 9, bold: true, color: '#2d2d2d', anchor: 'middle' });
+      if (isMajor) c.push({ t: 'text', x: x, y: 82, str: String(level === 'cm' ? m / 10 : m), size: 10, bold: true, color: '#2d2d2d', anchor: 'middle' });
     }
     var px2 = x0 + mm * px;
     // Mirrors rulerSVG: arrow tip stops above the ruler's top edge.
-    c.push({ t: 'line', x1: px2, y1: 4, x2: px2, y2: 16, w: 3, color: '#e63946' });
-    c.push({ t: 'poly', pts: [[px2 - 7, 16], [px2 + 7, 16], [px2, 29]], fill: '#e63946' });
-    c.push({ t: 'text', x: w - 8, y: 26, str: unit, size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
+    c.push({ t: 'line', x1: px2, y1: 4, x2: px2, y2: 15, w: 4, color: '#e63946' });
+    c.push({ t: 'poly', pts: [[px2 - 8.5, 15], [px2 + 8.5, 15], [px2, 29]], fill: '#e63946' });
+    c.push({ t: 'text', x: w - 8, y: 26, str: unit, size: 11, bold: true, color: '#2d2d2d', anchor: 'end' });
     return c;
   }
 
   function kitchenPDF(grams) {
     var cx = 190, cy = 190, r = 150;
     var c = [];
+    c.push({ t: 'circle', cx: cx, cy: cy, r: r + 4, fill: '#e8eaef', stroke: '#2d2d2d', sw: 3 });
     c.push({ t: 'circle', cx: cx, cy: cy, r: r, fill: '#fff', stroke: '#2d2d2d', sw: 3 });
     c.push({ t: 'circle', cx: cx, cy: cy, r: 10, fill: '#2d2d2d' });
     function pt(v, rad) {
@@ -221,8 +235,8 @@
       var p2 = pt(g, r - 3);
       c.push({ t: 'line', x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], w: isMajor ? 2.2 : 1, color: '#2d2d2d' });
       if (isMajor) {
-        var pl = pt(g, r - 34);
-        c.push({ t: 'text', x: pl[0], y: pl[1] + 3.5, str: g === 1000 ? '1 kg' : String(g), size: 10, bold: true, color: '#2d2d2d', anchor: 'middle' });
+        var pl = pt(g, r - 38);
+        c.push({ t: 'text', x: pl[0], y: pl[1] + 4, str: g === 1000 ? '1 kg' : String(g), size: 11, bold: true, color: '#2d2d2d', anchor: 'middle' });
       }
     }
     var n1 = pt(grams, r - 42), n2 = pt(grams, 14);
@@ -234,8 +248,13 @@
     var bx = 110, bw = 92, topY = 60, botY = 332;
     var c = [];
     c.push({ t: 'rect', x: bx, y: topY, w: bw, h: botY - topY, fill: '#cfe8ff', stroke: '#2d2d2d', sw: 3 });
+    c.push({ t: 'poly', pts: [[bx + 12, topY + 16], [bx + 26, topY + 16], [bx + 8, botY - 22], [bx - 6, botY - 22]], fill: '#ffffff' });
     c.push({ t: 'line', x1: bx, y1: topY, x2: bx - 16, y2: topY - 14, w: 3, color: '#2d2d2d' });
     c.push({ t: 'line', x1: bx - 16, y1: topY - 14, x2: bx + 18, y2: topY - 14, w: 3, color: '#2d2d2d' });
+    // chunky handle, mirrors jugSVG
+    c.push({ t: 'line', x1: bx + bw, y1: topY + 64, x2: bx + bw + 26, y2: topY + 64, w: 6, color: '#2d2d2d' });
+    c.push({ t: 'line', x1: bx + bw + 26, y1: topY + 64, x2: bx + bw + 26, y2: botY - 70, w: 6, color: '#2d2d2d' });
+    c.push({ t: 'line', x1: bx + bw + 26, y1: botY - 70, x2: bx + bw, y2: botY - 70, w: 6, color: '#2d2d2d' });
     function yFor(v) { return botY - (v / 1000) * (botY - topY); }
     for (var v = 0; v <= 1000; v += 25) {
       var isMajor = v % 100 === 0;
@@ -245,7 +264,7 @@
       if (isMajor) c.push({ t: 'text', x: x2 - 4, y: y + 3.5, str: String(v), size: 10, bold: true, color: '#2d2d2d', anchor: 'end' });
     }
     var my = yFor(mL);
-    c.push({ t: 'rect', x: bx + 2, y: my, w: bw - 4, h: botY - my - 2, fill: '#8ec5ff' });
+    c.push({ t: 'rect', x: bx + 2, y: my, w: bw - 4, h: botY - my - 2, fill: '#7db9ff' });
     c.push({ t: 'line', x1: bx - 20, y1: my, x2: bx + bw + 20, y2: my, w: 3, color: '#e63946' });
     c.push({ t: 'text', x: bx + bw / 2, y: topY - 24, str: 'mL', size: 11, bold: true, color: '#2d2d2d', anchor: 'middle' });
     return c;

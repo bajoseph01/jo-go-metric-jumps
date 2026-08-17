@@ -850,6 +850,16 @@ ok(ks.indexOf('1 kg') >= 0, 'kitchen dial labels 1 kg');
 ok(ks.indexOf('aria-label="Kitchen scale with needle at 360') >= 0, 'kitchen svg declares its reading');
 const js = Scales.jugSVG(525);
 ok(js.indexOf('aria-label="Measuring jug with liquid at 525') >= 0, 'jug svg declares its reading');
+// ---- scale look: classes + kid-friendly details ---------------------
+ok(rs.indexOf('scale-svg--ruler') > -1, 'ruler svg carries its instrument class');
+ok(rs.indexOf('stroke-width="4" stroke-linecap="round"') > -1, 'ruler pointer is a chunky 4px stem');
+ok(rs.indexOf('e6b83e') > -1, 'ruler body has a subtle darker base band');
+ok(ks.indexOf('scale-svg--dial') > -1, 'dial svg carries its instrument class');
+ok((ks.match(/<circle /g) || []).length === 3, 'dial svg: bezel + face + hub');
+ok(js.indexOf('scale-svg--jug') > -1, 'jug svg carries its instrument class');
+ok(js.indexOf('stroke-width="6" stroke-linecap="round"') > -1, 'jug svg handle group is chunky and round-capped');
+ok((js.match(/<line x1="/g) || []).length >= 3, 'jug svg draws its handle as three lines');
+ok(js.indexOf('opacity="0.45"') > -1, 'jug svg has a soft glass highlight');
 
 // ---- scale worksheet items ----------------------------------------
 const si = Scales.worksheetItems(null, null);
@@ -931,12 +941,15 @@ ok(Math.abs(kNeedle.x1 - 190) < 1e-9, 'kitchen needle at 500 g points straight u
 ok(Math.abs(kNeedle.x2 - 190) < 1e-9, 'kitchen needle collinear at 500 g');
 ok(kNeedle.y1 < kNeedle.y2, 'kitchen needle points upward');
 eq(kp.filter(c => c.t === 'line').length, 51 + 1, 'kitchen: 51 ticks (0-1000 @20) + needle');
-eq(kp.filter(c => c.t === 'circle').length, 2, 'kitchen: dial + hub circles');
+eq(kp.filter(c => c.t === 'circle').length, 3, 'kitchen: bezel + dial + hub circles');
+ok(kp[0].t === 'circle' && kp[0].r === 154 && kp[0].fill === '#e8eaef', 'kitchen: silver bezel ring behind the face');
 const jp = Scales.jugPDF(525);
 const jMenis = jp.filter(c => c.t === 'line' && c.color === '#e63946')[0];
 eq(Math.round(jMenis.y1 * 10) / 10, Math.round((332 - (525 / 1000) * 272) * 10) / 10, 'jug meniscus at 525 mL height');
 eq(jMenis.y1, jMenis.y2, 'jug meniscus horizontal');
-eq(jp.filter(c => c.t === 'line').length, 41 + 2 + 1, 'jug: 41 ticks + 2 spout + meniscus');
+eq(jp.filter(c => c.t === 'line').length, 41 + 2 + 1 + 3, 'jug: 41 ticks + 2 spout + handle + meniscus');
+ok(jp.filter(c => c.t === 'line' && c.w === 6).length === 3, 'jug: chunky 3-line handle on the right');
+ok(jp.some(c => c.t === 'poly' && c.fill === '#ffffff'), 'jug: glass highlight band');
 
 // command sets render into a structurally valid PDF via the primitives
 const sdoc = PDF.createDoc({});

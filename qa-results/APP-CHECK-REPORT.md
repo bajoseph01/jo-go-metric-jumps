@@ -211,3 +211,19 @@ A static + live-DOM audit of every screen (home, learner picker, How It Works, p
 **Real-pixel settled-comma backstop:** the harness now builds an isolated settled track with the real widget (the in-game badge is covered by the correct-answer panel the instant it settles), pins the badge still (inline `animation:none`), captures the PNG, and asserts green-dark pixels dominate the painted badge interior with white comma ink still present (+6 checks). **Negative control proven:** `--green-dark` → `#18A957` drops green dominance to 1% and trips the computed-style + contrast guards too.
 
 **Totals now:** main app 14,424 unit checks / 0 failed; visual harness 133/133 (was 127); contrast audit script `tests/contrast-audit.js` reports clean.
+
+---
+
+## Follow-up: Scales Lab size + look pass (v=56)
+
+**Size (measured by a real-browser probe at both iPad sizes):** the kitchen dial and measuring jug scaled up to the card's full 594px width, making them 594×594 and 594×822 — the answer row landed at ~980px on portrait and forced scrolling. New `.scale-svg--dial` / `.scale-svg--jug` classes cap the rendered height (400px portrait, 330px landscape, proportional width), so all three instruments now sit comfortably with the input visible:
+
+| Instrument | Portrait (was → now) | Landscape (was → now) |
+| --- | --- | --- |
+| Ruler | 594×123 → 594×123 | 594×123 → 594×123 |
+| Kitchen dial | 594×594 (form @979) → 400×400 (form @785) | 594×594 → 330×330 (form @715) |
+| Measuring jug | 594×822 (form @983) → 289×400 (form @785) | 594×822 → 238×330 (form @715) |
+
+**Look:** the SVG builders (and their mirrored PDF builders, so worksheets/PDFs match) got kid-friendly detail — a chunkier round-capped red ruler pointer with a wider head, a silver bezel ring around the kitchen dial with bolder numbers, and a glass highlight band plus a chunky round-capped handle on the jug. Pixel-verified in the captured iPad renders (14,140 silver bezel px; 129,858 handle-stroke px).
+
+**Guards:** 12 new unit checks assert the instrument classes, element counts, bezel, handle and highlight; the arrow-tip-above-ruler rule, tick counts, needle and meniscus geometry all still pass unchanged. Totals: 14,436 unit / 133 visual. Evidence: `qa-results/scales-size-probe.js`, `qa-results/scales-px-check.js`, `qa-results/evidence/scales-*.png`.
