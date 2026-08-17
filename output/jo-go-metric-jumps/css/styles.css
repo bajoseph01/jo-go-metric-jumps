@@ -178,7 +178,22 @@ button {
   padding: 14px 18px 0;
 }
 
-#home-sound { position: absolute; top: 14px; right: 18px; }
+.home-top-actions {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  display: flex;
+  gap: 8px;
+}
+
+/* The teacher cog is intentionally quieter than the sound toggle: same
+   size and touch target, but muted ink so it reads as a settings affordance
+   rather than a play button. One tap asks for the PIN. */
+#home-teacher {
+  color: var(--ink-soft);
+  font-size: 1.15rem;
+  border-width: 2px;
+}
 
 /* Three dimension ladders side by side, each on its own softly embossed
    card with a small-print memory note. The selected dimension's card is

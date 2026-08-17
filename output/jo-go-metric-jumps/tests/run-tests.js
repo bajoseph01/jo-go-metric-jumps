@@ -1403,6 +1403,27 @@ section('23. App identity: storage key + brand name (rename guard)');
 }
 
 // ------------------------------------------------------------------
+// 24. Teacher access: one-tap settings cog (PIN-gated)
+// ------------------------------------------------------------------
+// The teacher opens the panel with a single tap on the settings cog; the
+// panel stays PIN-gated (5241). The cog must exist on the home screen and
+// be wired to Teacher.open in app.js.
+// ------------------------------------------------------------------
+section('24. Teacher access: one-tap settings cog');
+{
+  const htmlSrc4 = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  ok(htmlSrc4.indexOf('id="home-teacher"') > -1, 'home screen hosts the teacher settings cog');
+  ok(htmlSrc4.indexOf('aria-label="Teacher settings"') > -1, 'the cog carries a clear accessible label');
+  const appSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
+  ok(appSrc.indexOf("$('home-teacher').addEventListener('click'") > -1, 'app.js wires the cog click');
+  ok(appSrc.indexOf('Teacher.open()') > -1, 'the cog opens the teacher flow');
+  ok(appSrc.indexOf("PIN: '5241'") > -1, 'teacher mode remains PIN-gated');
+  const uiSrc3 = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
+  ok(uiSrc3.indexOf('data-action="practice-all"') > -1, 'teacher panel keeps Practice all levels');
+  ok(uiSrc3.indexOf('data-action="worksheets"') > -1, 'teacher panel keeps Worksheet pack');
+}
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');

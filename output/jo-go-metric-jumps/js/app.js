@@ -68,6 +68,13 @@
       toggleSound();
     });
 
+    // The teacher cog opens the PIN-gated teacher panel in one tap.
+    $('home-teacher').addEventListener('click', function () {
+      Audio.unlock();
+      Audio.play('click');
+      Teacher.open();
+    });
+
     $('btn-learner').addEventListener('click', function () {
       Audio.unlock();
       Audio.play('click');
