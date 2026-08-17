@@ -1,7 +1,7 @@
 /**
  * clock.js — Tick⚡Tock (mini-app experiment)
  * Core clock-reading domain. A "level" is just a config (like a dimension
- * ladder in Jo⚡Go Metric Jumps): the engine is level-agnostic from the
+ * ladder in Jo⚡Go Metric Master): the engine is level-agnostic from the
  * start, so adding a new level never requires a refactor.
  *
  * All generation is deterministic (seeded RNG) so questions and worksheets

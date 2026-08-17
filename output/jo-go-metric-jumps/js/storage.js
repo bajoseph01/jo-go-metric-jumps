@@ -1,5 +1,5 @@
 /**
- * storage.js — Jo⚡Go Metric Jumps
+ * storage.js — Jo⚡Go Metric Master
  * Local persistence of learner profiles, mastery, streaks, settings and unlocks.
  *
  * Device settings (sound, reduced motion) are global. Each learner's progress

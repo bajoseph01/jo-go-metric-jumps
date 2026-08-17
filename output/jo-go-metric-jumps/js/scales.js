@@ -1,5 +1,5 @@
 /**
- * scales.js — Jo⚡Go Metric Jumps
+ * scales.js — Jo⚡Go Metric Master
  * Pure logic for the Scales Lab: reading physical scales.
  *
  * Three instruments: a 250 mm ruler (numbered in cm), a 0-1 kg kitchen

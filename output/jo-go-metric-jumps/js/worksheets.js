@@ -1,5 +1,5 @@
 /**
- * worksheets.js — Jo⚡Go Metric Jumps
+ * worksheets.js — Jo⚡Go Metric Master
  * Pure generation logic for the teacher's per-learner worksheet pack.
  *
  * Each worksheet drills the learner's WEAKEST conversion pairs first

@@ -39,5 +39,5 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(PORT, () => {
-  console.log('Jo⚡Go Metric Jumps dev server on http://localhost:' + PORT);
+  console.log('Jo⚡Go Metric Master dev server on http://localhost:' + PORT);
 });

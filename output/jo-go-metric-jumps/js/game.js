@@ -1,5 +1,5 @@
 /**
- * game.js — Jo⚡Go Metric Jumps
+ * game.js — Jo⚡Go Metric Master
  * Session flow: stage state machine, adaptive question queue, targeted
  * corrective feedback, mastery recording, stage completion.
  */

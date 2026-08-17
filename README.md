@@ -1,6 +1,6 @@
 # JoGo-Metric-Jumps
 
-**Jo⚡Go Metric Jumps** — a Grade 4 metric conversion game covering length
+**Jo⚡Go Metric Master** — a Grade 4 metric conversion game covering length
 (km · m · cm · mm), mass (kg · g · mg) and volume (kL · L · mL), built around
 dragging the decimal comma, plus a physical-scales reading lab (ruler, kitchen
 scale, measuring jug), teacher tools and printable/PDF worksheets.

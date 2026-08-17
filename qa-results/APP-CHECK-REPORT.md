@@ -3,7 +3,7 @@
 ## Verdict
 
 **Status:** PASS WITH RISKS
-**App:** Jo⚡Go Metric Jumps (Grade 4 metric-conversion game + Scales Lab + teacher tools)
+**App:** Jo⚡Go Metric Master (Grade 4 metric-conversion game + Scales Lab + teacher tools)
 **Version / commit:** v=41 · commit 51c4a91 (main)
 **URL:** http://localhost:4174/index.html (verified) · prod https://bajoseph01.github.io/jo-go-metric-jumps/ (serves v=41, HTTP 200)
 **Run mode:** full

@@ -1,5 +1,5 @@
 /**
- * app.js — Jo⚡Go Metric Jumps
+ * app.js — Jo⚡Go Metric Master
  * Boot: wires the static chrome (home, HUD, sound, back buttons), the
  * discreet teacher access, and starts the app on the home screen.
  */

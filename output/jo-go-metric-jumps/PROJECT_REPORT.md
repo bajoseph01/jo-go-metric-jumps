@@ -1,4 +1,4 @@
-# Jo⚡Go Metric Jumps — Project Report
+# Jo⚡Go Metric Master — Project Report
 
 ## What was built
 

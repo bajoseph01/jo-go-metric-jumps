@@ -1,5 +1,5 @@
 /**
- * sw.js — Jo⚡Go Metric Jumps
+ * sw.js — Jo⚡Go Metric Master
  * Minimal service worker so the game works offline after the first visit.
  *
  * Strategy: network-first with cache fallback. The game always gets the

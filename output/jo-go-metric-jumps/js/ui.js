@@ -1,5 +1,5 @@
 /**
- * ui.js — Jo⚡Go Metric Jumps
+ * ui.js — Jo⚡Go Metric Master
  * Screen routing and rendering. All dynamic content is rendered here;
  * game logic lives in game.js. Uses semantic buttons everywhere.
  */
@@ -1004,7 +1004,7 @@
       stageDots += '<span class="report-dot' + (sd <= prog.unlocked ? ' report-dot--on' : '') + '"></span>';
     }
     html += '<div class="report print-area">' +
-      '<h2 class="report-head">' + l.emoji + ' <span style="color:' + l.color + '">' + esc(l.name) + '</span> — Metric Jumps Report</h2>' +
+      '<h2 class="report-head">' + l.emoji + ' <span style="color:' + l.color + '">' + esc(l.name) + '</span> — Metric Master Report</h2>' +
       '<p class="report-sub">' + prog.totalAnswered + ' questions · ' +
         firstTryPct + '% first-try · best streak 🔥 ' + prog.bestStreak + '</p>' +
       '<div class="report-stages" aria-label="Stage ' + prog.unlocked + ' of ' + Q.STAGES.length + ' unlocked">' + stageDots + '</div>' +
@@ -1046,7 +1046,7 @@
       }
       html += '</tbody></table>';
     }
-    html += '<p class="report-foot">Jo⚡Go Metric Jumps · ' + new Date().toLocaleDateString() + '</p>' +
+    html += '<p class="report-foot">Jo⚡Go Metric Master · ' + new Date().toLocaleDateString() + '</p>' +
       '</div>';
 
     body.innerHTML = html;
@@ -1327,7 +1327,7 @@
       var l = sel[s];
       var items = scaleItemsFor(l);
       html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
-        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — Read the Scales</div>' +
+        '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Master — Read the Scales</div>' +
         '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
         '<p class="ws-instruct">Read each scale and type your answer, then press Check my answers.</p><div class="ws-qs">';
       for (var i = 0; i < items.length; i++) {
@@ -1418,7 +1418,7 @@
         var convs = items.filter(function (it) { return it.type === 'conv'; });
         var words = items.filter(function (it) { return it.type === 'word'; });
         html += '<div class="ws-sheet print-area" data-learner="' + l.id + '">' +
-          '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Jumps — ' + dimName + ' Worksheet</div>' +
+          '<div class="ws-head"><div class="ws-brand">Jo⚡Go Metric Master — ' + dimName + ' Worksheet</div>' +
           '<div class="ws-who">For: ' + l.emoji + ' ' + esc(l.name) + ' · ' + date + '</div></div>' +
           '<p class="ws-instruct">Convert these. Write your answer in the box.</p><div class="ws-qs">';
         for (var c = 0; c < convs.length; c++) {
@@ -1893,7 +1893,7 @@
   /** Compose the per-learner report as a PDF (mirrors the print layout). */
   function reportPdf(l, prog) {
     var doc = PDF.createDoc({});
-    doc.title(l.name + ' — Metric Jumps Report');
+    doc.title(l.name + ' — Metric Master Report');
     var firstTryPct = prog.totalAnswered ? Math.round((prog.totalFirstTry / prog.totalAnswered) * 100) : 0;
     doc.subtitle('Stage ' + prog.unlocked + ' unlocked · ' + prog.totalAnswered + ' questions · ' +
       firstTryPct + '% first-try · best streak ' + prog.bestStreak);
@@ -1977,7 +1977,7 @@
         if (s > 0) doc.pageBreak();
         var l2 = sel[s];
         var sitems = scaleItemsFor(l2);
-        doc.title('Metric Jumps — Read the Scales');
+        doc.title('Metric Master — Read the Scales');
         doc.subtitle('For: ' + l2.name + '  ·  ' + date);
         doc.para('Read each scale and write your answer on the line.', { bold: true });
         doc.blankLine(1);
@@ -2050,7 +2050,7 @@
       var items = convItemsFor(l, dim);
       var convs = items.filter(function (it) { return it.type === 'conv'; });
       var words = items.filter(function (it) { return it.type === 'word'; });
-      doc.title('Metric Jumps — ' + dimName + ' Worksheet');
+      doc.title('Metric Master — ' + dimName + ' Worksheet');
       doc.subtitle('For: ' + l.name + '  ·  ' + date);
       doc.para('Convert these. Write your answer in the box.', { bold: true });
       doc.blankLine(2);

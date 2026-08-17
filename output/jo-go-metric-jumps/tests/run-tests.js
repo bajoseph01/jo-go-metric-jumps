@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * run-tests.js — automated checks for Jo⚡Go Metric Jumps.
+ * run-tests.js — automated checks for Jo⚡Go Metric Master.
  * Run: node tests/run-tests.js
  *
  * Covers: the six canonical conversions, exact integer arithmetic, decimal

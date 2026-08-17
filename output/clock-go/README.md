@@ -3,7 +3,7 @@
 **A Grade 2–3 analogue-clock-reading game** (whole & half → five minutes →
 one minute), built as a controlled test of the master prompt in
 [`PLAYBOOK.md`](../../PLAYBOOK.md). Same platform, audience and architecture
-as Jo⚡Go Metric Jumps; different domain, so nothing was copy-pasted from the
+as Jo⚡Go Metric Master; different domain, so nothing was copy-pasted from the
 game itself — only genuinely generic, inherited wheels (the PDF writer,
 audio synth, local server, design tokens).
 

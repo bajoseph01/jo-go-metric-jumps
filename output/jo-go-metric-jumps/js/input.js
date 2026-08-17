@@ -1,5 +1,5 @@
 /**
- * input.js — Jo⚡Go Metric Jumps
+ * input.js — Jo⚡Go Metric Master
  * Touch/mouse/Pencil input: the on-screen keypad and the place-value comma
  * track (drag or tap). Pointer Events only — no hover required anywhere.
  */

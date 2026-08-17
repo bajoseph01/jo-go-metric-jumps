@@ -1,4 +1,4 @@
-# Jo⚡Go Metric Jumps — Build Playbook
+# Jo⚡Go Metric Master — Build Playbook
 
 *For future AI builders (and their human teachers). Read this BEFORE reading the code.*
 
@@ -76,7 +76,7 @@ in a fraction of the turns. It is written as a reusable template — swap the
 bracketed bits for any app.
 
 ```text
-BUILD: [Jo⚡Go Metric Jumps] — a [browser game teaching Grade 4 metric
+BUILD: [Jo⚡Go Metric Master] — a [browser game teaching Grade 4 metric
 conversions] for [children aged 9-10 on classroom iPads].
 
 DELIVERABLE: a working, classroom-ready web app. Vanilla HTML/CSS/JS only —

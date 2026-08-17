@@ -1,4 +1,4 @@
-# Jo⚡Go Metric Jumps
+# Jo⚡Go Metric Master
 
 **Master the comma. Master metric measurement.**
 

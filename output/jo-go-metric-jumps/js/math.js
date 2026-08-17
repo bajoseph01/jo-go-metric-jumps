@@ -1,5 +1,5 @@
 /**
- * math.js — Jo⚡Go Metric Jumps
+ * math.js — Jo⚡Go Metric Master
  * Core metric mathematics for three dimensions: length, mass and volume.
  *
  * All arithmetic is exact: values are represented as rationals (num/den)

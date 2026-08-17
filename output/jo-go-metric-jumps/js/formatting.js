@@ -1,5 +1,5 @@
 /**
- * formatting.js — Jo⚡Go Metric Jumps
+ * formatting.js — Jo⚡Go Metric Master
  * South African number formatting (decimal comma, space thousands) and
  * robust parsing of typed answers (accepts both ',' and '.' as decimal).
  */

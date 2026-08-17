@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * visual-check.js — deterministic PIXEL verification for Jo⚡Go Metric Jumps.
+ * visual-check.js — deterministic PIXEL verification for Jo⚡Go Metric Master.
  *
  * The interactive Preview screenshot compositor can be unavailable or stale;
  * this harness never depends on it. It drives the REAL app in a headless

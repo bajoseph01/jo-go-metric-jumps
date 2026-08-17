@@ -1,5 +1,5 @@
 /**
- * questions.js — Jo⚡Go Metric Jumps
+ * questions.js — Jo⚡Go Metric Master
  * Deliberate question generation for every stage.
  *
  * Values are generated with integer scaling (scaled/scale where scale is a

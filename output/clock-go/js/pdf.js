@@ -1,5 +1,5 @@
 /**
- * pdf.js — Jo⚡Go Metric Jumps
+ * pdf.js — Jo⚡Go Metric Master
  * A tiny, dependency-free PDF writer (Helvetica, WinAnsi encoding).
  *
  * Enough for the teacher-facing documents: per-learner reports and the
@@ -355,7 +355,7 @@
         var pg = pages[p];
         var footY = pageH - 26;
         pg.ops.push('q 0.45 rg BT /F1 8 Tf ' + margin.toFixed(2) + ' ' + footY.toFixed(2) +
-          ' Td (' + esc('Jo⚡Go Metric Jumps · ' + dateStr) + ') Tj ET Q');
+          ' Td (' + esc('Jo⚡Go Metric Master · ' + dateStr) + ') Tj ET Q');
         var right = 'Page ' + (p + 1) + ' of ' + n;
         pg.ops.push('q 0.45 rg BT /F1 8 Tf ' + (pageW - margin - textWidth(right, 8)).toFixed(2) +
           ' ' + footY.toFixed(2) + ' Td (' + esc(right) + ') Tj ET Q');

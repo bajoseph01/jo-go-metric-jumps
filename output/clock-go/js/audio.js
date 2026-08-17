@@ -1,5 +1,5 @@
 /**
- * audio.js — Jo⚡Go Metric Jumps
+ * audio.js — Jo⚡Go Metric Master
  * Tiny WebAudio synth for subtle feedback sounds. No external files.
  * Sound is optional: everything works fully muted. Preference persists.
  */
