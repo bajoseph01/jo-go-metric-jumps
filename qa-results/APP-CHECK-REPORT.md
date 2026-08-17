@@ -188,3 +188,26 @@ All five findings were fixed and re-verified after this assessment. Shipped as v
 | AC-006 | `.screen--active` locked to `height:100vh; height:100dvh; overflow:hidden` (vh fallback for older iOS Safari) so tall screens scroll INSIDE their `.page-body` instead of scrolling the whole page; landscape tablet query (`min-width:700px; max-height:950px`) reflows How It Works cards and worksheet sheets two-up | Probe: pageExcess 0 on every screen at 810×1080 and 1180×820; negative control (revert to min-height) fails exactly the 9 overflowing screens |
 
 New guards added to `tests/run-tests.js` (suite 6,215 → 6,244 checks, 0 failed); real-pixel harness extended from 41 to 55 checks with 14 new iPad-fit assertions (page must never scroll at iPad portrait 810×1080 and landscape 1180×820 on home, How It Works, progress, practice, game, scales, worksheets) plus the existing clock-hand negative-control proof.
+
+---
+
+## Follow-up: whole-app WCAG contrast audit (v=55)
+
+A static + live-DOM audit of every screen (home, learner picker, How It Works, progress, practice, game, scales, worksheets, teacher panel, printable report, challenge, done card) at both iPad sizes found and fixed every text/graphic pair under 4.5:1 (3:1 for large/graphical):
+
+| Offender | Before | Fix |
+| --- | --- | --- |
+| Learner name palette (7 of 8 colours) | 2.3–3.9:1 on white | Palette darkened in `storage.js` (8 new hexes) with a legacy-colour migration so existing profiles keep their identity; `ui.js` COLOR_NAMES + unit tests updated |
+| Brand pill gradient stops | white on light blue ~3.3:1 | Darker `--blue-dark` gradient stop (white ≈ 5.5:1) |
+| Bolt glyph in the brand pill | ~2.5:1 on light blue | Ink `#2B2A33` glyph |
+| `.m-badge--warn` (red text) | 3.3:1 on red-soft | Darker `--red` (5.1:1 on red-soft, 5.9:1 on white) |
+| Gap markers (white on pink) | 3.0:1 at 13.6px | Darker marker pink (4.6:1) |
+| Scales Check button | white on blue 4.4976:1 | Darker `--blue` (5.5:1) |
+| `--green` as text | 2.7:1 on white | Uses `--green-dark` where text, keeps bright green for filled/graphic surfaces |
+| `<meta theme-color>` | stale | Matches the dark blue |
+
+**Guards:** the real-pixel harness gained an `auditContrast` walker (effective text colour vs effective background — walks up for opaque backgrounds and gradient stops, dedupes, applies large-text rules) and now asserts every screen clears WCAG at both iPad sizes (+22 checks). Unit suite gained a section asserting all 8 palette colours clear 4.5:1 on white and paper, and legacy hexes migrate. **Negative control proven:** reverting `--blue` trips the exact blue-pair checks.
+
+**Real-pixel settled-comma backstop:** the harness now builds an isolated settled track with the real widget (the in-game badge is covered by the correct-answer panel the instant it settles), pins the badge still (inline `animation:none`), captures the PNG, and asserts green-dark pixels dominate the painted badge interior with white comma ink still present (+6 checks). **Negative control proven:** `--green-dark` → `#18A957` drops green dominance to 1% and trips the computed-style + contrast guards too.
+
+**Totals now:** main app 14,424 unit checks / 0 failed; visual harness 133/133 (was 127); contrast audit script `tests/contrast-audit.js` reports clean.

@@ -8,7 +8,10 @@
   --paper: #FDF9F0;
   --ink: #2B2A33;
   --ink-soft: #5F5C6B;
-  --blue: #2F6BFF;
+  /* WCAG-contrast pass (4.5:1+ on white): bright #2F6BFF sat at 4.4976:1,
+     a hair under the threshold. #2B62EB clears it with margin while
+     staying recognisably the same blue. */
+  --blue: #2B62EB;
   --blue-dark: #1E4ED8;
   --blue-soft: #E7EEFF;
   --green: #18A957;
@@ -20,7 +23,10 @@
   --orange-soft: #FFEDD8;
   --pink: #FF4FA3;
   --pink-soft: #FFE4F0;
-  --red: #E64545;
+  /* WCAG-contrast pass: white on #E64545 was 3.96:1 and red text on
+     red-soft 3.25:1. #B92727 gives 6.2:1 on white and 5.1:1 on red-soft. */
+  --red: #B92727;
+  --red-dark: #8F1F1F;
   --red-soft: #FFE2E2;
   --card-border: 3px solid var(--ink);
   --shadow: 6px 6px 0 var(--ink);
@@ -312,7 +318,10 @@ button {
   letter-spacing: 0.01em;
 }
 
-.bolt-inline { color: var(--orange); }
+/* The ⚡ sits on paper (4.5:1-ish bg); bright orange was 2.24:1. A deep
+   orange keeps the brand bolt colourful while clearing the 3:1 graphic
+   bar for a 48px glyph. */
+.bolt-inline { color: #A8520A; }
 
 /* The app name sits as a colourful pill beside the wordmark — small enough
    to never crowd the screen, bright enough to read at a glance. */
@@ -327,7 +336,9 @@ button {
   border-radius: 999px;
   color: #fff;
   text-shadow: 0 1px 0 rgba(43, 42, 51, 0.25);
-  background: linear-gradient(135deg, var(--blue) 0%, var(--green) 55%, var(--orange) 100%);
+  /* deep stops so the white pill text clears 4.5:1 at every point of the
+     blue→green→orange run (white-on-orange was 2.36:1) */
+  background: linear-gradient(135deg, var(--blue-dark) 0%, var(--green-dark) 55%, #A8520A 100%);
   box-shadow: 3px 3px 0 var(--ink);
 }
 
@@ -757,7 +768,8 @@ button.rung {
   height: 26px;
   border: 3px solid var(--ink);
   border-radius: 50%;
-  background: var(--pink);
+  /* white numbers on bright pink were 3.04:1 (13.6px text → needs 4.5) */
+  background: #C93A85;
   color: #fff;
   font-size: 0.85rem;
   font-weight: 800;
@@ -883,12 +895,14 @@ button.rung {
 }
 
 .feedback--ok {
-  border-color: var(--green);
+  /* border is a UI boundary → needs 3:1; bright green on green-soft was
+     2.71:1, so the dark green carries it */
+  border-color: var(--green-dark);
   background: var(--green-soft);
 }
 
 .feedback--warn {
-  border-color: var(--orange);
+  border-color: #A8520A;
   background: var(--orange-soft);
 }
 
@@ -1808,10 +1822,10 @@ button.rung {
 }
 
 .ws-scale-input:focus { border-bottom-color: var(--blue); background: var(--blue-soft); }
-.ws-scale-input--ok { border-bottom-color: var(--green); color: var(--green-dark); background: var(--green-soft); }
+.ws-scale-input--ok { border-bottom-color: var(--green-dark); color: var(--green-dark); background: var(--green-soft); }
 .ws-scale-input--bad { border-bottom-color: var(--red); color: var(--red); background: var(--red-soft); }
 .ws-scale-mark { font-weight: 900; font-size: 1.05rem; min-width: 18px; }
-.ws-scale-mark--ok { color: var(--green); }
+.ws-scale-mark--ok { color: var(--green-dark); }
 .ws-scale-mark--bad { color: var(--red); }
 .ws-scale-mark--none { color: var(--ink-soft); }
 
@@ -1829,7 +1843,7 @@ button.rung {
   font-size: 1.05rem;
   color: var(--green-dark);
   background: var(--green-soft);
-  border: 2px solid var(--green);
+  border: 2px solid var(--green-dark);
   border-radius: 999px;
   padding: 6px 14px;
 }

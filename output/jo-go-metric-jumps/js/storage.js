@@ -54,8 +54,16 @@
   }
 
   var AVATARS = ['🦊', '🐼', '🦁', '🐸', '🐙', '🦄', '🐢', '🦉'];
-  // Kid-friendly, readable-on-white name colours, one per avatar index.
-  var LEARNER_COLORS = ['#2F6BFF', '#E64545', '#18A957', '#FF8A1E', '#8B5CF6', '#E6459B', '#0E9CA3', '#C47A18'];
+  // Kid-friendly, WCAG-readable-on-white name colours (4.5:1+), one per
+  // avatar index. The bright originals failed as small text on white and
+  // on the yellow-soft report chip; each darkened twin keeps its hue.
+  // LEGACY_LEARNER_COLORS maps the old bright hexes so existing learner
+  // profiles migrate to the darker twin instead of being reassigned.
+  var LEARNER_COLORS = ['#2B62EB', '#B92727', '#127D40', '#A8520A', '#6D3FD6', '#C2257A', '#0B6E73', '#8A5A10'];
+  var LEGACY_LEARNER_COLORS = {
+    '#2F6BFF': '#2B62EB', '#E64545': '#B92727', '#18A957': '#127D40', '#FF8A1E': '#A8520A',
+    '#8B5CF6': '#6D3FD6', '#E6459B': '#C2257A', '#0E9CA3': '#0B6E73', '#C47A18': '#8A5A10'
+  };
   var DEFAULT_NAME = 'Learner 1';
 
   function hashId(id) {
@@ -177,7 +185,7 @@
       id: typeof l.id === 'string' && l.id ? l.id : genId(),
       name: typeof l.name === 'string' && l.name.trim() ? l.name.trim().slice(0, 18) : DEFAULT_NAME,
       emoji: AVATARS.indexOf(l.emoji) >= 0 ? l.emoji : AVATARS[0],
-      color: LEARNER_COLORS.indexOf(l.color) >= 0 ? l.color : LEARNER_COLORS[hashId(l.id) % LEARNER_COLORS.length],
+      color: LEGACY_LEARNER_COLORS[l.color] || (LEARNER_COLORS.indexOf(l.color) >= 0 ? l.color : LEARNER_COLORS[hashId(l.id) % LEARNER_COLORS.length]),
       challengeIntroSeen: !!l.challengeIntroSeen,
       introSeen: !!l.introSeen,
       unlocked: typeof l.unlocked === 'number' ? Math.min(8, Math.max(1, Math.round(l.unlocked))) : 1,
@@ -567,7 +575,7 @@
 
     function addLearner(name, emoji, color) {
       var learner = sanitizeLearner({ id: genId(), name: name, emoji: emoji });
-      learner.color = LEARNER_COLORS.indexOf(color) >= 0 ? color : firstFreeColor(null);
+      learner.color = LEGACY_LEARNER_COLORS[color] || (LEARNER_COLORS.indexOf(color) >= 0 ? color : firstFreeColor(null));
       device.learners.push(learner);
       device.activeLearnerId = learner.id;
       save();
@@ -621,7 +629,7 @@
       if (!l) return false;
       if (typeof name === 'string' && name.trim()) l.name = name.trim().slice(0, 18);
       if (AVATARS.indexOf(emoji) >= 0) l.emoji = emoji;
-      if (LEARNER_COLORS.indexOf(color) >= 0) l.color = color;
+      if (LEARNER_COLORS.indexOf(color) >= 0 || LEGACY_LEARNER_COLORS[color]) l.color = LEGACY_LEARNER_COLORS[color] || color;
       save();
       return true;
     }

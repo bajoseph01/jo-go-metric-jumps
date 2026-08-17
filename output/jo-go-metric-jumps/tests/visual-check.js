@@ -436,6 +436,16 @@ async function run() {
       const expr = "(() => { const root = document.querySelector('.overlay--show') || document.querySelector('.screen--active'); if (!root) return { label: '" + label + "', err: 'no root' }; const hit = function (el) { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); let L = r.left, T = r.top, R = r.right, B = r.bottom; const bl = parseFloat(cs.borderLeftWidth) || 0, bt = parseFloat(cs.borderTopWidth) || 0, br = parseFloat(cs.borderRightWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0; ['::before', '::after'].forEach(function (p) { const ps = getComputedStyle(el, p); if (!ps || ps.content === 'none' || ps.position !== 'absolute') return; const ins = ps.inset.split(' ').map(function (x) { return parseFloat(x); }); const t = ins[0], rgt = ins.length >= 2 ? ins[1] : ins[0], bot = ins.length >= 3 ? ins[2] : ins[0], lft = ins.length === 4 ? ins[3] : rgt; const pw = r.width - bl - br, ph = r.height - bt - bb; L = Math.min(L, r.left + bl + lft); T = Math.min(T, r.top + bt + t); R = Math.max(R, r.left + bl + pw - rgt); B = Math.max(B, r.top + bt + ph - bot); }); return Math.min(R - L, B - T); }; let min = Infinity, offender = null, n = 0; const els = root.querySelectorAll('button, input:not([type=\"hidden\"]), [role=\"button\"], .learner-chip'); for (let i = 0; i < els.length; i++) { const el = els[i]; const r = el.getBoundingClientRect(); if (r.width === 0 || r.height === 0) continue; const target = (el.type === 'checkbox' || el.type === 'radio') && el.closest('label') ? el.closest('label') : el; const m = hit(target); n++; if (m < min) { min = m; offender = String(target.className || target.id || target.tagName).slice(0, 32); } } return { label: '" + label + "', rootId: root.id || root.className || 'screen', min: min === Infinity ? null : min, offender: offender, n: n }; })()";
       return evalJs(cdp, expr);
     }
+    // WCAG contrast audit: every visible text node's effective (fg, bg)
+    // pair must clear 4.5:1 (3:1 for large text / graphical elements).
+    // The background walker follows ancestors to the first opaque colour
+    // and treats gradient fills as their worst (darkest-relative) stop.
+    async function auditContrast(cdp, label) {
+      // Regex-free on purpose: nested regex escapes through the CDP eval
+      // string were a permanent bug source. Colour parsing uses string ops.
+      const expr = "(() => { const root = document.querySelector('.overlay--show') || document.querySelector('.screen--active'); if (!root) return { label: '" + label + "', err: 'no root' }; function num(v) { return Number(String(v).replace(/[^0-9.]/g, '')) || 0; } function rgbOf(str) { const parts = String(str).split(','); if (parts.length < 3) return null; return [num(parts[0]), num(parts[1]), num(parts[2])]; } function lum(c) { const p = rgbOf(c); if (!p) return 0; const rgb = p.map(function (v) { return v / 255; }).map(function (v) { return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]; } function ratio(fg, bg) { const l1 = lum(fg), l2 = lum(bg); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); } function hexToRgb(hex) { const h = String(hex).replace('#', ''); if (h.length === 3) { const r = parseInt(h[0] + h[0], 16), g = parseInt(h[1] + h[1], 16), b = parseInt(h[2] + h[2], 16); return 'rgb(' + r + ', ' + g + ', ' + b + ')'; } if (h.length === 6) { const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16); return 'rgb(' + r + ', ' + g + ', ' + b + ')'; } return null; } function gradientStops(bi) { const out = []; let idx = 0; while (idx < bi.length) { const h = bi.indexOf('#', idx); const r = bi.indexOf('rgb', idx); let next = -1; if (h === -1 && r === -1) break; if (h !== -1 && (r === -1 || h < r)) next = h; else next = r; if (next === -1) break; if (bi[next] === '#') { const hex = bi.slice(next + 1, next + 7).replace(/[^0-9a-fA-F]/g, ''); if (hex.length === 6 || hex.length === 3) out.push(hexToRgb(hex)); idx = next + 1; } else { const end = bi.indexOf(')', next); if (end === -1) break; const inner = bi.slice(next + 3, end); const parts = inner.split(','); if (parts.length >= 3) out.push('rgb(' + num(parts[0]) + ', ' + num(parts[1]) + ', ' + num(parts[2]) + ')'); idx = end + 1; } } return out; } function bgOf(el) { let cur = el; while (cur && cur !== document.documentElement) { const cs = getComputedStyle(cur); const bg = cs.backgroundColor; if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') { const parts = String(bg).split(','); const a = parts.length === 4 ? Number(parts[3].replace(/[^0-9.]/g, '')) : 1; if (a >= 0.95 && parts.length >= 3) return 'rgb(' + num(parts[0]) + ', ' + num(parts[1]) + ', ' + num(parts[2]) + ')'; } const bi = cs.backgroundImage; if (bi && bi !== 'none' && bi.indexOf('gradient') > -1) { const stops = gradientStops(bi); let worst = null; for (let s = 0; s < stops.length; s++) { if (!worst || lum(stops[s]) < lum(worst)) worst = stops[s]; } if (worst) return worst; } cur = cur.parentElement; } return getComputedStyle(document.body).backgroundColor; } const offenders = []; const seen = {}; const all = root.querySelectorAll('*'); for (let i = 0; i < all.length; i++) { const el = all[i]; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') continue; const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) continue; let own = false; for (let k = 0; k < el.childNodes.length; k++) { const n = el.childNodes[k]; if (n.nodeType === 3 && n.textContent.trim().length) { own = true; break; } } if (!own) continue; const text = el.textContent.trim().split(/\s+/).join(' ').slice(0, 40); if (!text) continue; const fg = cs.color; const bg = bgOf(el); const rt = ratio(fg, bg); const px = parseFloat(cs.fontSize); const bold = parseInt(cs.fontWeight) >= 700; const large = px >= 24 || (px >= 18.66 && bold); const limit = large ? 3 : 4.5; if (rt < limit) { const sel = (el.id ? '#' + el.id : el.className ? '.' + String(el.className).split(' ')[0] : el.tagName); const key = sel + '|' + fg + '|' + bg; if (!seen[key]) { seen[key] = true; offenders.push({ sel: sel, text: text, fg: fg, bg: bg, ratio: Math.round(rt * 100) / 100, limit: limit, large: large, px: Math.round(px) }); } } } offenders.sort(function (a, b) { return a.ratio - b.ratio; }); return { label: '" + label + "', rootId: root.id || root.className || 'screen', n: offenders.length, worst: offenders[0] || null, offenders: offenders.slice(0, 10) }; })()";
+      return evalJs(cdp, expr);
+    }
     async function goHomeForFit(cdp) {
       await evalJs(cdp, "(() => { const b = document.querySelector('#btn-home') || document.querySelector('[data-back]'); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "!!document.getElementById('screen-home') && document.getElementById('screen-home').classList.contains('screen--active')", 8000);
@@ -465,12 +475,16 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: home never scrolls the page (' + vp.label + ')');
       let aud = await auditTargets(cdp, 'home');
       check(!!aud && aud.min >= 44, 'touch: home targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      let con = await auditContrast(cdp, 'home');
+      check(!!con && con.n === 0, 'contrast: home text/graphics clear WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // learner picker overlay
       await evalJs(cdp, "document.getElementById('btn-learner').click(); true");
       await waitForJs(cdp, "document.getElementById('screen-learners').classList.contains('screen--active')", 6000);
       await sleep(300);
       aud = await auditTargets(cdp, 'learners');
       check(!!aud && aud.min >= 44, 'touch: learner picker targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'learners');
+      check(!!con && con.n === 0, 'contrast: learner picker clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => x.getAttribute('data-back') === 'screen-home'); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "!!document.getElementById('screen-home') && document.getElementById('screen-home').classList.contains('screen--active')", 6000);
       // how it works
@@ -482,6 +496,8 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: How It Works never scrolls the page (' + vp.label + ')');
       aud = await auditTargets(cdp, 'how');
       check(!!aud && aud.min >= 44, 'touch: How It Works targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'how');
+      check(!!con && con.n === 0, 'contrast: How It Works clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // my progress
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-progress').click(); true");
@@ -491,6 +507,8 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: My Progress never scrolls the page (' + vp.label + ')');
       aud = await auditTargets(cdp, 'progress');
       check(!!aud && aud.min >= 44, 'touch: My Progress targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'progress');
+      check(!!con && con.n === 0, 'contrast: My Progress clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // practice
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-practice').click(); true");
@@ -500,6 +518,8 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: Practice never scrolls the page (' + vp.label + ')');
       aud = await auditTargets(cdp, 'practice');
       check(!!aud && aud.min >= 44, 'touch: Practice targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'practice');
+      check(!!con && con.n === 0, 'contrast: Practice clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // game (question one)
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-play').click(); true");
@@ -509,6 +529,8 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: the game never scrolls the page (' + vp.label + ')');
       aud = await auditTargets(cdp, 'game');
       check(!!aud && aud.min >= 44, 'touch: game targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'game');
+      check(!!con && con.n === 0, 'contrast: the game clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // scales lab
       await goHomeForFit(cdp);
       await evalJs(cdp, "document.getElementById('btn-scales').click(); true");
@@ -518,11 +540,23 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: Read the Scales never scrolls the page (' + vp.label + ')');
       aud = await auditTargets(cdp, 'scales');
       check(!!aud && aud.min >= 44, 'touch: Read the Scales targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'scales');
+      check(!!con && con.n === 0, 'contrast: Read the Scales clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // worksheets (through teacher mode)
       await goHomeForFit(cdp);
       await openTeacherForFit(cdp);
       aud = await auditTargets(cdp, 'teacher-panel');
       check(!!aud && aud.min >= 44, 'touch: teacher panel targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'teacher-panel');
+      check(!!con && con.n === 0, 'contrast: teacher panel clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
+      // printable report (same colours as the PDF export)
+      await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => /Report/i.test(x.textContent)); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "document.getElementById('screen-report').classList.contains('screen--active')", 6000);
+      await sleep(300);
+      con = await auditContrast(cdp, 'report');
+      check(!!con && con.n === 0, 'contrast: the printable report clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
+      await goHomeForFit(cdp);
+      await openTeacherForFit(cdp);
       await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => /Worksheet/i.test(x.textContent)); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "document.getElementById('screen-worksheets').classList.contains('screen--active') && !!document.querySelector('.ws-sheet')", 8000);
       await sleep(300);
@@ -530,12 +564,16 @@ async function run() {
       check(fit.pageExcess === 0, 'ipad-fit: worksheets never scroll the page (' + vp.label + ')');
       aud = await auditTargets(cdp, 'worksheets');
       check(!!aud && aud.min >= 44, 'touch: worksheet pack targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'worksheets');
+      check(!!con && con.n === 0, 'contrast: worksheets clear WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       // timed challenge (reached from the worksheet pack)
       await evalJs(cdp, "(() => { const b = document.getElementById('btn-ws-challenge'); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "document.getElementById('screen-challenge').classList.contains('screen--active') && !!document.querySelector('[data-chal-learner]')", 8000);
       await sleep(300);
       aud = await auditTargets(cdp, 'challenge');
       check(!!aud && aud.min >= 44, 'touch: timed challenge targets meet the 44px floor (' + vp.label + ' — min ' + (aud && aud.min !== null ? Math.round(aud.min) + 'px' : 'n/a') + ')');
+      con = await auditContrast(cdp, 'challenge');
+      check(!!con && con.n === 0, 'contrast: timed challenge clears WCAG (' + vp.label + ' — ' + (con && con.worst ? con.worst.ratio + ':1 ' + con.worst.sel : 'clean') + ')');
       await goHomeForFit(cdp);
 
       // comma badge: the slim aura must stay under half a cell width, or it
@@ -598,6 +636,51 @@ async function run() {
       const settled = await evalJs(cdp, "(() => { const h = document.querySelector('.comma-handle'); const wrap = document.querySelector('.track'); if (!h || !wrap) return null; const spots = Array.from(document.querySelectorAll('.gap-spot')); const key = (k) => wrap.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); const goTo = (target) => { let cur = Number(wrap.getAttribute('aria-valuenow') || 0); let guard = 0; while (cur < target && guard++ < 20) { key('ArrowRight'); cur = Number(wrap.getAttribute('aria-valuenow')); } while (cur > target && guard++ < 20) { key('ArrowLeft'); cur = Number(wrap.getAttribute('aria-valuenow')); } }; let settledAt = null; for (let g = 1; g < spots.length && !settledAt; g++) { goTo(g); key('Enter'); if (wrap.classList.contains('track--settled')) settledAt = g; } if (!settledAt) return { settled: false }; const cs = getComputedStyle(h); const circle = getComputedStyle(h.querySelector('circle')); const okBg = cs.backgroundColor === 'rgb(14, 122, 61)'; const okInk = circle.fill === 'rgb(255, 255, 255)'; return { settled: true, bg: cs.backgroundColor, ink: circle.fill, okBg: okBg, okInk: okInk }; })()");
       check(!!settled && settled.settled, 'comma: the comma settles at the answer gap (' + vp.label + ' — ' + (settled && settled.settled ? 'yes' : 'no') + ')');
       check(!!settled && settled.settled && settled.okBg && settled.okInk, 'comma: settled state keeps the white comma bold on green-dark (' + vp.label + ' — ' + (settled && settled.settled ? settled.bg + ' / ' + settled.ink : 'n/a') + ')');
+
+      // REAL-PIXEL backstop for the settle state: the two checks above read
+      // computed styles, but a future change could still paint the badge
+      // bright green (or fade the comma). The in-game badge gets covered by
+      // the correct-answer feedback panel the instant it settles, so this
+      // builds an ISOLATED settled track with the real widget (same CSS, same
+      // render path) in a fixed host on top of everything, then captures the
+      // actual rendered PNG and asserts green-dark pixels dominate the badge
+      // interior with white comma ink still present.
+      if (settled && settled.settled) {
+        // settle the isolated track, then PIN the badge still (inline
+        // animation:none beats the comma-pop keyframe) so the badge can't
+        // move between measuring its rect and capturing the screenshot
+        const pxSetup = await evalJs(cdp, "(() => { let host = document.getElementById('settle-host'); if (!host) { host = document.createElement('div'); host.id = 'settle-host'; host.style.cssText = 'position:fixed;left:24px;top:24px;width:min(560px,84vw);z-index:999999;pointer-events:none;'; document.body.appendChild(host); } const track = JOGO.Math.buildTrack(3.4, 1, { op: '\\u00d7', jumps: 2, from: 'km', to: 'mm' }); const ctl = JOGO.Input.createTrack(host, track, { markers: true }); const wrap = ctl.wrap; wrap.focus(); const key = (k) => wrap.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); let guard = 0; while (ctl.getGap() < track.targetGap && guard++ < 20) key('ArrowRight'); key('Enter'); const badge = host.querySelector('.comma-handle'); badge.style.animation = 'none'; badge.style.transform = 'none'; const cs = getComputedStyle(badge); const r = badge.getBoundingClientRect(); return { settled: wrap.classList.contains('track--settled'), gap: ctl.getGap(), targetGap: track.targetGap, x: r.x, y: r.y, w: r.width, h: r.height, bl: parseFloat(cs.borderLeftWidth) || 0, bt: parseFloat(cs.borderTopWidth) || 0, br: parseFloat(cs.borderRightWidth) || 0, bb: parseFloat(cs.borderBottomWidth) || 0 }; })()");
+        await sleep(150); // let the browser rasterize one frame at rest
+        const settledFile = await capture(cdp, 'comma-settled-' + vp.label.replace(/[^a-z0-9]/gi, ''));
+        const settledImg = decodePng(fs.readFileSync(settledFile));
+        // screenshots are captured at the emulated deviceScaleFactor (2 on
+        // the iPad viewports); derive the real scale from the image itself
+        // so the rect math survives any future DPR change
+        const S = settledImg.width / vp.w;
+        // measure the badge INTERIOR (shrink by the border) — the ink
+        // border is expected, so dominance is judged on the painted
+        // interior colours only: green-dark must beat the white comma ink
+        const x0 = Math.max(0, Math.floor((pxSetup.x + pxSetup.bl) * S));
+        const y0 = Math.max(0, Math.floor((pxSetup.y + pxSetup.bt) * S));
+        const x1 = Math.min(settledImg.width, Math.ceil((pxSetup.x + pxSetup.w - pxSetup.br) * S));
+        const y1 = Math.min(settledImg.height, Math.ceil((pxSetup.y + pxSetup.h - pxSetup.bb) * S));
+        let greenPx = 0, inkPx = 0;
+        for (let y = y0; y < y1; y++) {
+          for (let x = x0; x < x1; x++) {
+            const i = (y * settledImg.width + x) * 4;
+            const r = settledImg.data[i], g = settledImg.data[i + 1], b = settledImg.data[i + 2];
+            if (matches([r, g, b], 14, 122, 61, 22)) greenPx++;
+            else if (matches([r, g, b], 255, 255, 255, 14)) inkPx++;
+          }
+        }
+        const paintedPx = greenPx + inkPx;
+        const greenPct = paintedPx > 0 ? Math.round(100 * greenPx / paintedPx) : 0;
+        const inkPct = paintedPx > 0 ? Math.round(100 * inkPx / paintedPx) : 0;
+        console.log('  comma settled px @ ' + vp.label + ' — badge ' + pxSetup.w + 'x' + pxSetup.h + ' css px, interior ' + (x1 - x0) + 'x' + (y1 - y0) + ' px, green ' + greenPct + '% / white ink ' + inkPct + '% of painted' + (pxSetup.settled ? '' : ' (NOT settled)'));
+        check(!!pxSetup && pxSetup.settled && pxSetup.gap === pxSetup.targetGap, 'comma: isolated track settles at the target gap (' + vp.label + ' — gap ' + (pxSetup && pxSetup.gap) + '/' + (pxSetup && pxSetup.targetGap) + ')');
+        check(paintedPx > 50 && greenPct > 50, 'comma: settled badge interior is pixel-dominated by green-dark (' + vp.label + ' — ' + greenPct + '% of ' + paintedPx + ' painted px)');
+        check(paintedPx > 50 && inkPx > 10, 'comma: white comma ink still paints inside the settled badge (' + vp.label + ' — ' + inkPx + ' px)');
+      }
 
       // keypad keys + Check button (stage 5 = Independent Conversion, input
       // questions render the keypad; a 20% sanity mix is re-rolled up to 3x)

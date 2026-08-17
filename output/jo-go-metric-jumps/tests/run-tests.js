@@ -1107,14 +1107,14 @@ eq(st7.challengeIntroSeen(iBen.id), false, 'unknown learner ignored');
 // learners can pick their own colour (add + rename)
 const st8 = Store.createStore({ getItem: () => null, setItem: () => {} });
 for (const l of st8.learners()) st8.removeLearner(l.id);
-const pick = st8.addLearner('Pick', '🦄', '#E6459B');
-eq(st8.learners()[0].color, '#E6459B', 'chosen colour respected at creation');
+const pick = st8.addLearner('Pick', '🦄', '#C2257A');
+eq(st8.learners()[0].color, '#C2257A', 'chosen colour respected at creation');
 const bad = st8.addLearner('Bad', '🦄', 'not-a-colour');
 eq(Store.LEARNER_COLORS.indexOf(bad.color) >= 0, true, 'invalid colour falls back to the palette');
-st8.renameLearner(pick.id, 'Pick', '🦄', '#0E9CA3');
-eq(st8.learners()[0].color, '#0E9CA3', 'colour changeable via rename');
+st8.renameLearner(pick.id, 'Pick', '🦄', '#0B6E73');
+eq(st8.learners()[0].color, '#0B6E73', 'colour changeable via rename');
 st8.renameLearner(pick.id, 'Pick', '🦄', '#nope');
-eq(st8.learners()[0].color, '#0E9CA3', 'invalid rename colour ignored');
+eq(st8.learners()[0].color, '#0B6E73', 'invalid rename colour ignored');
 
 // ------------------------------------------------------------------
 section('20. Home dimension ladders');
@@ -1499,6 +1499,48 @@ section('25. Anti-memorisation: consecutive-pair guard + widened pools');
     }
   }
   ok(tplCount >= 42, 'transfer template library widened to ' + tplCount + ' (was 28)');
+}
+
+// ------------------------------------------------------------------
+section('26. WCAG contrast: palette + learner colours are readable');
+// ------------------------------------------------------------------
+// Every learner name colour must clear 4.5:1 as small text on the two
+// light backgrounds it actually sits on (white cards and the yellow-soft
+// report chip). Legacy bright hexes must migrate to their darkened twin
+// instead of being silently reassigned.
+{
+  function rgbOf(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16));
+  }
+  function lum(hex) {
+    return rgbOf(hex).map(v => v / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))
+      .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+  }
+  function ratio(a, b) {
+    const l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+  const storageSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'storage.js'), 'utf8');
+  const m = storageSrc.match(/LEARNER_COLORS = \[([^\]]+)\]/);
+  const colors = m[1].match(/#[0-9a-fA-F]{6}/g);
+  ok(colors && colors.length === 8, 'learner palette still holds 8 colours');
+  for (const c of colors) {
+    const onWhite = ratio(c, '#FFFFFF');
+    const onYellow = ratio(c, '#FFF3CF');
+    ok(onWhite >= 4.5, 'learner colour ' + c + ' clears 4.5:1 on white (' + onWhite.toFixed(2) + ':1)');
+    ok(onYellow >= 4.5, 'learner colour ' + c + ' clears 4.5:1 on the report chip (' + onYellow.toFixed(2) + ':1)');
+  }
+  // the two global colours whose white-text-on-colour pairs were failing
+  const cssSrc = fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'), 'utf8');
+  const blue = cssSrc.match(/--blue: (#[0-9a-fA-F]{6})/);
+  const red = cssSrc.match(/--red: (#[0-9a-fA-F]{6})/);
+  ok(blue && ratio('#FFFFFF', blue[1]) >= 4.5, 'white text on --blue clears 4.5:1 (' + (blue ? ratio('#FFFFFF', blue[1]).toFixed(2) : 'n/a') + ':1)');
+  ok(red && ratio('#FFFFFF', red[1]) >= 4.5, 'white text on --red clears 4.5:1 (' + (red ? ratio('#FFFFFF', red[1]).toFixed(2) : 'n/a') + ':1)');
+  // legacy bright hexes must be present in the migration map
+  ok(storageSrc.indexOf("'#2F6BFF': '#2B62EB'") > -1 && storageSrc.indexOf("'#E64545': '#B92727'") > -1,
+    'legacy bright colours map to their darkened twins');
 }
 
 // ------------------------------------------------------------------

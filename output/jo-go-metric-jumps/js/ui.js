@@ -1140,9 +1140,11 @@
   var SCALE_LABELS = { ruler: 'Ruler', kitchen: 'Kitchen scale', jug: 'Measuring jug' };
 
   // Kid-friendly names for the learner name-colour palette (AC-004).
+  // Keys are the current (WCAG-readable) hexes; legacy bright hexes map
+  // through LEGACY_LEARNER_COLORS in storage.
   var COLOR_NAMES = {
-    '#2F6BFF': 'Blue', '#E64545': 'Red', '#18A957': 'Green', '#FF8A1E': 'Orange',
-    '#8B5CF6': 'Purple', '#E6459B': 'Pink', '#0E9CA3': 'Teal', '#C47A18': 'Brown'
+    '#2B62EB': 'Blue', '#B92727': 'Red', '#127D40': 'Green', '#A8520A': 'Orange',
+    '#6D3FD6': 'Purple', '#C2257A': 'Pink', '#0B6E73': 'Teal', '#8A5A10': 'Brown'
   };
 
   var scalesSession = { instrument: 'ruler', done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
