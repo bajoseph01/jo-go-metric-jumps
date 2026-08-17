@@ -47,6 +47,12 @@
   // The dimension being played (length | mass | volume). Defaults to length.
   var currentDimension = 'length';
 
+  // Anti-memorisation guard: the last conversion pair served, so the same
+  // pair never appears twice in a row. Lives module-internal and is updated
+  // only by generateQuestion; the worksheet builder calls the raw helpers
+  // (weightedPair / transferQuestion) directly, so it stays deterministic.
+  var lastPairKey = null;
+
   function setDimension(dim) {
     if (M.DIMENSION_NAMES.indexOf(dim) >= 0) currentDimension = dim;
   }
@@ -65,17 +71,27 @@
     return arr[Math.floor(rng() * arr.length)];
   }
 
-  /** Weighted pick of a canonical pair. weights: { 'km>m': number } */
-  function weightedPair(rng, weights) {
+  /**
+   * Weighted pick of a canonical pair. weights: { 'km>m': number }
+   * When avoidKey is set (and the pair exists in this dimension) that pair's
+   * weight becomes 0, so it can never be chosen — the anti-memorisation guard.
+   */
+  function weightedPair(rng, weights, avoidKey) {
     var pairs = M.pairsFor(currentDimension);
     var w = [];
     var total = 0;
     for (var i = 0; i < pairs.length; i++) {
       var key = pairs[i][0] + '>' + pairs[i][1];
-      var wt = weights && typeof weights[key] === 'number' ? weights[key] : 1;
-      if (wt < 0.1) wt = 0.1;
+      var wt = 0;
+      if (!(avoidKey && key === avoidKey)) {
+        wt = weights && typeof weights[key] === 'number' ? weights[key] : 1;
+        if (wt < 0.1) wt = 0.1;
+      }
       w.push(wt);
       total += wt;
+    }
+    if (total <= 0) { // defensive: single-pair dimension — allow the avoided pair
+      for (var k = 0; k < w.length; k++) { w[k] = 1; total += 1; }
     }
     var r = rng() * total;
     for (var j = 0; j < pairs.length; j++) {
@@ -95,7 +111,8 @@
    */
   function genMulSource(conv, rng) {
     var r = rng();
-    var d = r < 0.34 ? 0 : (r < 0.78 ? 1 : 2);
+    // 0 dp most common; 3 dp (e.g. 1,375 km -> 1375 m) widens the pool
+    var d = r < 0.30 ? 0 : (r < 0.66 ? 1 : (r < 0.86 ? 2 : 3));
     var maxScaled = Math.floor(9999 * Math.pow(10, d - conv.jumps)); // result <= 9999
     var cap = Math.min(maxScaled, 9999);
     var scaled;
@@ -103,13 +120,17 @@
       scaled = randInt(rng, 1, Math.max(1, cap));
     } else if (d === 1) {
       scaled = Math.min(cap, Math.max(5, Math.round(randInt(rng, 5, Math.max(5, cap)) / 5) * 5));
-    } else {
+    } else if (d === 2) {
       scaled = Math.min(cap, Math.max(25, Math.round(randInt(rng, 25, Math.max(25, cap)) / 5) * 5));
       if (scaled % 100 === 0) {
         // keep a real 2-dp flavour (e.g. 1,25 not 1,00) without exceeding the cap
         scaled = scaled + 25 <= cap ? scaled + 25 : scaled - 5;
       }
       if (scaled % 100 === 0 && scaled - 25 >= 25) scaled = scaled - 25;
+    } else {
+      // 3 decimal places (e.g. 1,375 km -> 1375 m): multiples of 125, never .000
+      scaled = Math.min(cap, Math.max(125, Math.round(randInt(rng, 125, Math.max(125, cap)) / 125) * 125));
+      if (scaled % 1000 === 0) scaled = Math.max(125, scaled - 125);
     }
     return { scaled: scaled, scale: Math.pow(10, d) };
   }
@@ -125,10 +146,16 @@
     if (conv.jumps === 3) {
       // result would otherwise have 3 decimals: keep it to 2 by forcing
       // sources divisible by 10 (e.g. 5 000 m -> 5 km, not 0,005 km)
-      scaled = Math.max(min, Math.round(scaled / 10) * 10);
+      scaled = Math.min(max, Math.max(min, Math.round(scaled / 10) * 10));
     }
-    // round to 5 for friendly values (450, 475, 120, 25...)
-    scaled = Math.max(min, Math.round(scaled / 5) * 5);
+    // round to 5 for friendly values (450, 475, 120, 25...); never over the cap
+    scaled = Math.min(max, Math.max(min, Math.round(scaled / 5) * 5));
+    if (conv.jumps === 1 && rng() < 0.4) {
+      // one-decimal results (e.g. 45 mm -> 4,5 cm) keep the <= 2-dp rule and
+      // widen the pool for single-jump divisions
+      scaled = Math.min(Math.floor(max / 10) * 10, Math.max(10, Math.round(randInt(rng, 10, Math.max(10, Math.floor(max / 10))) / 10) * 10));
+      return { scaled: scaled, scale: 10 };
+    }
     return { scaled: scaled, scale: 1 };
   }
 
@@ -155,8 +182,8 @@
     };
   }
 
-  function opQuestion(rng, weights) {
-    var pair = weightedPair(rng, weights);
+  function opQuestion(rng, weights, avoidKey) {
+    var pair = weightedPair(rng, weights, avoidKey);
     var conv = M.conversion(pair[0], pair[1]);
     return {
       kind: 'op',
@@ -168,8 +195,8 @@
     };
   }
 
-  function jumpsQuestion(rng, weights) {
-    var pair = weightedPair(rng, weights);
+  function jumpsQuestion(rng, weights, avoidKey) {
+    var pair = weightedPair(rng, weights, avoidKey);
     var conv = M.conversion(pair[0], pair[1]);
     return {
       kind: 'jumps',
@@ -191,8 +218,8 @@
    * Sanity question: show a conversion equation (correct 50% of the time, or
    * corrupted by moving the comma). The learner judges, then fixes if wrong.
    */
-  function sanityQuestion(rng, weights) {
-    var pair = weightedPair(rng, weights);
+  function sanityQuestion(rng, weights, avoidKey) {
+    var pair = weightedPair(rng, weights, avoidKey);
     var conv = M.conversion(pair[0], pair[1]);
     var source = genSource(conv, rng);
     var base = baseQuestion(conv, source, rng);
@@ -235,61 +262,75 @@
   var TRANSFER_TEMPLATES = {
     'km>m': [
       { text: 'Ben walked {v} km to school. How many metres is that?', min: 0.5, max: 3, step: 0.25 },
-      { text: 'Ben walked {v} km in the race. How many metres is that?', min: 0.8, max: 5, step: 0.2 }
+      { text: 'Ben walked {v} km in the race. How many metres is that?', min: 0.8, max: 5, step: 0.2 },
+      { text: 'The hiking trail is {v} km long. How many metres is that?', min: 1, max: 6, step: 0.5 }
     ],
     'm>km': [
       { text: 'A road is {v} m long. How many kilometres is that?', min: 200, max: 5000, step: 50 },
-      { text: 'The sports field is {v} m around. How many kilometres is that?', min: 250, max: 450, step: 10 }
+      { text: 'The sports field is {v} m around. How many kilometres is that?', min: 250, max: 450, step: 10 },
+      { text: 'The bike race was {v} m long. How many kilometres is that?', min: 1000, max: 8000, step: 250 }
     ],
     'm>cm': [
       { text: 'The door is {v} m tall. How many centimetres is that?', min: 1.8, max: 2.2, step: 0.1 },
-      { text: 'The table is {v} m long. How many centimetres is that?', min: 1, max: 2.5, step: 0.1 }
+      { text: 'The table is {v} m long. How many centimetres is that?', min: 1, max: 2.5, step: 0.1 },
+      { text: 'The fence around the garden is {v} m long. How many centimetres is that?', min: 4, max: 25, step: 1 }
     ],
     'cm>m': [
       { text: 'A ribbon is {v} cm long. How many metres is that?', min: 100, max: 500, step: 25 },
-      { text: 'The bookshelf is {v} cm tall. How many metres is that?', min: 120, max: 240, step: 10 }
+      { text: 'The bookshelf is {v} cm tall. How many metres is that?', min: 120, max: 240, step: 10 },
+      { text: 'The skipping rope is {v} cm long. How many metres is that?', min: 150, max: 300, step: 25 }
     ],
     'cm>mm': [
       { text: 'A beetle is {v} cm long. How many millimetres is that?', min: 1, max: 8, step: 0.5 },
-      { text: 'A key is {v} cm long. How many millimetres is that?', min: 4, max: 8, step: 0.5 }
+      { text: 'A key is {v} cm long. How many millimetres is that?', min: 4, max: 8, step: 0.5 },
+      { text: 'A crayon is {v} cm long. How many millimetres is that?', min: 5, max: 12, step: 0.5 }
     ],
     'mm>cm': [
       { text: 'A pencil is {v} mm long. How many centimetres is that?', min: 150, max: 190, step: 5 },
-      { text: 'An eraser is {v} mm long. How many centimetres is that?', min: 40, max: 70, step: 5 }
+      { text: 'An eraser is {v} mm long. How many centimetres is that?', min: 40, max: 70, step: 5 },
+      { text: 'A paperclip is {v} mm long. How many centimetres is that?', min: 20, max: 50, step: 5 }
     ],
     // --- mass (grounded in real kitchen/classroom objects) ---
     'kg>g': [
       { text: 'A bag of sugar weighs {v} kg. How many grams is that?', min: 1, max: 5, step: 0.5 },
-      { text: 'A bag of flour weighs {v} kg. How many grams is that?', min: 1, max: 2.5, step: 0.25 }
+      { text: 'A bag of flour weighs {v} kg. How many grams is that?', min: 1, max: 2.5, step: 0.25 },
+      { text: 'The turkey at the market weighs {v} kg. How many grams is that?', min: 2, max: 8, step: 0.5 }
     ],
     'g>kg': [
       { text: 'A loaf of bread weighs {v} g. How many kilograms is that?', min: 400, max: 900, step: 50 },
-      { text: 'A bag of apples weighs {v} g. How many kilograms is that?', min: 750, max: 1500, step: 50 }
+      { text: 'A bag of apples weighs {v} g. How many kilograms is that?', min: 750, max: 1500, step: 50 },
+      { text: 'The cat weighs {v} g. How many kilograms is that?', min: 2000, max: 6000, step: 250 }
     ],
     'g>mg': [
       { text: 'A paperclip weighs {v} g. How many milligrams is that?', min: 1, max: 5, step: 0.5 },
-      { text: 'A pencil weighs {v} g. How many milligrams is that?', min: 5, max: 10, step: 1 }
+      { text: 'A pencil weighs {v} g. How many milligrams is that?', min: 5, max: 10, step: 1 },
+      { text: 'A coin weighs {v} g. How many milligrams is that?', min: 1, max: 8, step: 1 }
     ],
     'mg>g': [
       { text: 'A grain of rice weighs {v} mg. How many grams is that?', min: 20, max: 60, step: 10 },
-      { text: 'A raisin weighs {v} mg. How many grams is that?', min: 250, max: 900, step: 50 }
+      { text: 'A raisin weighs {v} mg. How many grams is that?', min: 250, max: 900, step: 50 },
+      { text: 'A tiny ant weighs {v} mg. How many grams is that?', min: 2, max: 10, step: 1 }
     ],
     // --- volume (grounded in real containers) ---
     'kL>L': [
       { text: 'A swimming pool holds {v} kL of water. How many litres is that?', min: 20, max: 100, step: 10 },
-      { text: 'A rain tank holds {v} kL of water. How many litres is that?', min: 2, max: 10, step: 1 }
+      { text: 'A rain tank holds {v} kL of water. How many litres is that?', min: 2, max: 10, step: 1 },
+      { text: 'The village water tower holds {v} kL of water. How many litres is that?', min: 20, max: 80, step: 10 }
     ],
     'L>kL': [
       { text: 'A bathtub holds {v} L of water. How many kilolitres is that?', min: 120, max: 300, step: 20 },
-      { text: 'A wheelie bin holds {v} L. How many kilolitres is that?', min: 100, max: 240, step: 20 }
+      { text: 'A wheelie bin holds {v} L. How many kilolitres is that?', min: 100, max: 240, step: 20 },
+      { text: "The car's fuel tank holds {v} L of petrol. How many kilolitres is that?", min: 40, max: 70, step: 5 }
     ],
     'L>mL': [
       { text: 'A bottle of water holds {v} L. How many millilitres is that?', min: 0.25, max: 2, step: 0.25 },
-      { text: 'A jug of juice holds {v} L. How many millilitres is that?', min: 1, max: 3, step: 0.5 }
+      { text: 'A jug of juice holds {v} L. How many millilitres is that?', min: 1, max: 3, step: 0.5 },
+      { text: 'A teacup holds {v} L of tea. How many millilitres is that?', min: 0.15, max: 0.25, step: 0.05 }
     ],
     'mL>L': [
       { text: 'A cup of tea is {v} mL. How many litres is that?', min: 150, max: 350, step: 50 },
-      { text: 'A can of fizzy drink holds {v} mL. How many litres is that?', min: 330, max: 500, step: 10 }
+      { text: 'A can of fizzy drink holds {v} mL. How many litres is that?', min: 330, max: 500, step: 10 },
+      { text: 'A juice carton holds {v} mL of juice. How many litres is that?', min: 200, max: 500, step: 50 }
     ]
   };
 
@@ -307,8 +348,8 @@
     return { scaled: scaled, scale: den };
   }
 
-  function transferQuestion(rng, weights) {
-    var pair = weightedPair(rng, weights);
+  function transferQuestion(rng, weights, avoidKey) {
+    var pair = weightedPair(rng, weights, avoidKey);
     var conv = M.conversion(pair[0], pair[1]);
     var templates = TRANSFER_TEMPLATES[pair[0] + '>' + pair[1]] || [];
     var tpl = pick(templates, rng);
@@ -332,30 +373,43 @@
   // Public generation API
   // ------------------------------------------------------------------
 
-  /** Generate one question for a stage. weights: { 'km>m': number, ... } */
-  function generateQuestion(stageId, rng, weights) {
+  /**
+   * Generate one question for a stage. weights: { 'km>m': number, ... }
+   * Anti-memorisation: the conversion pair just served is remembered and
+   * never chosen again immediately after — so replaying a level always
+   * serves a different pair, and the answers can never be memorised in
+   * sequence. (The pair changes every question anyway: the values are
+   * re-rolled fresh each time.)
+   */
+  function generateQuestion(stageId, rng, weights, avoidKey) {
     rng = rng || Math.random;
     weights = weights || {};
     var stage = stageById(stageId);
     if (!stage) throw new Error('Unknown stage ' + stageId);
 
+    // An explicit avoid key (caller/test) wins; otherwise the last pair
+    // served in this session is remembered and never repeated in a row.
+    avoidKey = (typeof avoidKey === 'string' && avoidKey.length > 0) ? avoidKey : lastPairKey;
+    var q;
     // Some stages mix in a sanity check.
     if (stage.sanityChance && rng() < stage.sanityChance) {
-      return sanityQuestion(rng, weights);
+      q = sanityQuestion(rng, weights, avoidKey);
+    } else {
+      var kind = pick(stage.kinds, rng);
+      if (kind === 'op') q = opQuestion(rng, weights, avoidKey);
+      else if (kind === 'jumps') q = jumpsQuestion(rng, weights, avoidKey);
+      else if (kind === 'sanity') q = sanityQuestion(rng, weights, avoidKey);
+      else if (kind === 'transfer') q = transferQuestion(rng, weights, avoidKey);
+      else {
+        // pipeline / input share the same base
+        var pair = weightedPair(rng, weights, avoidKey);
+        var conv = M.conversion(pair[0], pair[1]);
+        var source = genSource(conv, rng);
+        q = baseQuestion(conv, source, rng);
+        q.kind = (kind === 'pipeline') ? 'pipeline' : 'input';
+      }
     }
-
-    var kind = pick(stage.kinds, rng);
-    if (kind === 'op') return opQuestion(rng, weights);
-    if (kind === 'jumps') return jumpsQuestion(rng, weights);
-    if (kind === 'sanity') return sanityQuestion(rng, weights);
-    if (kind === 'transfer') return transferQuestion(rng, weights);
-
-    // pipeline / input share the same base
-    var pair = weightedPair(rng, weights);
-    var conv = M.conversion(pair[0], pair[1]);
-    var source = genSource(conv, rng);
-    var q = baseQuestion(conv, source, rng);
-    q.kind = (kind === 'pipeline') ? 'pipeline' : 'input';
+    if (q && q.conv) lastPairKey = q.conv.from + '>' + q.conv.to;
     return q;
   }
 

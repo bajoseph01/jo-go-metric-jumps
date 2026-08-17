@@ -243,7 +243,10 @@ for (let i = 0; i < N; i++) {
   if (src < 0.01 || src > 9999) bounds++;
   if (res < 0.01 || res > 9999) bounds++;
 
-  if (q.conv.op === '÷' && q.source.scale !== 1) divSourceNotInt++;
+  if (q.conv.op === '÷' && q.source.scale !== 1) {
+    // one-decimal sources are legal only on single-jump divisions (e.g. 45 mm -> 4,5 cm)
+    if (q.conv.jumps > 1 || q.source.scale !== 10) divSourceNotInt++;
+  }
   if (q.conv.op === '÷' && (res < 0.01 || res > 9999)) divResultTooSmall++;
   if (q.conv.op === '÷' && res > 9999) divResultTooBig++;
   if (q.conv.op === '×' && res > 9999) mulResultTooBig++;
@@ -255,7 +258,7 @@ for (let i = 0; i < N; i++) {
 }
 eq(mismatches, 0, 'track normalisation == expected answer (' + N + ' questions)');
 eq(bounds, 0, 'all values within Grade-4 friendly bounds');
-eq(divSourceNotInt, 0, 'division sources are whole numbers');
+eq(divSourceNotInt, 0, 'division sources are whole (except 1-dp on single-jump pairs)');
 eq(divResultTooSmall + divResultTooBig, 0, 'division results within bounds');
 eq(mulResultTooBig, 0, 'multiplication results <= 9999');
 eq(sanityShownEqualsExpected, 0, 'sanity questions never show the correct answer as the wrong one');
@@ -1421,6 +1424,81 @@ section('24. Teacher access: one-tap settings cog');
   const uiSrc3 = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui.js'), 'utf8');
   ok(uiSrc3.indexOf('data-action="practice-all"') > -1, 'teacher panel keeps Practice all levels');
   ok(uiSrc3.indexOf('data-action="worksheets"') > -1, 'teacher panel keeps Worksheet pack');
+}
+
+// ------------------------------------------------------------------
+section('25. Anti-memorisation: consecutive-pair guard + widened pools');
+// ------------------------------------------------------------------
+// The same conversion pair must never be served twice in a row, so a child
+// redoing a level can never memorise a question sequence.
+{
+  // (a) explicit avoid key is always respected
+  let avoidBreaks = 0;
+  for (let i = 0; i < 300; i++) {
+    const q = Q.generateQuestion(5, lcg(700000 + i), {}, 'km>m');
+    if (q.conv.from + '>' + q.conv.to === 'km>m') avoidBreaks++;
+  }
+  eq(avoidBreaks, 0, 'an explicitly avoided pair is never chosen');
+
+  // (b) the built-in guard holds across every stage and the whole session
+  let prev = null;
+  let guardBreaks = 0;
+  for (let i = 0; i < 600; i++) {
+    const q = Q.generateQuestion(1 + (i % 8), lcg(710000 + i), {});
+    const key = q.conv.from + '>' + q.conv.to;
+    if (prev && key === prev) guardBreaks++;
+    prev = key;
+  }
+  eq(guardBreaks, 0, 'no conversion pair is ever served twice in a row');
+
+  // (c) the guard still holds when the dimension changes mid-session
+  Q.setDimension('volume');
+  let prevV = null;
+  let volBreaks = 0;
+  for (let i = 0; i < 300; i++) {
+    const q = Q.generateQuestion(5, lcg(720000 + i), {});
+    const key = q.conv.from + '>' + q.conv.to;
+    if (prevV && key === prevV) volBreaks++;
+    prevV = key;
+  }
+  eq(volBreaks, 0, 'consecutive-pair guard holds across dimension switches');
+  Q.setDimension('length');
+}
+
+// Widened pools: 3-dp multiplication sources and 1-dp division results
+// both actually occur, and every answer stays exact and in bounds.
+{
+  let threeDp = 0;
+  let oneDpDiv = 0;
+  for (let i = 0; i < 4000; i++) {
+    const q = Q.generateQuestion(5 + (i % 2), lcg(730000 + i), {});
+    if (q.conv.op === '×' && q.source.scale === 1000) threeDp++;
+    if (q.conv.op === '÷' && q.source.scale === 10) oneDpDiv++;
+    const res = q.expected.num / q.expected.den;
+    ok(res >= 0.01 && res <= 9999, 'widened-pool result stays friendly: ' + q.sourceSA + ' ' + q.from + '→' + q.to);
+    const src = q.source.scaled / q.source.scale;
+    ok(src >= 0.01 && src <= 9999, 'widened-pool source stays friendly: ' + q.sourceSA);
+  }
+  ok(threeDp > 0, '3-decimal multiplication sources occur (' + threeDp + '/4000)');
+  ok(oneDpDiv > 0, '1-decimal division sources occur (' + oneDpDiv + '/4000)');
+}
+
+// Every pair now offers three realistic, in-range templates.
+{
+  let tplCount = 0;
+  for (const dim of ['length', 'mass', 'volume']) {
+    for (const [a, b] of M.pairsFor(dim)) {
+      const tpls = Q.TRANSFER_TEMPLATES[a + '>' + b] || [];
+      ok(tpls.length >= 3, dim + ' ' + a + '>' + b + ' has at least 3 realistic templates (got ' + tpls.length + ')');
+      for (const t of tpls) {
+        ok(t.min <= t.max && t.step > 0 && (t.max - t.min) / t.step >= 1, a + '>' + b + ' template range is sane');
+        ok(t.text.indexOf('{v}') > -1, a + '>' + b + ' template carries its value placeholder');
+        ok(t.text.replace('{v}', '').length > 10, a + '>' + b + ' template mentions a real object/setting');
+        tplCount++;
+      }
+    }
+  }
+  ok(tplCount >= 42, 'transfer template library widened to ' + tplCount + ' (was 28)');
 }
 
 // ------------------------------------------------------------------
