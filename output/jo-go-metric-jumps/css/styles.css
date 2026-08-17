@@ -185,19 +185,26 @@ button {
    lifted and warmed — nothing shouts, nothing overlaps. */
 .home-ladders {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   align-items: stretch;
   justify-content: center;
-  padding: 4px 2px 0;
+  padding: 6px 2px 0;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
+/* All three mnemonic ladders are the hero of the home screen: equal in
+   weight, filling the full top. The selected dimension is marked by the
+   lifted warm frame only — never by dimming its siblings. */
 .ladder-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
-  width: 92px;
-  padding: 12px 8px 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 14px 10px 12px;
   background-color: #fff;
   background-image: var(--paper-texture);
   background-size: 9px 9px, 14px 14px;
@@ -210,37 +217,35 @@ button {
     inset 2px 0 0 rgba(255, 255, 255, 0.55),
     inset 0 -2px 0 rgba(43, 42, 51, 0.06),
     0 2px 0 rgba(43, 42, 51, 0.07);
-  opacity: 0.62;
   transition: opacity 0.25s ease, transform 0.25s ease,
               border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .ladder-col .ladder { width: 100%; margin: 0; }
-.ladder-col .rung { padding: 3px 0; font-size: 0.95rem; border-width: 2px; border-radius: 10px; }
-.ladder-col .ladder-gap { height: 24px; width: 3px; background: var(--ink-soft); opacity: 0.45; }
+.ladder-col .rung { padding: 5px 0; font-size: 1.15rem; border-width: 2.5px; border-radius: 12px; }
+.ladder-col .ladder-gap { height: 30px; width: 4px; background: var(--ink-soft); opacity: 0.55; }
 /* the × factor sits centred ON the connector, not sticking out sideways */
 .ladder-col .ladder-gap-f {
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.6rem;
-  padding: 1px 6px;
-  border-width: 1.5px;
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-width: 2px;
   background: #fff;
   z-index: 1;
 }
 
 .ladder-note {
-  font-size: 0.62rem;
-  line-height: 1.35;
+  font-size: 0.72rem;
+  line-height: 1.4;
   color: var(--ink-soft);
   text-align: center;
   margin: 0;
 }
 
 .ladder-col--on {
-  opacity: 1;
   transform: translateY(-3px);
-  border-color: var(--yellow);
+  border: 3px solid var(--yellow);
   background-color: #FFFBEA; /* warm cream — the paper texture carries over */
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.9),
@@ -260,8 +265,10 @@ button {
 }
 
 @media (max-width: 380px) {
-  .home-ladders { gap: 10px; padding-right: 40px; } /* keep clear of the sound button */
-  .ladder-col { width: 84px; padding: 10px 6px 8px; }
+  .home-ladders { gap: 8px; padding-right: 36px; } /* keep clear of the sound button */
+  .ladder-col { padding: 10px 6px 8px; }
+  .ladder-col .rung { font-size: 1rem; padding: 4px 0; }
+  .ladder-note { font-size: 0.62rem; }
 }
 
 .home-main {
@@ -274,20 +281,6 @@ button {
 }
 
 .brand { text-align: center; cursor: default; }
-
-.bolt-badge {
-  width: 86px;
-  height: 86px;
-  margin: 0 auto 6px;
-  border: 4px solid var(--ink);
-  border-radius: 50%;
-  background: var(--yellow);
-  box-shadow: 5px 5px 0 var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-}
 
 .brand-title {
   font-size: clamp(3.2rem, 13vw, 5rem);
@@ -1846,7 +1839,6 @@ button {
 
 @media (max-height: 560px) and (orientation: landscape) {
   .home-main { gap: 10px; justify-content: flex-start; padding-top: 8px; }
-  .bolt-badge { width: 56px; height: 56px; font-size: 2rem; }
   .brand-title { font-size: clamp(2.2rem, 8vh, 3rem); }
   .btn--play { min-height: 60px; font-size: 1.6rem; }
   .game-main { padding-top: 6px; }
