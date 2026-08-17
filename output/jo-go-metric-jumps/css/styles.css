@@ -698,8 +698,6 @@ button.rung {
   border: 3px solid var(--ink);
   border-radius: 10px;
   background: var(--yellow);
-  font-size: 1.5rem;
-  font-weight: 800;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -711,6 +709,15 @@ button.rung {
   color: var(--ink);
 }
 
+/* The comma is drawn as an SVG that fills the whole badge interior, so the
+   visible green is just the ink-border aura and the comma reads bold and
+   prominent at any cell size. */
+.comma-handle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .comma-handle--drag { background: var(--orange); }
 
 /* Invisible grab area: the visible badge is a slim aura around the comma,
@@ -718,13 +725,13 @@ button.rung {
    unpainted but makes the whole handle comfortably grabbable (pointer
    capture then keeps the drag alive even after the finger leaves it).
    Note: inset is relative to the padding box, so the 3px ink border is
-   added back to deliver the visible expansion below (~49x56px zone, at
+   added back to deliver the visible expansion below (~60x64px zone, at
    least double the badge width and past the 44px fingertip floor at
-   every cell size). */
+   every cell size, even with the bold 32px-wide badge). */
 .comma-handle::after {
   content: '';
   position: absolute;
-  inset: -15px -17px -11px -17px;
+  inset: -15px -20px -11px -20px;
   border-radius: 14px;
   pointer-events: auto;
 }

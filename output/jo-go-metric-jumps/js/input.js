@@ -150,9 +150,17 @@
     track.cells.forEach(function (cell, i) {
       row.appendChild(el('span', 'cell' + (cell.ghost ? ' cell--ghost' : ''), String(cell.d)));
     });
-    var handle = el('button', 'comma-handle', ',');
+    var handle = el('button', 'comma-handle');
     handle.setAttribute('type', 'button');
     handle.setAttribute('aria-label', 'Comma — drag it to the answer');
+    // A drawn comma, not a text glyph: the , character's painted ink is only a
+    // fraction of its em box, so even a 2rem glyph reads tiny. This path fills
+    // the badge's interior (viewBox 24x40, head blob + sweeping tail) and
+    // inherits the badge colour, so it stays bold in every state.
+    handle.innerHTML = '<svg viewBox="0 0 22 36" aria-hidden="true" focusable="false" preserveAspectRatio="none">' +
+      '<circle cx="11" cy="9.5" r="8.5" fill="currentColor"/>' +
+      '<path d="M 8.5 17 C 3.5 20 2.5 27 5.5 32.5" fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round"/>' +
+      '</svg>';
     row.appendChild(handle);
     stage.appendChild(row);
 
@@ -193,11 +201,12 @@
     function layout() {
       var w = cellWidth();
       row.style.height = (w + 14) + 'px';
-      // Comma aura: only a few pixels wider than the glyph itself, so the
-      // digits in the track stay visible around it (was 80% of a cell — too
-      // wide, it swallowed the numbers behind it).
-      var hw = Math.min(w * 0.34, 24);
-      var hh = Math.round(Math.min(w * 0.72, 36));
+      // Comma aura: the badge stays a slim frame around a bold, drawn comma
+      // (was 80% of a cell — it swallowed the numbers behind it). The drawn
+      // SVG comma fills the interior, so the badge only needs to be a few px
+      // wider than the comma's ink to read as an aura, not a card.
+      var hw = Math.min(w * 0.42, 28);
+      var hh = Math.round(Math.min(w * 0.9, 46));
       handle.style.width = hw + 'px';
       handle.style.height = hh + 'px';
       handle.style.left = (track.startGap * w - hw / 2) + 'px';
