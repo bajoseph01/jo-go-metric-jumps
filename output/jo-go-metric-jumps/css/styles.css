@@ -1679,6 +1679,43 @@ button.rung {
   max-height: 400px;
   width: auto;
 }
+/* Scales Challenge: mixed-instrument sessions that adapt to mastery */
+.scales-tab--challenge {
+  background: var(--yellow-soft, #fff3cd);
+  box-shadow: 0 0 0 3px var(--yellow);
+}
+.scales-chal {
+  display: inline-block;
+  margin: 0 auto 10px;
+  padding: 6px 16px;
+  background: var(--yellow-soft, #fff3cd);
+  border: 2px solid var(--yellow);
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.scales-chal-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 10px 0;
+}
+.chal-ins {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.chal-ins--ruler { background: var(--yellow-soft, #fff3cd); }
+.chal-ins--kitchen { background: var(--blue-soft, #dbeafe); }
+.chal-ins--jug { background: #e2f3e8; }
+.scales-chal-nudge {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
 
 .scales-answer {
   display: flex;

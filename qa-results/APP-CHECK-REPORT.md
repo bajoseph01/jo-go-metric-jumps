@@ -238,3 +238,11 @@ The real-pixel harness now drives the kitchen dial and measuring jug (previously
 - **Permanent size guard:** the rendered dial/jug height must stay **≤ 400px on iPad portrait, ≤ 330px on landscape** (hardcoded expectations, not read from the stylesheet — so loosening or removing the cap trips it), and the answer row's bottom must stay within the viewport.
 
 **Negative control proven:** raising the CSS cap to 900px trips the height guard on all four viewport/instrument pairs (594px and 822px rendered), and on landscape the answer row genuinely goes off-screen (form bottom 979 > 820) — caught by the on-screen check too. Restored and re-verified 157/157 + 14,436/0.
+
+---
+
+## Follow-up: Scales Challenge — adaptive mixed-instrument sessions (v=57)
+
+A new **⚡ Challenge** tab on the Scales Lab starts a 10-reading session that mixes instruments adaptively. The mix is weighted by weakness from two signals: per-instrument reading stats (the same mastery `rulerLevel` uses — 8 attempts at 80%+ = mastered) **and** the learner's weak conversion pairs mapped to dimensions (ruler↔length, kitchen↔mass, jug↔volume). A mastered ruler therefore gives way to dials and jugs the learner still needs; every instrument still appears at least once for review, and the same scale is never dealt 3× in a row. The done card shows a per-instrument breakdown (`Ruler 3/4 · Kitchen 2/3 · …`) with a kid-language nudge toward the weakest scale.
+
+**Pure logic in `Scales.challengeSequence(stats, pairs, rng, n)`** — 9 new unit checks (guarantee-one-each, no-3-in-a-row, deterministic per rng, mastered-ruler-gives-way, weak-pairs-lean, fresh-learner balanced). **Real-browser verification** (`qa-results/scales-chal-probe.js`): full 10-question run answered by reading each aria-label — banner `⚡ Challenge 1 of 10 — Kitchen scale`, mix 3/5/2, done card `Perfect reading! ⚡` with chips `Ruler 5/5 · Kitchen scale 3/3 · Measuring jug 2/2`. **Harness:** +6 checks (banner starts, readable scale dealt, correct answer advances) at both iPad sizes. Totals: 14,445 unit / 163 visual.

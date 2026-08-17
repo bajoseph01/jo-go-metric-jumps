@@ -603,6 +603,24 @@ async function run() {
           }
         }
       }
+      // SCALES CHALLENGE: the mixed-instrument session starts, shows its
+      // banner, and advances when answered correctly (permanent check that
+      // the adaptive challenge keeps working at both iPad sizes)
+      await evalJs(cdp, "(() => { const b = document.querySelector('.scales-tab--challenge'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "!!document.querySelector('.scales-chal')", 6000);
+      await sleep(250);
+      const chal1 = await evalJs(cdp, "(() => { const b = document.querySelector('.scales-chal'); const svg = document.querySelector('.scale-svg'); const m = svg ? svg.getAttribute('aria-label').match(/at (\\d+) (\\w+)/) : null; return { banner: b ? b.textContent : null, answer: m ? m[1] : null, hasInput: !!document.getElementById('scales-input') }; })()");
+      check(!!chal1 && chal1.banner && chal1.banner.indexOf('Challenge 1 of 10') > -1, 'scales-px: the challenge starts with a banner (' + vp.label + ' — ' + (chal1 && chal1.banner ? chal1.banner : 'n/a') + ')');
+      check(!!chal1 && chal1.answer && chal1.hasInput, 'scales-px: the challenge deals a readable scale (' + vp.label + ' — ' + (chal1 && chal1.answer ? chal1.answer : 'n/a') + ')');
+      if (chal1 && chal1.answer) {
+        await evalJs(cdp, "(() => { const input = document.getElementById('scales-input'); const form = document.getElementById('scales-form'); input.value = '" + chal1.answer + "'; form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); return true; })()");
+        try {
+          await waitForJs(cdp, "document.querySelector('.scales-chal') && document.querySelector('.scales-chal').textContent.indexOf('2 of 10') > -1", 8000);
+          check(true, 'scales-px: a correct answer advances the challenge (' + vp.label + ')');
+        } catch (e) {
+          check(false, 'scales-px: a correct answer advances the challenge (' + vp.label + ')');
+        }
+      }
       // back to the ruler so the next screens start from the default tab
       await evalJs(cdp, "(() => { const t = document.querySelector('.scales-tab[data-scale=\"ruler\"]'); if (t) t.click(); return true; })()");
       await sleep(250);

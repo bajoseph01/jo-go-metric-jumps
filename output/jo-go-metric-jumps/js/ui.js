@@ -1158,12 +1158,14 @@
       var on = order[i] === scalesSession.instrument;
       html += '<button type="button" class="scales-tab' + (on ? ' scales-tab--on' : '') + '" data-scale="' + order[i] + '" role="tab" aria-selected="' + on + '">' + Scales.SCALE_SPECS[order[i]].label + '</button>';
     }
-    html += '</div><div class="scales-stage" id="scales-stage"></div>';
+    html += '<button type="button" class="scales-tab scales-tab--challenge" data-scale="challenge" aria-label="Scales challenge">⚡ Challenge</button>' +
+      '</div><div class="scales-stage" id="scales-stage"></div>';
     body.innerHTML = html;
     var tabs = body.querySelectorAll('[data-scale]');
     for (var t = 0; t < tabs.length; t++) {
       tabs[t].addEventListener('click', function () {
         Audio.play('click');
+        if (this.getAttribute('data-scale') === 'challenge') { startScalesChallenge(); return; }
         scalesSession = { instrument: this.getAttribute('data-scale'), done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
         renderScales();
       });
@@ -1171,9 +1173,31 @@
     nextScaleQuestion();
   }
 
+  /**
+   * A mixed-instrument challenge (10 readings) whose instrument mix adapts
+   * to the learner: unmastered scales appear more, and a mastered ruler
+   * gives way to dials and jugs. Weights come from the reading stats AND
+   * the learner's weak conversion pairs (length/mass/volume), so the
+   * challenge leans into whichever scales they still need.
+   */
+  function startScalesChallenge() {
+    var lr = Store.activeLearner();
+    var stats = {}, pairs = {};
+    ['ruler', 'kitchen', 'jug'].forEach(function (ins) {
+      stats[ins] = lr ? Store.scaleStats(lr.id, ins) : null;
+    });
+    if (lr && lr.pairs) pairs = lr.pairs;
+    var seq = Scales.challengeSequence(stats, pairs, null, 10);
+    scalesSession = { instrument: seq[0], seq: seq, done: 0, target: seq.length, q: null, firstTry: true, locked: false, correct: 0, mode: 'challenge', per: { ruler: { n: 0, ok: 0 }, kitchen: { n: 0, ok: 0 }, jug: { n: 0, ok: 0 } } };
+    renderScales();
+  }
+
   function nextScaleQuestion() {
     var s = scalesSession;
     s.locked = false;
+    // a challenge walks its pre-built sequence; `done` is the count of
+    // answered questions, which is exactly the index of the next one
+    if (s.mode === 'challenge' && s.seq) s.instrument = s.seq[s.done];
     s.q = Scales.question(s.instrument);
     s.firstTry = true;
     var spec = Scales.SCALE_SPECS[s.instrument];
@@ -1195,8 +1219,12 @@
     var howTo = s.instrument === 'ruler' ? spec.howTo[level] : spec.howTo;
     var svg = s.instrument === 'ruler' ? Scales.rulerSVG(s.q.answer, level)
       : (s.instrument === 'kitchen' ? Scales.kitchenSVG(s.q.answer) : Scales.jugSVG(s.q.answer));
+    var chal = s.mode === 'challenge'
+      ? '<p class="scales-chal" role="status">⚡ Challenge ' + (s.done + 1) + ' of ' + s.target + ' — ' + SCALE_LABELS[s.instrument] + '</p>'
+      : '';
     var stage = $('scales-stage');
     stage.innerHTML = '<div class="scales-q">' +
+      chal +
       '<p class="scales-prompt">Question ' + (s.done + 1) + ' of ' + s.target + '. Read the scale. How many <strong>' + spec.ask + '</strong>?</p>' +
       '<p class="scales-how" role="note">💡 ' + esc(howTo) + '</p>' +
       levelUp +
@@ -1230,8 +1258,10 @@
       return;
     }
     s.locked = true;
+    if (s.per && s.per[s.instrument]) s.per[s.instrument].n++;
     if (val === s.q.answer) {
       if (s.firstTry) s.correct++;
+      if (s.per && s.per[s.instrument]) s.per[s.instrument].ok++;
       Audio.play('correct');
       fb.textContent = 'Correct! It reads ' + F.scaledToSA(s.q.answer, 1) + ' ' + s.q.unit + '.';
       fb.className = 'feedback feedback--ok';
@@ -1262,15 +1292,31 @@
     var s = scalesSession;
     var pct2 = Math.round((s.correct / s.target) * 100);
     var stage = $('scales-stage');
+    var againLabel = s.mode === 'challenge' ? 'Another challenge' : 'Read more';
+    var summary = '';
+    if (s.mode === 'challenge' && s.per) {
+      var rows = '', worst = null, worstPct = 1.01;
+      ['ruler', 'kitchen', 'jug'].forEach(function (ins) {
+        var rec = s.per[ins];
+        if (!rec || !rec.n) return;
+        var p = Math.round((rec.ok / rec.n) * 100);
+        rows += '<span class="chal-ins chal-ins--' + ins + '">' + SCALE_LABELS[ins] + ' ' + rec.ok + '/' + rec.n + '</span>';
+        if (p < worstPct) { worstPct = p; worst = ins; }
+      });
+      summary = '<div class="scales-chal-summary" aria-label="Challenge results by scale">' + rows + '</div>' +
+        (worst ? '<p class="scales-chal-nudge">🧭 ' + SCALE_LABELS[worst] + ' needs the most practice — another challenge will grow it!</p>' : '');
+    }
     stage.innerHTML = '<div class="card done-card">' +
       '<h2 class="done-title">' + (pct2 === 100 ? 'Perfect reading! ⚡' : pct2 >= 60 ? 'Great reading!' : 'Keep practising!') + '</h2>' +
       '<p class="done-score">You read ' + s.correct + ' of ' + s.target + ' scales correctly.</p>' +
+      summary +
       '<div class="done-actions">' +
-        '<button type="button" class="btn btn--primary" id="btn-scales-again">Read more</button>' +
+        '<button type="button" class="btn btn--primary" id="btn-scales-again">' + againLabel + '</button>' +
         '<button type="button" class="btn btn--ghost" id="btn-scales-switch">Pick a different scale</button>' +
       '</div></div>';
     $('btn-scales-again').addEventListener('click', function () {
       Audio.play('click');
+      if (s.mode === 'challenge') { startScalesChallenge(); return; }
       scalesSession = { instrument: s.instrument, done: 0, target: 10, q: null, firstTry: true, locked: false, correct: 0 };
       nextScaleQuestion();
     });

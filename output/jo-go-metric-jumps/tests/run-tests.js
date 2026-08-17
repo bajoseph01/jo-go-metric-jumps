@@ -878,6 +878,34 @@ for (const x of si) {
 eq(siBad, 0, 'worksheet readings on ticks with right units');
 eq(JSON.stringify(Scales.worksheetItems(makeRng(21), null)), JSON.stringify(Scales.worksheetItems(makeRng(21), null)), 'worksheet items deterministic per rng');
 
+// ---- Scales Challenge: adaptive mixed-instrument sequence -------------
+{
+  const seq = Scales.challengeSequence(null, null, makeRng(7), 10);
+  eq(seq.length, 10, 'challenge is 10 readings');
+  const cnt = s => seq.filter(x => x === s).length;
+  ok(cnt('ruler') >= 1 && cnt('kitchen') >= 1 && cnt('jug') >= 1, 'challenge guarantees one of each instrument');
+  ok(seq.every(x => ['ruler', 'kitchen', 'jug'].indexOf(x) > -1), 'challenge only deals real instruments');
+  let run = 1, bad = 0;
+  for (let i = 1; i < seq.length; i++) { run = seq[i] === seq[i - 1] ? run + 1 : 1; if (run >= 3) bad++; }
+  eq(bad, 0, 'challenge never deals the same scale 3x in a row');
+  eq(JSON.stringify(Scales.challengeSequence(null, null, makeRng(7), 10)), JSON.stringify(seq), 'challenge deterministic per rng');
+  // a mastered ruler gives way to dials and jugs
+  const mastered = { ruler: { attempts: 10, firstTry: 9 }, kitchen: { attempts: 4, firstTry: 1 }, jug: { attempts: 2, firstTry: 0 } };
+  const seq2 = Scales.challengeSequence(mastered, null, makeRng(3), 10);
+  const c2 = s => seq2.filter(x => x === s).length;
+  ok(c2('jug') > c2('ruler'), 'mastered ruler gives way to the weak jug (' + c2('jug') + ' jug vs ' + c2('ruler') + ' ruler)');
+  ok(c2('ruler') >= 1, 'mastered ruler still appears once for review');
+  // weak conversion pairs in a dimension lean the challenge to its scale
+  const weakMass = { 'kg>g': { attempts: 1, firstTry: 0 }, 'g>kg': { attempts: 1, firstTry: 0 }, 'g>mg': { attempts: 1, firstTry: 0 }, 'mg>g': { attempts: 1, firstTry: 0 } };
+  const seq3 = Scales.challengeSequence(null, weakMass, makeRng(5), 10);
+  const c3 = s => seq3.filter(x => x === s).length;
+  ok(c3('kitchen') >= c3('ruler') && c3('kitchen') >= c3('jug'), 'weak mass pairs lean to the kitchen scale (' + JSON.stringify([c3('ruler'), c3('kitchen'), c3('jug')]) + ')');
+  // fresh learner: no data anywhere — the mix stays balanced
+  const seq4 = Scales.challengeSequence(null, null, makeRng(11), 10);
+  const c4 = s => seq4.filter(x => x === s).length;
+  ok(Math.abs(c4('ruler') - c4('jug')) <= 2 && Math.abs(c4('ruler') - c4('kitchen')) <= 2, 'fresh learner gets a balanced mix (' + JSON.stringify([c4('ruler'), c4('kitchen'), c4('jug')]) + ')');
+}
+
 // ---- accessible scale descriptions (AC-003) -------------------------
 // The worksheet/challenge SVGs carry a screen-reader <desc> that names the
 // labelled mark and how many small marks past it the pointer sits — the

@@ -157,12 +157,101 @@
     return html;
   }
 
+  /**
+   * Build a mixed-instrument challenge sequence (default 10) that adapts to
+   * the learner. Every instrument appears at least once (review value); the
+   * remaining slots are drawn weighted by WEAKNESS, so a mastered ruler
+   * gives way to dials and jugs the learner still needs.
+   *
+   * Two weakness signals combine:
+   *  - `stats` (per-instrument {attempts, firstTry}) — reading mastery,
+   *    the same signal rulerLevel uses (8 attempts at 80%+ = mastered);
+   *  - `progress` (per-conversion-pair {attempts, firstTry}, keys like
+   *    'kg>g') — the learner's weak conversion pairs, mapped to the
+   *    instrument that measures that dimension (ruler↔length, kitchen↔mass,
+   *    jug↔volume).
+   *
+   * Deterministic per rng; never deals the same instrument 3× in a row.
+   */
+  function challengeSequence(stats, progress, rng, n) {
+    rng = rng || Math.random;
+    n = n || 10;
+    stats = stats || {};
+    progress = progress || {};
+    var instruments = ['ruler', 'kitchen', 'jug'];
+    var DIM_PAIRS = {
+      ruler: ['km>m', 'm>km', 'm>cm', 'cm>m', 'cm>mm', 'mm>cm'],
+      kitchen: ['kg>g', 'g>kg', 'g>mg', 'mg>g'],
+      jug: ['kL>L', 'L>kL', 'L>mL', 'mL>L']
+    };
+    function readiness(rec) {
+      if (!rec || !rec.attempts) return 0;
+      var acc = rec.firstTry / rec.attempts;
+      return Math.min(1, rec.attempts / 8) * acc;
+    }
+    var weights = {};
+    for (var i = 0; i < instruments.length; i++) {
+      var ins = instruments[i];
+      var readW = 0.5 + 2 * (1 - readiness(stats[ins]));
+      var dimRecs = DIM_PAIRS[ins];
+      var wsum = 0, wcnt = 0;
+      for (var p = 0; p < dimRecs.length; p++) {
+        if (progress[dimRecs[p]]) { wsum += readiness(progress[dimRecs[p]]); wcnt++; }
+      }
+      var dimWeak = wcnt ? 1 - wsum / wcnt : 0.5; // untouched dimension = neutral, explicitly weak = 1
+      var dimW = 0.7 + 1.3 * dimWeak;
+      weights[ins] = readW * dimW;
+    }
+    var seq = [];
+    // guarantee one of each, weakest first so the opening is relevant
+    var order = instruments.slice().sort(function (a, b) { return weights[b] - weights[a]; });
+    for (var g = 0; g < order.length; g++) seq.push(order[g]);
+    var total = weights.ruler + weights.kitchen + weights.jug;
+    while (seq.length < n) {
+      var r = rng() * total;
+      var pick = r < weights.ruler ? 'ruler' : (r < weights.ruler + weights.kitchen ? 'kitchen' : 'jug');
+      // never three of the same instrument in a row — a child re-reading
+      // the same scale three times stops looking
+      var L = seq.length;
+      if (L >= 2 && seq[L - 1] === pick && seq[L - 2] === pick) {
+        pick = pick === 'ruler' ? (weights.kitchen >= weights.jug ? 'kitchen' : 'jug')
+          : (pick === 'kitchen' ? (weights.ruler >= weights.jug ? 'ruler' : 'jug')
+            : (weights.ruler >= weights.kitchen ? 'ruler' : 'kitchen'));
+      }
+      seq.push(pick);
+    }
+    // shuffle so the guaranteed-first ordering isn't always the opener,
+    // then REPAIR any runs of 3+ the shuffle re-created (swap the third
+    // of a run with a later different instrument)
+    for (var j = seq.length - 1; j > 0; j--) {
+      var k = Math.floor(rng() * (j + 1));
+      var tmp = seq[j]; seq[j] = seq[k]; seq[k] = tmp;
+    }
+    for (var pass = 0; pass < 5; pass++) {
+      var fixed = false;
+      for (var r = 2; r < seq.length; r++) {
+        if (seq[r] === seq[r - 1] && seq[r] === seq[r - 2]) {
+          for (var s = r + 1; s < seq.length; s++) {
+            if (seq[s] !== seq[r]) {
+              var t = seq[r]; seq[r] = seq[s]; seq[s] = t;
+              fixed = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!fixed) break;
+    }
+    return seq;
+  }
+
   var Scales = {
     SCALE_SPECS: SCALE_SPECS,
     question: question,
     parseInput: parseInput,
     rulerLevel: rulerLevel,
     scaleDescription: scaleDescription,
+    challengeSequence: challengeSequence,
     rulerSVG: rulerSVG,
     kitchenSVG: kitchenSVG,
     jugSVG: jugSVG
