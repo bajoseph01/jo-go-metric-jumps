@@ -592,6 +592,13 @@ async function run() {
       check(!!badge && badge.spotMin >= 44, 'comma: landing spots meet the 44px floor (' + vp.label + ' — ' + (badge ? Math.round(badge.spotMin) + 'px' : 'n/a') + ')');
       check(!!badge && badge.hintMin >= 44, 'comma: Show hint meets the 44px floor (' + vp.label + ' — ' + (badge && badge.hintMin ? Math.round(badge.hintMin) + 'px' : 'n/a') + ')');
 
+      // settle the comma at the correct gap and assert the success state
+      // keeps the drawn comma readable (dark-green badge, white ink — the
+      // old bright green gave the white comma only 3.1:1 contrast)
+      const settled = await evalJs(cdp, "(() => { const h = document.querySelector('.comma-handle'); const wrap = document.querySelector('.track'); if (!h || !wrap) return null; const spots = Array.from(document.querySelectorAll('.gap-spot')); const key = (k) => wrap.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })); const goTo = (target) => { let cur = Number(wrap.getAttribute('aria-valuenow') || 0); let guard = 0; while (cur < target && guard++ < 20) { key('ArrowRight'); cur = Number(wrap.getAttribute('aria-valuenow')); } while (cur > target && guard++ < 20) { key('ArrowLeft'); cur = Number(wrap.getAttribute('aria-valuenow')); } }; let settledAt = null; for (let g = 1; g < spots.length && !settledAt; g++) { goTo(g); key('Enter'); if (wrap.classList.contains('track--settled')) settledAt = g; } if (!settledAt) return { settled: false }; const cs = getComputedStyle(h); const circle = getComputedStyle(h.querySelector('circle')); const okBg = cs.backgroundColor === 'rgb(14, 122, 61)'; const okInk = circle.fill === 'rgb(255, 255, 255)'; return { settled: true, bg: cs.backgroundColor, ink: circle.fill, okBg: okBg, okInk: okInk }; })()");
+      check(!!settled && settled.settled, 'comma: the comma settles at the answer gap (' + vp.label + ' — ' + (settled && settled.settled ? 'yes' : 'no') + ')');
+      check(!!settled && settled.settled && settled.okBg && settled.okInk, 'comma: settled state keeps the white comma bold on green-dark (' + vp.label + ' — ' + (settled && settled.settled ? settled.bg + ' / ' + settled.ink : 'n/a') + ')');
+
       // keypad keys + Check button (stage 5 = Independent Conversion, input
       // questions render the keypad; a 20% sanity mix is re-rolled up to 3x)
       await goHomeForFit(cdp);

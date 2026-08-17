@@ -780,7 +780,11 @@ button.rung {
 }
 
 .track--settled .comma-handle {
-  background: var(--green);
+  /* green-dark, not green: the white drawn comma needs contrast to stay
+     bold when it flips to the success state (5.4:1 vs 3.1:1 on green).
+     Matches the app's other success colours (result lines, mastered
+     badges). */
+  background: var(--green-dark);
   color: #fff;
   animation: comma-pop 0.35s ease;
 }
