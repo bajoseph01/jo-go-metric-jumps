@@ -193,8 +193,11 @@
     function layout() {
       var w = cellWidth();
       row.style.height = (w + 14) + 'px';
-      var hw = Math.min(w * 0.8, 50);   // rounded-rect comma badge, narrower than a cell
-      var hh = Math.round(hw * 0.66);
+      // Comma aura: only a few pixels wider than the glyph itself, so the
+      // digits in the track stay visible around it (was 80% of a cell — too
+      // wide, it swallowed the numbers behind it).
+      var hw = Math.min(w * 0.34, 24);
+      var hh = Math.round(Math.min(w * 0.72, 36));
       handle.style.width = hw + 'px';
       handle.style.height = hh + 'px';
       handle.style.left = (track.startGap * w - hw / 2) + 'px';
