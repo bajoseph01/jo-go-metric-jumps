@@ -417,6 +417,92 @@ async function run() {
     const afterGo = await evalJs(cdp, "(() => ({ clock: !!document.getElementById('chal-clock'), input: !!document.getElementById('chal-input'), overlaysLeft: document.querySelectorAll('.chal-intro-overlay').length }))()");
     check(afterGo.clock && afterGo.input && afterGo.overlaysLeft === 0, 'challenge: race starts with ZERO intro dialogs left behind');
 
+    // ---- Screen 7: IPAD FIT — the page must never scroll; content scrolls ----
+    // Regression this exists for: screens used min-height:100dvh, so tall
+    // screens grew past the viewport and the WHOLE PAGE scrolled (How It
+    // Works was 1505px tall — ~685px of page scrolling on an iPad in
+    // landscape). Every screen must now be exactly one viewport tall
+    // (pageExcess 0) at both iPad portrait and landscape, with overflow
+    // contained inside the screen's own scrollable body.
+    async function measureFit(cdp, label) {
+      const expr = "(() => { const act = document.querySelector('.screen--active'); if (!act) return { label: '" + label + "', err: 'no active screen' }; const page = document.scrollingElement || document.documentElement; let innerExcess = 0, innerSel = null; for (const el of act.querySelectorAll('*')) { const cs = getComputedStyle(el); if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 1) { const ex = el.scrollHeight - el.clientHeight; if (ex > innerExcess) { innerExcess = ex; innerSel = el.id || el.className || el.tagName; } } } return { label: '" + label + "', activeId: act.id, pageExcess: page.scrollHeight - page.clientHeight, innerExcess: innerExcess, innerSel: innerSel ? String(innerSel).slice(0, 30) : null }; })()";
+      return evalJs(cdp, expr);
+    }
+    async function goHomeForFit(cdp) {
+      await evalJs(cdp, "(() => { const b = document.querySelector('#btn-home') || document.querySelector('[data-back]'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "!!document.getElementById('screen-home') && document.getElementById('screen-home').classList.contains('screen--active')", 8000);
+      await sleep(250);
+    }
+    // Teacher-mode leg shared by the worksheets measurement: 5 brand taps + PIN.
+    async function openTeacherForFit(cdp) {
+      await evalJs(cdp, "(() => { const b = document.querySelector('.brand-title'); if (b) { for (let i = 0; i < 5; i++) b.click(); return true; } return false; })()");
+      await sleep(350);
+      await evalJs(cdp, "(() => { const keys = Array.from(document.querySelectorAll('button')); let t = 0; for (const ch of '5241') { const k = keys.find(x => x.textContent.trim() === ch); if (k) { k.click(); t++; } } return t; })()");
+      await sleep(350);
+      await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => /Unlock|Enter|Go|OK/i.test(x.textContent.trim())); if (b && !/PLAY|Play/i.test(b.textContent)) { b.click(); return true; } return false; })()");
+      await sleep(600);
+    }
+    const IPAD_VIEWPORTS = [
+      { w: 810, h: 1080, label: 'iPad 9th portrait' },
+      { w: 1180, h: 820, label: 'iPad 10th landscape' }
+    ];
+    for (const vp of IPAD_VIEWPORTS) {
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: vp.w, height: vp.h, deviceScaleFactor: 2, mobile: true });
+      await sleep(500);
+      console.log('  ipad-fit @ ' + vp.label + ' ' + vp.w + 'x' + vp.h);
+
+      // home
+      await goHomeForFit(cdp);
+      let fit = await measureFit(cdp, 'home');
+      check(fit.pageExcess === 0, 'ipad-fit: home never scrolls the page (' + vp.label + ')');
+      // how it works
+      await goHomeForFit(cdp);
+      await evalJs(cdp, "document.getElementById('btn-how').click(); true");
+      await waitForJs(cdp, "document.getElementById('screen-how').classList.contains('screen--active')", 6000);
+      await sleep(300);
+      fit = await measureFit(cdp, 'how');
+      check(fit.pageExcess === 0, 'ipad-fit: How It Works never scrolls the page (' + vp.label + ')');
+      // my progress
+      await goHomeForFit(cdp);
+      await evalJs(cdp, "document.getElementById('btn-progress').click(); true");
+      await waitForJs(cdp, "document.getElementById('screen-progress').classList.contains('screen--active')", 6000);
+      await sleep(300);
+      fit = await measureFit(cdp, 'progress');
+      check(fit.pageExcess === 0, 'ipad-fit: My Progress never scrolls the page (' + vp.label + ')');
+      // practice
+      await goHomeForFit(cdp);
+      await evalJs(cdp, "document.getElementById('btn-practice').click(); true");
+      await waitForJs(cdp, "document.getElementById('screen-practice').classList.contains('screen--active')", 6000);
+      await sleep(300);
+      fit = await measureFit(cdp, 'practice');
+      check(fit.pageExcess === 0, 'ipad-fit: Practice never scrolls the page (' + vp.label + ')');
+      // game (question one)
+      await goHomeForFit(cdp);
+      await evalJs(cdp, "document.getElementById('btn-play').click(); true");
+      await waitForJs(cdp, "document.getElementById('screen-game').classList.contains('screen--active') && !!document.querySelector('[data-role=\"ladder\"]')", 8000);
+      await sleep(300);
+      fit = await measureFit(cdp, 'game');
+      check(fit.pageExcess === 0, 'ipad-fit: the game never scrolls the page (' + vp.label + ')');
+      // scales lab
+      await goHomeForFit(cdp);
+      await evalJs(cdp, "document.getElementById('btn-scales').click(); true");
+      await waitForJs(cdp, "document.getElementById('screen-scales').classList.contains('screen--active')", 6000);
+      await sleep(300);
+      fit = await measureFit(cdp, 'scales');
+      check(fit.pageExcess === 0, 'ipad-fit: Read the Scales never scrolls the page (' + vp.label + ')');
+      // worksheets (through teacher mode)
+      await goHomeForFit(cdp);
+      await openTeacherForFit(cdp);
+      await evalJs(cdp, "(() => { const b = Array.from(document.querySelectorAll('button')).find(x => /Worksheet/i.test(x.textContent)); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "document.getElementById('screen-worksheets').classList.contains('screen--active') && !!document.querySelector('.ws-sheet')", 8000);
+      await sleep(300);
+      fit = await measureFit(cdp, 'worksheets');
+      check(fit.pageExcess === 0, 'ipad-fit: worksheets never scroll the page (' + vp.label + ')');
+    }
+    // restore the default viewport for the clock session below
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+    await sleep(400);
+
     // ------------------------------------------------------------------
     // CLOCK APP (Tick⚡Tock) — second browser session over a tiny static
     // server (the preview server only serves the main app). Same real-

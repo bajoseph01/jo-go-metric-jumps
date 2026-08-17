@@ -70,7 +70,13 @@ button {
 .screen--active {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  /* exactly one viewport tall — the inner .page-body/.game-main/.home-main
+     scroll (overflow-y: auto) so the header stays put and the whole page
+     never scrolls. vh fallback first for older iOS Safari, dvh overrides
+     where supported so the URL-bar collapse is handled correctly. */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -1773,7 +1779,7 @@ button {
 
 @media print {
   .screen { display: none !important; }
-  .screen--active { display: block !important; }
+  .screen--active { display: block !important; height: auto !important; overflow: visible !important; }
   .page-head, .report-picker, .ws-options, .ws-note { display: none !important; }
   .report, .ws-sheet, .ws-answers {
     border: none;
@@ -1848,6 +1854,49 @@ button {
   .track-row { --cell: min(13vh, 54px); }
   .key { min-height: 48px; font-size: 1.2rem; }
   .equation { font-size: clamp(1.6rem, 7vw, 2.4rem); margin: 6px 0 10px; }
+}
+
+/* iPad-sized landscape: short and wide, so the tall screens get a tighter
+   layout and the How It Works cards / worksheet sheets flow two-up. The
+   height lock above keeps the page from scrolling; this just trims the
+   scroll distance inside each screen. */
+@media (orientation: landscape) and (min-width: 700px) and (max-height: 950px) {
+  /* How It Works: cards side by side, tighter ladder */
+  #screen-how .page-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-content: start;
+  }
+  #screen-how .page-body > .btn { grid-column: 1 / -1; justify-self: center; }
+  .how-ladder { padding: 10px 16px 8px; }
+  .how-ladder .rung { font-size: 0.95rem; padding: 4px 0; border-width: 2px; }
+  .how-ladder .ladder-gap { height: 26px; }
+  .how-ladder .ladder-gap-f { font-size: 0.7rem; padding: 1px 8px; }
+  .how-steps li { margin-bottom: 6px; }
+  .how-example { font-size: 1.35rem; }
+  .rule-big { font-size: 1rem; padding: 8px; }
+  .how-note { font-size: 0.9rem; }
+  /* worksheets + challenge: sheets two-up, answer key full width */
+  #worksheets-body, #challenge-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  #worksheets-body .ws-options, #challenge-body .ws-options,
+  #worksheets-body .ws-answers, #challenge-body .ws-answers { grid-column: 1 / -1; }
+  #worksheets-body .ws-sheet, #challenge-body .ws-sheet { margin: 0; width: 100%; }
+  .ws-sheet { padding: 12px 14px; }
+  .ws-q { margin: 8px 0; }
+  .ws-scale-item { margin: 8px 0; padding-bottom: 8px; }
+  .ws-q--scale .scale-svg { max-width: 230px; }
+  /* game: trim so the keypad stays on screen */
+  .equation { font-size: clamp(1.6rem, 6vw, 2.4rem); margin: 8px 0 12px; }
+  .key { min-height: 52px; font-size: 1.3rem; }
+  .track-row { --cell: min(12vh, 54px); }
+  .btn--op { min-height: 62px; font-size: 1.5rem; }
+  .btn--jump { min-height: 66px; font-size: 1.3rem; }
 }
 
 /* ---------------- reduced motion ---------------- */

@@ -358,7 +358,7 @@ Check for these so you don't reinvent them:
       until the conversion is the thing being taught.
 - [ ] **Real-pixel visual check:** `node tests/visual-check.js` drives the
       app in headless Edge/Chrome, screenshots the actual rendered page,
-      decodes the PNG, and asserts on the pixels (41 checks across home,
+      decodes the PNG, and asserts on the pixels (55 checks across home,
       scales, game, How It Works, worksheets, the timed challenge, AND the
       clock app in a second session). Never rely on the interactive preview
       compositor for verification — it can be stale or unavailable; the
