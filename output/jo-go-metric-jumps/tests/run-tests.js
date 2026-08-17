@@ -1377,6 +1377,32 @@ ok(cssSrc2.indexOf('.btn--next') > -1, 'Next button is styled');
 }
 
 // ------------------------------------------------------------------
+// 23. App identity: brand name + storage key (rename guard)
+// ------------------------------------------------------------------
+// A rename or refactor must never silently wipe learner data or lose the
+// displayed app name. These assertions pin BOTH the internal storage key
+// (renaming it orphans every child's progress on the classroom iPads) and
+// the user-facing brand string — they must change together, deliberately.
+// ------------------------------------------------------------------
+section('23. App identity: storage key + brand name (rename guard)');
+{
+  const fresh = Store.createStore({ getItem: () => null, setItem: () => {} });
+  eq(fresh.KEY, 'jogo-metric-jumps.v1', 'storage key is still jogo-metric-jumps.v1');
+  const stSrc3 = fs.readFileSync(path.join(__dirname, '..', 'js', 'storage.js'), 'utf8');
+  ok(stSrc3.indexOf("var KEY = 'jogo-metric-jumps.v1'") > -1, 'storage.js source pins the jogo-metric-jumps.v1 key');
+  const htmlSrc3 = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  ok(htmlSrc3.indexOf('<title>Jo⚡Go Metric Master</title>') > -1, 'browser title is Jo⚡Go Metric Master');
+  ok(htmlSrc3.indexOf('>Metric Master</p>') > -1, 'home brand pill says Metric Master');
+  const manSrc = fs.readFileSync(path.join(__dirname, '..', 'manifest.webmanifest'), 'utf8');
+  ok(manSrc.indexOf('"name": "Jo⚡Go Metric Master"') > -1 && manSrc.indexOf('"short_name": "Metric Master"') > -1, 'manifest name is Jo⚡Go Metric Master');
+  const swSrc = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  ok(swSrc.indexOf("var CACHE = 'jogo-metric-jumps-v9'") > -1, 'service-worker cache keeps the jogo-metric-jumps-v9 name');
+  // The display name and the internal key must never be the same string —
+  // if someone "re-names" the brand to the key, that is a red flag.
+  ok(htmlSrc3.indexOf('jogo-metric-jumps') === -1, 'the brand never leaks the internal storage key');
+}
+
+// ------------------------------------------------------------------
 // Summary
 // ------------------------------------------------------------------
 console.log('\n========================================');
