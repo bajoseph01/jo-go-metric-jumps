@@ -702,11 +702,13 @@ button {
    unpainted but makes the whole handle comfortably grabbable (pointer
    capture then keeps the drag alive even after the finger leaves it).
    Note: inset is relative to the padding box, so the 3px ink border is
-   added back to deliver the visible expansion below (~44x54px zone). */
+   added back to deliver the visible expansion below (~49x56px zone, at
+   least double the badge width and past the 44px fingertip floor at
+   every cell size). */
 .comma-handle::after {
   content: '';
   position: absolute;
-  inset: -14px -14px -10px -14px;
+  inset: -15px -17px -11px -17px;
   border-radius: 14px;
   pointer-events: auto;
 }

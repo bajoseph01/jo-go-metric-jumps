@@ -510,6 +510,9 @@ async function run() {
       await waitForJs(cdp, "document.getElementById('screen-practice').classList.contains('screen--active')", 6000);
       await evalJs(cdp, "(() => { const b = document.querySelector('[data-stage=\"3\"]'); if (b) { b.click(); return true; } return false; })()");
       await waitForJs(cdp, "document.getElementById('screen-game').classList.contains('screen--active') && !!document.querySelector('.btn--op')", 8000);
+      // every interactive target must clear the 44px fingertip floor
+      const opSizes = await evalJs(cdp, "(() => Array.from(document.querySelectorAll('.btn--op')).map(b => { const r = b.getBoundingClientRect(); return Math.min(r.width, r.height); }))()");
+      check(opSizes.length >= 2 && opSizes.every(s => s >= 44), 'comma: operation buttons meet the 44px floor (' + vp.label + ' — min ' + Math.round(Math.min.apply(null, opSizes)) + 'px)');
       // step 1/3: pick the operation with the exact factor (6 buttons, so
       // startsWith is not enough — match the full label built from exponents)
       // unit regex: two-char units MUST come before single-char prefixes or
@@ -527,13 +530,43 @@ async function run() {
         await waitForJs(cdp, "!!document.querySelector('.btn--jump')", 8000);
       }
       // step 2/3: click the correct jump count
+      const jumpSizes = await evalJs(cdp, "(() => Array.from(document.querySelectorAll('.btn--jump')).map(b => { const r = b.getBoundingClientRect(); return Math.min(r.width, r.height); }))()");
+      check(jumpSizes.length >= 3 && jumpSizes.every(s => s >= 44), 'comma: jump-count buttons meet the 44px floor (' + vp.label + ' — min ' + Math.round(Math.min.apply(null, jumpSizes)) + 'px)');
       const jumpDone = await evalJs(cdp, "(() => { const pr = document.querySelector('.question-prompt'); const m = pr.textContent.match(/(km|cm|mm|kg|mg|kL|mL|m|g|L)\\s*\\u2192\\s*(km|cm|mm|kg|mg|kL|mL|m|g|L)/); if (!m) return 'no-units'; const EXP = { km: 3, m: 0, cm: -2, mm: -3, kg: 3, g: 0, mg: -3, kL: 3, L: 0, mL: -3 }; const jumps = Math.abs(EXP[m[1]] - EXP[m[2]]); const b = document.querySelector('.btn--jump[data-value=\"' + jumps + '\"]'); if (!b) return 'no-jump-btn:' + jumps; b.click(); return 'jumps ' + jumps; })()");
       await waitForJs(cdp, "!!document.querySelector('.comma-handle')", 8000);
       await sleep(300);
-      const badge = await evalJs(cdp, "(() => { const h = document.querySelector('.comma-handle'); const c = document.querySelector('.track-row .cell'); if (!h || !c) return null; const hb = h.getBoundingClientRect(); const cb = c.getBoundingClientRect(); return { badgeW: Math.round(hb.width * 10) / 10, cellW: Math.round(cb.width * 10) / 10, ratio: hb.width / cb.width }; })()");
+      // badge + effective hit rect (element UNION ::after padding) + landing
+      // spots + hint button, all measured in the same frame
+      const badge = await evalJs(cdp, "(() => { const h = document.querySelector('.comma-handle'); const c = document.querySelector('.track-row .cell'); if (!h || !c) return null; const hb = h.getBoundingClientRect(); const cb = c.getBoundingClientRect(); const cs = getComputedStyle(h); const ps = getComputedStyle(h, '::after'); const bl = parseFloat(cs.borderLeftWidth) || 0, bt = parseFloat(cs.borderTopWidth) || 0, br = parseFloat(cs.borderRightWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0; const ins = ps.inset.split(' ').map(x => parseFloat(x)); const t = ins[0], r = ins.length >= 2 ? ins[1] : ins[0], b = ins.length >= 3 ? ins[2] : ins[0], l = ins.length === 4 ? ins[3] : r; const pw = hb.width - bl - br, ph = hb.height - bt - bb; const hitW = pw - l - r, hitH = ph - t - b; const spots = Array.from(document.querySelectorAll('.gap-spot')).map(s => { const sr = s.getBoundingClientRect(); return Math.min(sr.width, sr.height); }); const hint = document.querySelector('.btn--hint'); const htr = hint ? hint.getBoundingClientRect() : null; return { badgeW: hb.width, badgeH: hb.height, cellW: cb.width, ratio: hb.width / cb.width, hitW: hitW, hitH: hitH, hitRatio: hitW / hb.width, spotMin: Math.min.apply(null, spots), hintMin: htr ? Math.min(htr.width, htr.height) : null }; })()");
       console.log('  comma badge @ ' + vp.label + ' — ' + JSON.stringify(badge) + ' [' + JSON.stringify(opDone) + ' / ' + JSON.stringify(jumpDone) + ']');
       check(!!badge, 'comma: the guided track renders its badge (' + vp.label + ')');
       check(!!badge && badge.ratio < 0.5, 'comma: badge stays under half the cell width (' + vp.label + ' — ' + (badge ? Math.round(badge.ratio * 1000) / 10 + '%' : 'n/a') + ')');
+      check(!!badge && badge.hitRatio >= 2, 'comma: grab area is at least double the visible badge (' + vp.label + ' — ' + (badge ? Math.round(badge.hitRatio * 100) + '%' : 'n/a') + ')');
+      check(!!badge && Math.min(badge.hitW, badge.hitH) >= 44, 'comma: grab area meets the 44px fingertip floor (' + vp.label + ' — ' + (badge ? Math.round(Math.min(badge.hitW, badge.hitH)) + 'px' : 'n/a') + ')');
+      check(!!badge && badge.spotMin >= 44, 'comma: landing spots meet the 44px floor (' + vp.label + ' — ' + (badge ? Math.round(badge.spotMin) + 'px' : 'n/a') + ')');
+      check(!!badge && badge.hintMin >= 44, 'comma: Show hint meets the 44px floor (' + vp.label + ' — ' + (badge && badge.hintMin ? Math.round(badge.hintMin) + 'px' : 'n/a') + ')');
+
+      // keypad keys + Check button (stage 5 = Independent Conversion, input
+      // questions render the keypad; a 20% sanity mix is re-rolled up to 3x)
+      await goHomeForFit(cdp);
+      await openTeacherForFit(cdp);
+      await evalJs(cdp, "(() => { const b = document.querySelector('[data-action=\"practice-all\"]'); if (b) { b.click(); return true; } return false; })()");
+      await waitForJs(cdp, "document.getElementById('screen-practice').classList.contains('screen--active')", 6000);
+      let keysOk = null;
+      for (let attempt = 0; attempt < 3 && !keysOk; attempt++) {
+        await evalJs(cdp, "(() => { const b = document.querySelector('[data-stage=\"5\"]'); if (b) { b.click(); return true; } return false; })()");
+        await waitForJs(cdp, "document.getElementById('screen-game').classList.contains('screen--active') && (!!document.querySelector('.key') || !!document.querySelector('.btn--judge'))", 8000);
+        if (await evalJs(cdp, "!!document.querySelector('.key')")) {
+          keysOk = await evalJs(cdp, "(() => { const ks = Array.from(document.querySelectorAll('.key')).map(k => { const r = k.getBoundingClientRect(); return Math.min(r.width, r.height); }); const s = document.querySelector('.key--submit'); const sr = s ? s.getBoundingClientRect() : null; return { minKey: Math.min.apply(null, ks), submitMin: sr ? Math.min(sr.width, sr.height) : null, n: ks.length }; })()");
+        } else { // sanity question — re-roll by restarting the stage
+          await goHomeForFit(cdp);
+          await openTeacherForFit(cdp);
+          await evalJs(cdp, "(() => { const b = document.querySelector('[data-action=\"practice-all\"]'); if (b) { b.click(); return true; } return false; })()");
+          await waitForJs(cdp, "document.getElementById('screen-practice').classList.contains('screen--active')", 6000);
+        }
+      }
+      check(!!keysOk, 'comma: the keypad rendered for measuring (' + vp.label + ')');
+      check(!!keysOk && keysOk.minKey >= 44 && keysOk.submitMin >= 44, 'comma: keypad keys and Check meet the 44px floor (' + vp.label + ' — min ' + (keysOk ? Math.round(keysOk.minKey) + 'px' : 'n/a') + ')');
     }
     // restore the default viewport for the clock session below
     await cdp.send('Emulation.clearDeviceMetricsOverride');
